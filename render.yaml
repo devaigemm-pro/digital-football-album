@@ -27,9 +27,9 @@ services:
         value: supabase
       - key: SUPABASE_URL
         value: https://nliltolgmocerrwhjivi.supabase.co
-      # Orígenes CORS del/los cliente(s) web. Ajusta al dominio real del frontend.
-      - key: CORS_ORIGINS
-        sync: false
+      # CORS: el cliente principal es una app móvil nativa (React Native), que NO
+      # está sujeta a CORS. Por eso CORS_ORIGINS es OPCIONAL: solo defínela en el
+      # dashboard si algún día añades un cliente web (p. ej. panel de admin).
 
       # --- Secretas (cargar en el dashboard de Render, nunca en el repo) ---
       # anon/publishable key de Supabase (para el JWKS de Auth).

@@ -54,10 +54,15 @@ datos. `supabase/seed.sql` solo se usa en local (`db reset`).
    |---|---|---|
    | `SUPABASE_ANON_KEY` | Supabase → Project Settings → API (anon/publishable) | sí |
    | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API (service_role) | **sí, alto poder** |
-   | `CORS_ORIGINS` | dominio(s) del frontend, separados por coma | no, pero por entorno |
+   | `CORS_ORIGINS` | **opcional** — solo si añades un cliente web (panel admin) | no |
 
    Las no secretas (`NODE_ENV`, `PERSISTENCE_DRIVER`, `AUTH_PROVIDER`,
    `SUPABASE_URL`, `HOST`) ya vienen en `render.yaml`. Render inyecta `PORT`.
+
+   > El cliente principal es una **app móvil nativa** (React Native), que no está
+   > sujeta a CORS (no envía cabecera `Origin`). Por eso `CORS_ORIGINS` es
+   > opcional: si no se define, el gateway no emite cabeceras CORS y la app
+   > funciona igual; las cabeceras de seguridad base se aplican siempre.
 
 4. En **Settings → Deploy Hook**, copia la URL y guárdala como secreto del repo
    de GitHub `RENDER_DEPLOY_HOOK_URL` (ver sección 3). Deja `autoDeploy: false`
@@ -89,8 +94,11 @@ Validadas al arranque (fail-fast) en `src/composition/config.ts`:
 | `SUPABASE_URL` | URL del proyecto hosted |
 | `SUPABASE_ANON_KEY` | anon/publishable key |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role key |
-| `CORS_ORIGINS` | orígenes del frontend (no `*` en producción) |
+| `CORS_ORIGINS` | opcional; solo para un cliente web (no `*` en producción) |
 | `ALLOW_INSECURE` | sin definir (TLS exigido) |
+
+El cliente principal es una app móvil nativa, no sujeta a CORS; `CORS_ORIGINS`
+solo aplica si se añade un cliente web.
 
 Reglas de producción que el arranque rechaza: `ALLOW_INSECURE=true`,
 `PERSISTENCE_DRIVER=memory`, `CORS_ORIGINS="*"`, o secreto HMAC corto.
