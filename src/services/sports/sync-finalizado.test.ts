@@ -63,6 +63,8 @@ function makeClient(ficha: RawFichaPartido): {
       calls.push({ id: partidoExternoId, signal });
       return Promise.resolve(ficha);
     },
+    searchTeams: () => Promise.resolve([]),
+    leaguesForTeam: () => Promise.resolve([]),
   };
   return { client, calls: () => calls };
 }

@@ -87,6 +87,18 @@ class FakeProfileClient implements ProfileClient {
       recuadros: 1,
     });
   }
+
+  buscarEquipos(): Promise<readonly never[]> {
+    return Promise.resolve([]);
+  }
+
+  ligasDeEquipo(): Promise<readonly never[]> {
+    return Promise.resolve([]);
+  }
+
+  seleccionarEquipo(): Promise<{ clubId: string; nombre: string; escudoUrl: string }> {
+    return Promise.resolve({ clubId: 'club-1', nombre: 'Test', escudoUrl: '' });
+  }
 }
 
 describe('ProfilePresenter.loadProfile', () => {

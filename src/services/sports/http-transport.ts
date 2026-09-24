@@ -24,8 +24,10 @@
 
 import { SportsApiError } from './errors.js';
 import type {
+  RawEquipo,
   RawFichaPartido,
   RawFixture,
+  RawLigaEquipo,
   SportsApiTransport,
 } from './types.js';
 
@@ -69,6 +71,22 @@ interface ApiFootballFixtureItem {
 interface ApiFootballResponse<T> {
   readonly response?: readonly T[];
   readonly errors?: unknown;
+}
+
+/** Item de `teams?search=` de API-Football. */
+interface ApiFootballTeamItem {
+  readonly team?: {
+    readonly id?: number;
+    readonly name?: string;
+    readonly country?: string;
+    readonly logo?: string;
+  };
+}
+
+/** Item de `leagues?team=&season=` de API-Football. */
+interface ApiFootballLeagueItem {
+  readonly league?: { readonly id?: number; readonly name?: string; readonly type?: string };
+  readonly seasons?: readonly { readonly year?: number }[];
 }
 
 /** Mapea el estado corto de API-Football a nuestro `estado` crudo. */
@@ -116,7 +134,58 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
       const partidoExternoId = decodeURIComponent(fichaMatch[1] as string);
       return (await this.fetchFicha(partidoExternoId, signal)) as T;
     }
+    const teamsMatch = /^\/equipos\?buscar=(.+)$/.exec(path);
+    if (teamsMatch) {
+      const query = decodeURIComponent(teamsMatch[1] as string);
+      return (await this.searchTeams(query, signal)) as T;
+    }
+    const ligasMatch = /^\/equipos\/([^/?]+)\/ligas\?season=(.+)$/.exec(path);
+    if (ligasMatch) {
+      const teamId = decodeURIComponent(ligasMatch[1] as string);
+      const season = Number.parseInt(decodeURIComponent(ligasMatch[2] as string), 10);
+      return (await this.leaguesForTeam(teamId, season, signal)) as T;
+    }
     throw new SportsApiError(`Ruta de API deportiva no soportada: ${path}`);
+  }
+
+  /** Busca equipos reales por nombre (`teams?search=`) y mapea a `RawEquipo`. */
+  private async searchTeams(query: string, signal: AbortSignal): Promise<readonly RawEquipo[]> {
+    const url = `${this.baseUrl}/teams?search=${encodeURIComponent(query)}`;
+    const data = await this.request<ApiFootballResponse<ApiFootballTeamItem>>(url, signal);
+    return (data.response ?? []).flatMap((item) => {
+      const t = item.team;
+      if (t?.id === undefined || t.name === undefined) return [];
+      const equipo: RawEquipo = {
+        id: String(t.id),
+        nombre: t.name,
+        ...(t.country !== undefined ? { pais: t.country } : {}),
+        ...(t.logo !== undefined ? { escudoUrl: t.logo } : {}),
+      };
+      return [equipo];
+    });
+  }
+
+  /** Lista las ligas de un equipo/temporada (`leagues?team=&season=`). */
+  private async leaguesForTeam(
+    teamId: string,
+    season: number,
+    signal: AbortSignal,
+  ): Promise<readonly RawLigaEquipo[]> {
+    const url = `${this.baseUrl}/leagues?team=${encodeURIComponent(teamId)}&season=${encodeURIComponent(String(season))}`;
+    const data = await this.request<ApiFootballResponse<ApiFootballLeagueItem>>(url, signal);
+    return (data.response ?? []).flatMap((item) => {
+      const l = item.league;
+      if (l?.id === undefined || l.name === undefined) return [];
+      const liga: RawLigaEquipo = {
+        ligaId: String(l.id),
+        nombre: l.name,
+        ...(l.type !== undefined ? { tipo: l.type } : {}),
+        temporadas: (item.seasons ?? [])
+          .map((s) => s.year)
+          .filter((y): y is number => typeof y === 'number'),
+      };
+      return [liga];
+    });
   }
 
   /** Descarga y mapea los fixtures de "<leagueId>:<season>" a `RawFixture[]`. */

@@ -404,16 +404,16 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
   const OnboardingGate = ({ children }: { children: React.ReactNode }): React.ReactElement => {
     const state = useProfile();
     const perfil = state.perfil;
-    const necesitaOnboarding =
-      perfil !== null && (perfil.club === null || perfil.temporadaActiva === null);
 
-    if (state.status === 'loading' || state.status === 'idle') {
+    // Mientras carga (o aún no ha cargado), no dejamos pasar: loader.
+    if (state.status === 'loading' || state.status === 'idle' || perfil === null) {
       return <Placeholder mensaje="Cargando tu perfil…" />;
     }
+    // Sin club o sin temporada activa => alta guiada (onboarding).
+    const necesitaOnboarding = perfil.club === null || perfil.temporadaActiva === null;
     if (necesitaOnboarding) {
       return (
         <OnboardingScreen
-          clubsCatalogClient={deps.clubsCatalogClient}
           profileClient={deps.profileClient}
           presenter={profilePresenter}
           onDone={() => {

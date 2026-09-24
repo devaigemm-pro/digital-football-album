@@ -266,6 +266,67 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
     }
   });
 
+  // Búsqueda de equipos reales (onboarding): GET /equipos?buscar=<nombre>
+  router.get('/equipos', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    const buscar = context.request.query?.['buscar'];
+    if (buscar === undefined || buscar.trim().length < 2) {
+      return json(400, { error: 'bad_request', message: 'buscar (>= 2 caracteres) requerido.' });
+    }
+    try {
+      const equipos = await services.onboarding.searchClubs(buscar.trim());
+      return json(200, { equipos });
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
+  // Ligas de un equipo para una temporada: GET /equipos/:teamId/ligas?season=YYYY
+  router.get('/equipos/:teamId/ligas', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    const teamId = pathSegment(context, 1);
+    if (!teamId) return json(400, { error: 'bad_request' });
+    const seasonRaw = context.request.query?.['season'] ?? '';
+    const season = Number.parseInt(seasonRaw, 10);
+    if (!Number.isInteger(season) || season < 2000) {
+      return json(400, { error: 'bad_request', message: 'season (año) requerido.' });
+    }
+    try {
+      const ligas = await services.onboarding.leaguesForClub(teamId, season);
+      return json(200, { ligas });
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
+  // Selección del equipo real del usuario (onboarding): POST /me/equipo
+  // Body { id, nombre, pais?, escudoUrl? } (el equipo elegido de la búsqueda).
+  router.post('/me/equipo', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    const body = context.request.body;
+    if (typeof body !== 'object' || body === null) {
+      return json(400, { error: 'bad_request', message: 'Cuerpo JSON requerido.' });
+    }
+    const b = body as Record<string, unknown>;
+    const id = b['id'];
+    const nombre = b['nombre'];
+    if (typeof id !== 'string' || typeof nombre !== 'string') {
+      return json(400, { error: 'bad_request', message: 'id y nombre (string) requeridos.' });
+    }
+    const equipo = {
+      id,
+      nombre,
+      ...(typeof b['pais'] === 'string' ? { pais: b['pais'] } : {}),
+      ...(typeof b['escudoUrl'] === 'string' ? { escudoUrl: b['escudoUrl'] } : {}),
+    };
+    try {
+      const result = await services.onboarding.selectEquipoReal(context.userId, equipo);
+      return json(201, result);
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
   // Temporadas del usuario autenticado: GET /me/temporadas
   router.get('/me/temporadas', async (context) => {
     if (!context.userId) return json(400, { error: 'bad_request' });

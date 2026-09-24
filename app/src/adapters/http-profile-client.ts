@@ -113,6 +113,37 @@ export interface SyncTemporadaResult {
   readonly recuadros: number;
 }
 
+/** Equipo real devuelto por la búsqueda (`GET /equipos?buscar=`). */
+export interface EquipoBusqueda {
+  readonly id: string;
+  readonly nombre: string;
+  readonly pais?: string;
+  readonly escudoUrl?: string;
+}
+
+/** Liga real de un equipo (`GET /equipos/:id/ligas`). */
+export interface LigaEquipo {
+  readonly ligaId: string;
+  readonly nombre: string;
+  readonly tipo?: string;
+  readonly temporadas: readonly number[];
+}
+
+/** Resultado de seleccionar el equipo real (`POST /me/equipo`). */
+export interface SeleccionEquipoResult {
+  readonly clubId: string;
+  readonly nombre: string;
+  readonly escudoUrl: string;
+}
+
+interface EquiposResponse {
+  readonly equipos: readonly EquipoBusqueda[];
+}
+
+interface LigasResponse {
+  readonly ligas: readonly LigaEquipo[];
+}
+
 /**
  * Contrato del cliente de perfil/partidos. Inyectable en las pantallas de
  * Perfil, Home/Álbum y la lista de partidos (láminas).
@@ -129,6 +160,12 @@ export interface ProfileClient {
    * deportiva. `temporadaExterna` con formato "<leagueId>:<season>".
    */
   syncTemporada(temporadaExterna: string): Promise<SyncTemporadaResult>;
+  /** `GET /equipos?buscar=`: busca equipos reales por nombre (onboarding). */
+  buscarEquipos(query: string): Promise<readonly EquipoBusqueda[]>;
+  /** `GET /equipos/:id/ligas?season=`: ligas del equipo para una temporada. */
+  ligasDeEquipo(teamId: string, season: number): Promise<readonly LigaEquipo[]>;
+  /** `POST /me/equipo`: persiste el equipo real elegido y lo asigna al usuario. */
+  seleccionarEquipo(equipo: EquipoBusqueda): Promise<SeleccionEquipoResult>;
 }
 
 /** Adaptador HTTP concreto de perfil/partidos. Autenticado (Bearer). */
@@ -162,5 +199,27 @@ export class HttpProfileClient implements ProfileClient {
       buildRequest('POST', '/me/temporada', { body: { temporadaExterna } }),
     );
     return readOkBody(response, 'POST /me/temporada');
+  }
+
+  /** `GET /equipos?buscar=` → equipos reales por nombre. */
+  async buscarEquipos(query: string): Promise<readonly EquipoBusqueda[]> {
+    const path = `/equipos?buscar=${encodeURIComponent(query)}`;
+    const response = await this.send<EquiposResponse>(buildRequest('GET', path));
+    return readOkBody(response, path).equipos;
+  }
+
+  /** `GET /equipos/:id/ligas?season=` → ligas del equipo para la temporada. */
+  async ligasDeEquipo(teamId: string, season: number): Promise<readonly LigaEquipo[]> {
+    const path = `/equipos/${encodeURIComponent(teamId)}/ligas?season=${encodeURIComponent(String(season))}`;
+    const response = await this.send<LigasResponse>(buildRequest('GET', path));
+    return readOkBody(response, path).ligas;
+  }
+
+  /** `POST /me/equipo` → persiste el equipo real y lo asigna al usuario. */
+  async seleccionarEquipo(equipo: EquipoBusqueda): Promise<SeleccionEquipoResult> {
+    const response = await this.send<SeleccionEquipoResult>(
+      buildRequest('POST', '/me/equipo', { body: equipo }),
+    );
+    return readOkBody(response, 'POST /me/equipo');
   }
 }

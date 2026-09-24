@@ -35,6 +35,7 @@ import { PrintEngineService } from '../services/print-engine/print-engine-servic
 import { ClubService } from '../services/club/club-service.js';
 import {
   ApiFootballSportsTransport,
+  OnboardingService,
   ResilientSportsApiClient,
   SeasonSyncService,
   UnavailableSportsTransport,
@@ -103,6 +104,11 @@ export interface AppServices {
    * sus llamadas fallan con un mensaje "no disponible" (no finge éxito).
    */
   readonly seasonSync: SeasonSyncService;
+  /**
+   * Onboarding con datos reales de la API deportiva: buscar equipo, listar sus
+   * ligas y persistir el Club real elegido asignándolo al usuario.
+   */
+  readonly onboarding: OnboardingService;
   /** Almacén de objetos usado por la carga de fotos (Motor_Momentos). */
   readonly momentosStorage: MomentosObjectStoragePort;
   /** Notificador de asociación pendiente para los flujos de sports. */
@@ -278,6 +284,12 @@ export function createServices(options: CreateServicesOptions): AppServices {
     classifier,
     sportsClient,
   });
+  const onboarding = new OnboardingService({
+    usuarios: repos.usuarios,
+    clubes: repos.clubes,
+    plantillas: repos.plantillas,
+    sportsClient,
+  });
 
   // Carga de fotos cableada: función de dominio + repos + storage seleccionado.
   const uploadFotoWired = (partidoId: UUID, input: UploadFotoInput): Promise<UploadFotoResult> =>
@@ -304,6 +316,7 @@ export function createServices(options: CreateServicesOptions): AppServices {
     printEngine,
     club,
     seasonSync,
+    onboarding,
     momentosStorage,
     sportsNotifier,
     uploadFoto: uploadFotoWired,

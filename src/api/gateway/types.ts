@@ -32,6 +32,12 @@ export interface GatewayRequest {
    */
   readonly path: string;
   /**
+   * Parámetros de la query string ya parseados (p. ej. `{ buscar: 'barcelona' }`),
+   * o `undefined` si la petición no traía query. El enrutador ignora la query;
+   * los handlers que la necesiten la leen de aquí (no del `path`).
+   */
+  readonly query?: Readonly<Record<string, string>>;
+  /**
    * Cabeceras normalizadas a minúsculas. El middleware de autenticación lee
    * `authorization`; la terminación TLS lee `x-forwarded-proto` cuando aplica.
    */

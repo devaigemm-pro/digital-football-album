@@ -43,7 +43,7 @@ suite('e2e sync temporada (API-Football real)', () => {
         accessTokenSecret: SECRET,
         accessTokenTtlSeconds: 900,
         refreshTokenTtlSeconds: 1_209_600,
-        sports: { provider: 'api-football', apiKey },
+        sports: { provider: 'api-football', apiKey: apiKey as string },
       },
       persistence: { driver: 'memory' },
     });
@@ -96,6 +96,24 @@ suite('e2e sync temporada (API-Football real)', () => {
       expect(res.status).toBe(201);
       expect((body.recuadros ?? 0)).toBeGreaterThan(0);
       expect((body.partidos ?? 0)).toBeGreaterThan(0);
+    },
+    60_000,
+  );
+
+  it(
+    'GET /equipos?buscar= devuelve equipos reales y /equipos/:id/ligas sus ligas',
+    async () => {
+      const auth = { authorization: `Bearer ${token()}`, 'x-forwarded-proto': 'https' };
+      const resEq = await fetch(`${baseUrl}/equipos?buscar=barcelona`, { headers: auth });
+      const eqBody = (await resEq.json()) as { equipos?: Array<{ id: string; nombre: string }> };
+      expect(resEq.status).toBe(200);
+      expect((eqBody.equipos ?? []).length).toBeGreaterThan(0);
+
+      const teamId = eqBody.equipos![0]!.id;
+      const resLg = await fetch(`${baseUrl}/equipos/${teamId}/ligas?season=2023`, { headers: auth });
+      const lgBody = (await resLg.json()) as { ligas?: Array<{ ligaId: string; nombre: string }> };
+      expect(resLg.status).toBe(200);
+      expect((lgBody.ligas ?? []).length).toBeGreaterThan(0);
     },
     60_000,
   );

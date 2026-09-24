@@ -54,6 +54,30 @@ export interface RawFichaPartido {
   readonly eventos: readonly RawEventoPartido[];
 }
 
+/** Equipo real de la API deportiva (búsqueda por nombre — onboarding). */
+export interface RawEquipo {
+  /** Identificador externo del equipo en la API. */
+  readonly id: string;
+  /** Nombre del equipo. */
+  readonly nombre: string;
+  /** País del equipo (para desambiguar homónimos). */
+  readonly pais?: string;
+  /** URL del escudo/logo del equipo. */
+  readonly escudoUrl?: string;
+}
+
+/** Liga real en la que participa un equipo, con las temporadas disponibles. */
+export interface RawLigaEquipo {
+  /** Identificador externo de la liga en la API. */
+  readonly ligaId: string;
+  /** Nombre de la liga/competición. */
+  readonly nombre: string;
+  /** Tipo reportado por la API (`League`/`Cup`). */
+  readonly tipo?: string;
+  /** Años de temporada disponibles para esa liga y equipo. */
+  readonly temporadas: readonly number[];
+}
+
 /**
  * Cliente de la API deportiva externa (Req 9). Es la abstracción **mockeable**
  * de la que dependen los servicios de dominio: en pruebas se sustituye por un
@@ -76,6 +100,22 @@ export interface SportsApiClient {
    * finalizado identificado por su id externo (Req 9.3).
    */
   fetchFichaPartido(partidoExternoId: string, signal?: AbortSignal): Promise<RawFichaPartido>;
+
+  /**
+   * Busca equipos reales por nombre (onboarding: el usuario elige su equipo).
+   * Devuelve una lista con id, nombre, país y escudo.
+   */
+  searchTeams(query: string, signal?: AbortSignal): Promise<readonly RawEquipo[]>;
+
+  /**
+   * Lista las ligas/competiciones en las que participa un equipo para una
+   * temporada dada, con las temporadas disponibles (onboarding: elegir liga).
+   */
+  leaguesForTeam(
+    teamId: string,
+    season: number,
+    signal?: AbortSignal,
+  ): Promise<readonly RawLigaEquipo[]>;
 }
 
 /**

@@ -70,6 +70,15 @@ function toGatewayRequest(
     }
   }
 
+  // Query string parseada (si la hay), para que los handlers no reparseen el path.
+  let query: Record<string, string> | undefined;
+  if (url.search.length > 1) {
+    query = {};
+    for (const [k, v] of url.searchParams.entries()) {
+      query[k] = v;
+    }
+  }
+
   const clientId = req.socket.remoteAddress;
   const base = {
     method: httpMethod,
@@ -77,6 +86,7 @@ function toGatewayRequest(
     headers,
     isSecure,
     body,
+    ...(query !== undefined ? { query } : {}),
   };
   // `exactOptionalPropertyTypes`: solo incluir clientId si está definido.
   return clientId === undefined ? base : { ...base, clientId };

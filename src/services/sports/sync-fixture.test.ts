@@ -27,6 +27,8 @@ function makeClient(fixtures: readonly RawFixture[]): {
     fetchFichaPartido: (): Promise<RawFichaPartido> => {
       throw new Error('no usado en estas pruebas');
     },
+    searchTeams: () => Promise.resolve([]),
+    leaguesForTeam: () => Promise.resolve([]),
   };
   return { client, fetchCalls: () => fetchCalls };
 }
@@ -198,6 +200,8 @@ describe('syncFixture', () => {
       fetchFichaPartido: (): Promise<RawFichaPartido> => {
         throw new Error('no usado');
       },
+      searchTeams: () => Promise.resolve([]),
+      leaguesForTeam: () => Promise.resolve([]),
     };
 
     await syncFixture('2024-2025', { client, signal: controller.signal });

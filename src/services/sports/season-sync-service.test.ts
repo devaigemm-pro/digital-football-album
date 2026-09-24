@@ -26,6 +26,12 @@ class FakeSportsClient implements SportsApiClient {
   fetchFichaPartido(): Promise<RawFichaPartido> {
     return Promise.reject(new Error('no usado en este test'));
   }
+  searchTeams(): Promise<readonly never[]> {
+    return Promise.resolve([]);
+  }
+  leaguesForTeam(): Promise<readonly never[]> {
+    return Promise.resolve([]);
+  }
 }
 
 async function setup(fixtures: readonly RawFixture[], conClub = true) {

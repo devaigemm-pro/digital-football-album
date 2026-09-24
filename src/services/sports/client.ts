@@ -14,7 +14,14 @@
 // Task 8.1 — Requirements: 9.1, 9.6
 
 import { SportsApiError, SportsApiRetriesExhaustedError, SportsApiTimeoutError } from './errors.js';
-import type { RawFichaPartido, RawFixture, SportsApiClient, SportsApiTransport } from './types.js';
+import type {
+  RawEquipo,
+  RawFichaPartido,
+  RawFixture,
+  RawLigaEquipo,
+  SportsApiClient,
+  SportsApiTransport,
+} from './types.js';
 
 /** Timeout por defecto por petición: 30 segundos (Req 9.1). */
 export const DEFAULT_TIMEOUT_MS = 30_000;
@@ -123,6 +130,20 @@ export class ResilientSportsApiClient implements SportsApiClient {
   fetchFichaPartido(partidoExternoId: string, signal?: AbortSignal): Promise<RawFichaPartido> {
     const path = `/partidos/${encodeURIComponent(partidoExternoId)}/ficha`;
     return this.executeWithResilience<RawFichaPartido>(path, signal);
+  }
+
+  searchTeams(query: string, signal?: AbortSignal): Promise<readonly RawEquipo[]> {
+    const path = `/equipos?buscar=${encodeURIComponent(query)}`;
+    return this.executeWithResilience<readonly RawEquipo[]>(path, signal);
+  }
+
+  leaguesForTeam(
+    teamId: string,
+    season: number,
+    signal?: AbortSignal,
+  ): Promise<readonly RawLigaEquipo[]> {
+    const path = `/equipos/${encodeURIComponent(teamId)}/ligas?season=${encodeURIComponent(String(season))}`;
+    return this.executeWithResilience<readonly RawLigaEquipo[]>(path, signal);
   }
 
   /**
