@@ -13,7 +13,7 @@ services:
     plan: starter # ajústalo al tráfico esperado
     region: oregon # elige la región más cercana a tus usuarios
     healthCheckPath: /health
-    autoDeploy: false # el deploy lo dispara el CI tras aplicar migraciones
+    autoDeploy: true # Render despliega automáticamente en cada push a main
     envVars:
       # --- No secretas ---
       - key: NODE_ENV

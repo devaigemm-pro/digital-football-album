@@ -35,7 +35,10 @@ npm run db:link     # supabase link --project-ref $SUPABASE_PROJECT_REF
 npm run db:push     # aplica las migraciones pendientes de supabase/migrations/
 ```
 
-En el CI esto lo hace el job `deploy` automáticamente antes de liberar.
+**Nota:** con la **integración GitHub de Supabase** activa, las migraciones se
+aplican automáticamente al proyecto hosted en cada push a `main`; los comandos
+de arriba son solo para operaciones manuales/locales. El CI no aplica
+migraciones (no las duplica).
 
 ### Sembrar catálogos (opcional)
 
@@ -64,23 +67,21 @@ datos. `supabase/seed.sql` solo se usa en local (`db reset`).
    > opcional: si no se define, el gateway no emite cabeceras CORS y la app
    > funciona igual; las cabeceras de seguridad base se aplican siempre.
 
-4. En **Settings → Deploy Hook**, copia la URL y guárdala como secreto del repo
-   de GitHub `RENDER_DEPLOY_HOOK_URL` (ver sección 3). Deja `autoDeploy: false`
-   para que el deploy lo controle el CI tras aplicar migraciones.
+4. `render.yaml` usa `autoDeploy: true`: Render **despliega automáticamente** en
+   cada push a `main` (construye la imagen desde el `Dockerfile`). No se necesita
+   deploy hook ni orquestación desde el CI.
 
-## 3. Secretos del repositorio (GitHub Actions)
+## 3. Despliegue automático (integraciones nativas)
 
-En GitHub → Settings → Secrets and variables → Actions, define:
+El despliegue lo gestionan las integraciones con Git, sin secretos en el repo:
 
-| Secreto | Para qué |
-|---|---|
-| `SUPABASE_ACCESS_TOKEN` | `supabase link` en el CI |
-| `SUPABASE_PROJECT_REF` | ref del proyecto hosted |
-| `SUPABASE_DB_PASSWORD` | `supabase db push` |
-| `RENDER_DEPLOY_HOOK_URL` | disparar el deploy en Render |
+- **Supabase (integración GitHub):** aplica las migraciones de
+  `supabase/migrations/` al proyecto hosted en cada push a `main`.
+- **Render (auto-deploy):** reconstruye y libera el backend en cada push a `main`.
 
-El workflow `.github/workflows/ci.yml` (job `deploy`, solo en push a `main`):
-aplica migraciones → dispara el Deploy Hook de Render.
+El pipeline de GitHub Actions (`.github/workflows/ci.yml`) **no despliega**: solo
+valida calidad (typecheck, lint, tests, build de imagen) para proteger `main`.
+Así no hay duplicación ni secretos de deploy en GitHub.
 
 ## 4. Variables de entorno del backend
 
