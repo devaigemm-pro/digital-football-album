@@ -41,6 +41,8 @@ import {
   type SubscriptionClient,
   type SubscriptionState,
 } from '../subscription';
+import { Badge, Hero, PrimaryButton, Screen } from '../ui/kit';
+import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 
 export interface SuscripcionScreenProps {
   /** Adaptador HTTP de `SubscriptionClient` (endpoints del Servicio_Suscripción). */
@@ -87,8 +89,10 @@ export function SuscripcionScreen({
     item,
   }: ListRenderItemInfo<PlanCatalogoEntrada>): React.ReactElement => {
     const esActual = item.plan === planActual;
+    const esPremium = item.plan === 'PREMIUM';
     return (
-      <View style={styles.planCard}>
+      <View style={[styles.planCard, esPremium ? styles.planCardPremium : null]}>
+        {esPremium ? <Badge label="Recomendado" tone="gold" style={styles.planBadge} /> : null}
         <View style={styles.planInfo}>
           <Text style={styles.planNombre}>{item.plan}</Text>
           <Text style={styles.planPrecio}>{formatPrecio(item)}</Text>
@@ -97,31 +101,32 @@ export function SuscripcionScreen({
         {esActual ? (
           <Text style={styles.planActualBadge}>Tu plan actual</Text>
         ) : (
-          <Pressable
-            accessibilityRole="button"
+          <PrimaryButton
+            title="Comprar"
             accessibilityLabel={`Comprar plan ${item.plan}`}
             disabled={state.operando}
-            style={[styles.boton, state.operando ? styles.botonDisabled : null]}
             onPress={() => {
               void pres.purchase(item.plan);
             }}
-          >
-            <Text style={styles.botonTexto}>Comprar</Text>
-          </Pressable>
+          />
         )}
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Suscripción</Text>
+    <Screen tone="light" flush>
+      <Hero eyebrow="Suscripción" title="Elige tu kit">
         {state.status === 'loading' || state.operando ? (
-          <ActivityIndicator accessibilityLabel="Procesando" />
+          <ActivityIndicator
+            color={palette.textOnDark}
+            accessibilityLabel="Procesando"
+            style={styles.heroSpinner}
+          />
         ) : null}
-      </View>
+      </Hero>
 
+      <View style={styles.body}>
       {/* Plan actual, estado y vigencia reflejados del Sistema (Req 25.1). */}
       <View style={styles.estadoBox}>
         {state.suscripcion !== null ? (
@@ -159,20 +164,15 @@ export function SuscripcionScreen({
 
       {/* Botón de upgrade a Premium cuando el plan actual es Básico (Req 25.3). */}
       {puedeUpgrade ? (
-        <Pressable
-          accessibilityRole="button"
+        <PrimaryButton
+          title="Actualizar a Premium"
           accessibilityLabel="Actualizar a Plan Premium"
           disabled={state.operando}
-          style={[
-            styles.botonUpgrade,
-            state.operando ? styles.botonDisabled : null,
-          ]}
           onPress={() => {
             void pres.upgrade();
           }}
-        >
-          <Text style={styles.botonTexto}>Actualizar a Premium</Text>
-        </Pressable>
+          style={styles.upgrade}
+        />
       ) : null}
 
       {/* Mensaje de error del Sistema; el estado mostrado se conserva (Req 25.6). */}
@@ -198,67 +198,50 @@ export function SuscripcionScreen({
         keyExtractor={(item) => item.plan}
         renderItem={renderPlan}
       />
-    </View>
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  title: { fontSize: 22, fontWeight: '700' },
+  heroSpinner: { alignSelf: 'flex-start', marginTop: spacing.sm },
+  body: { flex: 1, padding: spacing.lg },
   estadoBox: {
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#f2f2f2',
-    marginBottom: 12,
-  },
-  estadoLinea: { fontSize: 14, marginBottom: 2 },
-  entitlementsBox: {
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#eef5ff',
-    marginBottom: 12,
-  },
-  entitlementsTitulo: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-  catalogoTitulo: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
-  planCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 8,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    marginBottom: 8,
+    borderColor: palette.borderOnLight,
+    marginBottom: spacing.md,
   },
-  planInfo: { flex: 1, paddingRight: 12 },
-  planNombre: { fontSize: 16, fontWeight: '700' },
-  planPrecio: { fontSize: 14, color: '#333333', marginTop: 2 },
-  planDescripcion: { fontSize: 12, color: '#666666', marginTop: 4 },
-  planActualBadge: { color: '#2e7d32', fontWeight: '600' },
-  boton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 6,
-    backgroundColor: '#1565c0',
+  estadoLinea: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: 2 },
+  entitlementsBox: {
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: palette.infoBg,
+    marginBottom: spacing.md,
   },
-  botonUpgrade: {
-    paddingVertical: 12,
-    borderRadius: 6,
-    backgroundColor: '#6a1b9a',
-    alignItems: 'center',
-    marginBottom: 12,
+  entitlementsTitulo: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.semibold, marginBottom: spacing.xs },
+  catalogoTitulo: { color: palette.textOnLight, fontFamily: fonts.display, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, letterSpacing: 0.5, marginBottom: spacing.sm },
+  planCard: {
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: palette.borderOnLight,
+    backgroundColor: palette.surface,
+    marginBottom: spacing.sm,
   },
-  botonDisabled: { opacity: 0.5 },
-  botonTexto: { color: '#ffffff', fontWeight: '600' },
-  errorBox: { marginBottom: 12 },
-  errorText: { color: '#b00020', marginBottom: 4 },
-  retry: { color: '#1565c0', fontWeight: '600' },
+  planCardPremium: { borderColor: palette.accent, borderWidth: 2 },
+  planBadge: { marginBottom: spacing.sm },
+  planInfo: { marginBottom: spacing.md },
+  planNombre: { color: palette.textOnLight, fontFamily: fonts.display, fontSize: fontSize.title, fontWeight: fontWeight.bold, letterSpacing: 0.5 },
+  planPrecio: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.semibold, marginTop: 2 },
+  planDescripcion: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginTop: spacing.xs },
+  planActualBadge: { color: palette.success, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
+  upgrade: { marginBottom: spacing.md },
+  errorBox: { marginBottom: spacing.md },
+  errorText: { color: palette.danger, fontFamily: fonts.body, marginBottom: spacing.xs },
+  retry: { color: palette.info, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
 });
 
 export default SuscripcionScreen;

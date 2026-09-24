@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" font-family="-apple-system, Segoe UI, Roboto, sans-serif">
+  <rect width="390" height="844" fill="#F5F5F7"/>
+  <rect width="390" height="110" fill="#C8102E"/>
+  <text x="24" y="34" fill="#FFFFFF" font-size="13" font-weight="600">9:41</text>
+  <text x="24" y="78" fill="#FFFFFF" font-size="22" font-weight="700">Tu pedido</text>
+  <text x="24" y="100" fill="#FFFFFF" font-size="12.5" opacity="0.9">Kit físico · Temporada 2026</text>
+  <text x="24" y="150" fill="#333" font-size="13" font-weight="700">Dirección de envío</text>
+  <rect x="24" y="162" width="342" height="96" rx="16" fill="#FFFFFF" stroke="#E4E4EA"/>
+  <text x="44" y="192" fill="#111" font-size="14" font-weight="600">Juan Pérez</text>
+  <text x="44" y="214" fill="#555" font-size="12.5">Av. Siempre Viva 742, Depto 3B</text>
+  <text x="44" y="234" fill="#555" font-size="12.5">Ciudad, CP 11000 · +54 9 11 5555-5555</text>
+  <rect x="286" y="176" width="64" height="26" rx="13" fill="#EAF6EE"/>
+  <text x="318" y="193" fill="#1B7A3D" font-size="11" font-weight="700" text-anchor="middle">✓ Válida</text>
+  <text x="44" y="252" fill="#C8102E" font-size="11" font-weight="600">Editar</text>
+  <text x="24" y="298" fill="#333" font-size="13" font-weight="700">Estado del pedido</text>
+  <rect x="24" y="310" width="342" height="330" rx="16" fill="#FFFFFF" stroke="#E4E4EA"/>
+  <line x1="60" y1="344" x2="60" y2="600" stroke="#E4E4EA" stroke-width="3"/>
+  <circle cx="60" cy="352" r="10" fill="#1B7A3D"/>
+  <path d="M56 352 l3 3 6-6" stroke="#FFF" stroke-width="2" fill="none"/>
+  <text x="84" y="348" fill="#111" font-size="13" font-weight="600">Temporada cerrada</text>
+  <text x="84" y="366" fill="#9A9AA2" font-size="11">14 oct 2026</text>
+  <circle cx="60" cy="420" r="10" fill="#1B7A3D"/>
+  <path d="M56 420 l3 3 6-6" stroke="#FFF" stroke-width="2" fill="none"/>
+  <text x="84" y="416" fill="#111" font-size="13" font-weight="600">Impresión (PDFs generados)</text>
+  <text x="84" y="434" fill="#9A9AA2" font-size="11">Libro + planchas de stickers · 15 oct</text>
+  <circle cx="60" cy="488" r="10" fill="#1B7A3D"/>
+  <path d="M56 488 l3 3 6-6" stroke="#FFF" stroke-width="2" fill="none"/>
+  <text x="84" y="484" fill="#111" font-size="13" font-weight="600">Kit listo</text>
+  <text x="84" y="502" fill="#9A9AA2" font-size="11">18 oct 2026</text>
+  <circle cx="60" cy="556" r="12" fill="#C8102E"/>
+  <circle cx="60" cy="556" r="20" fill="#C8102E" opacity="0.15"/>
+  <text x="84" y="552" fill="#111" font-size="13" font-weight="700">Enviado 🚚</text>
+  <text x="84" y="570" fill="#666" font-size="11">Transportadora XPress · En camino</text>
+  <rect x="84" y="580" width="200" height="30" rx="8" fill="#F2F2F5"/>
+  <text x="96" y="600" fill="#333" font-size="11.5">Tracking: XP-2026-778812</text>
+  <text x="84" y="628" fill="#B0B0B8" font-size="12">Entregado (estimado 24 oct)</text>
+  <rect x="24" y="660" width="342" height="52" rx="14" fill="#C8102E"/>
+  <text x="195" y="691" fill="#FFF" font-size="15" font-weight="600" text-anchor="middle">Ver seguimiento del envío</text>
+  <text x="195" y="748" fill="#9A9AA2" font-size="10" text-anchor="middle">Req 15 — Dirección validada, estado del Pedido y tracking</text>
+</svg>

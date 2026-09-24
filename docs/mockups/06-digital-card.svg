@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" font-family="-apple-system, Segoe UI, Roboto, sans-serif">
+  <defs>
+    <linearGradient id="cardg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#C8102E"/>
+      <stop offset="1" stop-color="#8A0B20"/>
+    </linearGradient>
+    <linearGradient id="holo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff5f6d"/><stop offset="0.5" stop-color="#ffc371"/><stop offset="1" stop-color="#24C6DC"/>
+    </linearGradient>
+  </defs>
+  <rect width="390" height="844" fill="#101014"/>
+  <text x="24" y="34" fill="#FFFFFF" font-size="13" font-weight="600">9:41</text>
+  <text x="24" y="72" fill="#FFFFFF" font-size="20" font-weight="700">Tu Digital Card</text>
+  <rect x="70" y="96" width="250" height="380" rx="20" fill="url(#cardg)"/>
+  <rect x="76" y="102" width="238" height="368" rx="16" fill="none" stroke="url(#holo)" stroke-width="3"/>
+  <rect x="92" y="120" width="206" height="220" rx="10" fill="#E8607A"/>
+  <circle cx="118" cy="146" r="18" fill="#FFFFFF" opacity="0.9"/>
+  <path d="M118 134 l10 5 v9 l-10 6 -10-6 v-9 z" fill="#8A0B20"/>
+  <rect x="228" y="128" width="60" height="34" rx="8" fill="#000000" opacity="0.5"/>
+  <text x="258" y="151" fill="#FFF" font-size="16" font-weight="800" text-anchor="middle">2-1</text>
+  <text x="195" y="376" fill="#FFFFFF" font-size="20" font-weight="800" text-anchor="middle">CLÁSICO</text>
+  <text x="195" y="400" fill="#FFD37A" font-size="12" text-anchor="middle" letter-spacing="1">ATLÉTICO KIRO vs RIVAL FC</text>
+  <text x="195" y="422" fill="#FFFFFF" font-size="11" text-anchor="middle" opacity="0.85">14 SEP 2026 · LIGA</text>
+  <rect x="92" y="440" width="206" height="1" fill="#FFFFFF" opacity="0.3"/>
+  <text x="195" y="460" fill="#FFFFFF" font-size="10" text-anchor="middle" opacity="0.7">Nº 12 · Colección Temporada 2026</text>
+  <rect x="230" y="486" width="130" height="28" rx="14" fill="url(#holo)"/>
+  <text x="295" y="505" fill="#101014" font-size="11" font-weight="700" text-anchor="middle">✦ Holograma Premium</text>
+  <text x="30" y="504" fill="#B9B9C2" font-size="11">Formato PNG · listo para redes</text>
+  <rect x="0" y="540" width="390" height="304" rx="24" fill="#1C1C22"/>
+  <rect x="175" y="556" width="40" height="4" rx="2" fill="#4A4A52"/>
+  <text x="24" y="596" fill="#FFFFFF" font-size="16" font-weight="700">Compartir en</text>
+  <g transform="translate(24,616)" text-anchor="middle">
+    <g><rect width="72" height="72" rx="18" fill="#E1306C"/><text x="36" y="44" fill="#FFF" font-size="24">◎</text></g>
+    <text x="36" y="106" fill="#DDD" font-size="11">Instagram</text>
+    <g transform="translate(90,0)"><rect width="72" height="72" rx="18" fill="#25D366"/><text x="36" y="44" fill="#FFF" font-size="24">✆</text></g>
+    <text x="126" y="106" fill="#DDD" font-size="11">WhatsApp</text>
+    <g transform="translate(180,0)"><rect width="72" height="72" rx="18" fill="#000000" stroke="#333"/><text x="36" y="46" fill="#FFF" font-size="24" font-weight="800">X</text></g>
+    <text x="216" y="106" fill="#DDD" font-size="11">X</text>
+    <g transform="translate(270,0)"><rect width="72" height="72" rx="18" fill="#010101" stroke="#333"/><text x="36" y="46" fill="#FFF" font-size="22">♪</text></g>
+    <text x="306" y="106" fill="#DDD" font-size="11">TikTok</text>
+  </g>
+  <rect x="24" y="754" width="342" height="50" rx="14" fill="#2A2A30"/>
+  <text x="195" y="785" fill="#FFF" font-size="14" text-anchor="middle">Guardar en el dispositivo</text>
+  <text x="195" y="830" fill="#6A6A72" font-size="10" text-anchor="middle">Req 12 · 13 — Card premium (internacional/clásico) + share nativo</text>
+</svg>

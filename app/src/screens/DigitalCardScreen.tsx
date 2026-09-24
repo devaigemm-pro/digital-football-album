@@ -34,6 +34,8 @@ import {
 
 import { CardPresenter, type CardState } from '../cards';
 import type { CardsClient } from '../viewmodels';
+import { Hero, PrimaryButton, Screen } from '../ui/kit';
+import { fonts, fontSize, fontWeight, palette, radius, shadow, spacing } from '../theme/design-tokens';
 
 export interface DigitalCardScreenProps {
   /** Usuario para el que se genera la Digital_Card. */
@@ -88,99 +90,105 @@ export function DigitalCardScreen({
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Digital Card</Text>
+    <Screen tone="dark" flush>
+      <Hero eyebrow="Compartir" title="Digital Card">
         {state.status === 'generating' ? (
-          <ActivityIndicator accessibilityLabel="Generando la Digital Card" />
-        ) : null}
-      </View>
-
-      {/* Card generada: se muestra el binario compuesto por el backend (Req 5.1, 5.2). */}
-      {state.status === 'generated' && state.card !== null ? (
-        <View style={styles.cardBox}>
-          <Image
-            style={styles.cardImage}
-            source={cardSource(state.card.objectKey)}
-            accessibilityRole="image"
-            accessibilityLabel="Digital Card generada"
+          <ActivityIndicator
+            color={palette.textOnDark}
+            accessibilityLabel="Generando la Digital Card"
+            style={styles.heroSpinner}
           />
-          <Text style={styles.formato}>Formato: {state.card.formato}</Text>
-        </View>
-      ) : null}
+        ) : null}
+      </Hero>
 
-      {/* Rechazo por gating: mensaje "requiere Plan_Premium" (Req 5.4). La
-          decisión de gating la tomó el backend; aquí solo se muestra. */}
-      {state.status === 'error' && state.errorKind === 'gating' ? (
-        <View style={styles.gatingBox}>
-          <Text style={styles.gatingText} accessibilityRole="text">
-            {state.error}
-          </Text>
-        </View>
-      ) : null}
+      <View style={styles.body}>
+        {/* Card generada: se muestra el binario compuesto por el backend (Req 5.1, 5.2). */}
+        {state.status === 'generated' && state.card !== null ? (
+          <View style={styles.cardBox}>
+            <View style={styles.cardFrame}>
+              <Image
+                style={styles.cardImage}
+                source={cardSource(state.card.objectKey)}
+                accessibilityRole="image"
+                accessibilityLabel="Digital Card generada"
+              />
+            </View>
+            <Text style={styles.formato}>Formato: {state.card.formato}</Text>
+          </View>
+        ) : null}
 
-      {/* Error genérico con reintento (Req 5.4). */}
-      {state.status === 'error' && state.errorKind === 'generic' ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{state.error}</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Reintentar generar la Digital Card"
-            onPress={generar}
-          >
-            <Text style={styles.retry}>Reintentar</Text>
-          </Pressable>
-        </View>
-      ) : null}
+        {/* Rechazo por gating: mensaje "requiere Plan_Premium" (Req 5.4). La
+            decisión de gating la tomó el backend; aquí solo se muestra. */}
+        {state.status === 'error' && state.errorKind === 'gating' ? (
+          <View style={styles.gatingBox}>
+            <Text style={styles.gatingText} accessibilityRole="text">
+              {state.error}
+            </Text>
+          </View>
+        ) : null}
 
-      {/* Acción explícita para generar (no se decide gating en el cliente). */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Generar la Digital Card"
-        disabled={state.status === 'generating'}
-        onPress={generar}
-      >
-        <Text style={styles.generar}>
-          {state.status === 'generated' ? 'Regenerar' : 'Generar'}
-        </Text>
-      </Pressable>
-    </View>
+        {/* Error genérico con reintento (Req 5.4). */}
+        {state.status === 'error' && state.errorKind === 'generic' ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{state.error}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Reintentar generar la Digital Card"
+              onPress={generar}
+            >
+              <Text style={styles.retry}>Reintentar</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {/* Acción explícita para generar (no se decide gating en el cliente). */}
+        <PrimaryButton
+          title={state.status === 'generated' ? 'Regenerar' : 'Generar'}
+          accessibilityLabel="Generar la Digital Card"
+          disabled={state.status === 'generating'}
+          onPress={generar}
+          style={styles.generar}
+        />
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+  heroSpinner: { alignSelf: 'flex-start', marginTop: spacing.sm },
+  body: { flex: 1, padding: spacing.lg },
+  cardBox: { marginBottom: spacing.lg, alignItems: 'center' },
+  // Marco tipo "cromo": borde de acento sobre la tinta, como en el mockup.
+  cardFrame: {
+    width: '80%',
+    borderRadius: radius.card,
+    borderWidth: 3,
+    borderColor: palette.accent,
+    backgroundColor: palette.inkSoft,
+    padding: spacing.sm,
+    ...shadow.card,
   },
-  title: { fontSize: 20, fontWeight: '600' },
-  cardBox: { marginBottom: 16, alignItems: 'center' },
   cardImage: {
     width: '100%',
     aspectRatio: 3 / 4,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     resizeMode: 'contain',
-    backgroundColor: '#f2f2f2',
+    backgroundColor: palette.inkSoft,
   },
-  formato: { marginTop: 6, fontSize: 12, color: '#666666' },
+  formato: { marginTop: spacing.sm, fontFamily: fonts.body, fontSize: fontSize.caption, color: palette.textMutedOnDark },
   gatingBox: {
-    marginBottom: 16,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#fff3e0',
+    marginBottom: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: palette.warningBg,
     borderWidth: 1,
-    borderColor: '#ffb74d',
+    borderColor: palette.gold,
   },
-  // #bf360c sobre #fff3e0 alcanza ~5.11:1 de contraste (≥ 4.5:1, WCAG AA);
-  // el naranja previo (#e65100) quedaba en ~3.46:1.
-  gatingText: { color: '#bf360c', fontWeight: '600' },
-  errorBox: { marginBottom: 16 },
-  errorText: { color: '#b00020', marginBottom: 4 },
-  retry: { color: '#1565c0', fontWeight: '600' },
-  generar: { color: '#1565c0', fontWeight: '700', fontSize: 16, marginTop: 8 },
+  gatingText: { color: palette.warning, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
+  errorBox: { marginBottom: spacing.lg },
+  errorText: { color: '#FF8A80', fontFamily: fonts.body, marginBottom: spacing.xs },
+  retry: { color: palette.textOnDark, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
+  generar: { marginTop: spacing.sm },
 });
 
 export default DigitalCardScreen;

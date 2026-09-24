@@ -202,6 +202,109 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
       return errorResponse(err);
     }
   });
+
+  // Perfil del usuario autenticado: GET /me
+  // Devuelve el usuario, su Club actual (si tiene) y su Temporada ACTIVA (si la
+  // hay), para que la app resuelva onboarding, personalización y el `temporadaId`
+  // que necesitan el álbum y la lista de partidos. Solo lectura; el usuario se
+  // deriva del JWT (no se acepta id por parámetro).
+  router.get('/me', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    try {
+      const repos = services.persistence.repositories;
+      const usuario = await repos.usuarios.findById(context.userId);
+      if (usuario === null) {
+        return json(404, { error: 'usuario_no_encontrado', message: 'Perfil no encontrado.' });
+      }
+      const club =
+        usuario.clubId !== null ? await repos.clubes.findById(usuario.clubId) : null;
+      // Temporada ACTIVA (a lo sumo una relevante para el flujo del álbum). Si
+      // hubiera varias, se toma la primera; el ciclo de vida garantiza una activa.
+      const activas = await repos.temporadas.findActivasByUsuarioId(context.userId);
+      const temporadaActiva = activas.length > 0 ? activas[0] : null;
+      return json(200, {
+        usuario: {
+          id: usuario.id,
+          email: usuario.email,
+          clubId: usuario.clubId,
+          zonaHoraria: usuario.zonaHoraria,
+        },
+        club,
+        temporadaActiva,
+      });
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
+  // Temporadas del usuario autenticado: GET /me/temporadas
+  router.get('/me/temporadas', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    try {
+      const temporadas =
+        await services.persistence.repositories.temporadas.findByUsuarioId(context.userId);
+      return json(200, { temporadas });
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
+  // Partidos oficiales de una Temporada: GET /temporadas/:temporadaId/partidos
+  // Cada partido se enriquece con el número de su Recuadro y si ya tiene
+  // Foto_Principal, para que la app liste las "láminas" y navegue a la captura
+  // con el `partidoId` correcto. Valida que la Temporada pertenezca al usuario.
+  router.get('/temporadas/:temporadaId/partidos', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    const temporadaId = pathSegment(context, 1);
+    if (!temporadaId) return json(400, { error: 'bad_request' });
+    try {
+      const repos = services.persistence.repositories;
+      const temporada = await repos.temporadas.findById(temporadaId);
+      if (temporada === null) {
+        return json(404, {
+          error: 'temporada_no_encontrada',
+          message: 'Temporada no encontrada.',
+        });
+      }
+      // Aislamiento por usuario: la Temporada debe ser del usuario autenticado.
+      if (temporada.usuarioId !== context.userId) {
+        return json(404, {
+          error: 'temporada_no_encontrada',
+          message: 'Temporada no encontrada.',
+        });
+      }
+
+      const partidos = await repos.partidos.findByTemporadaId(temporadaId);
+
+      // Mapa partidoOficialId -> Recuadro (numero, fotoPrincipal) para enriquecer.
+      const album = await repos.albumes.findByTemporadaId(temporadaId);
+      const recuadros = album !== null ? await repos.recuadros.findByAlbumId(album.id) : [];
+      const recuadroPorPartido = new Map(
+        recuadros.map((r) => [r.partidoOficialId, r]),
+      );
+
+      const items = partidos.map((p) => {
+        const recuadro = recuadroPorPartido.get(p.id) ?? null;
+        return {
+          partidoId: p.id,
+          rival: p.rival,
+          competicion: p.competicion,
+          tipoCompeticion: p.tipoCompeticion,
+          fechaHora: p.fechaHora,
+          estado: p.estado,
+          esClasico: p.esClasico,
+          esInternacional: p.esInternacional,
+          resultado: p.resultado,
+          numeroRecuadro: recuadro?.numero ?? null,
+          tieneFotoPrincipal: recuadro?.fotoPrincipalId != null,
+        };
+      });
+
+      return json(200, { temporadaId, partidos: items });
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
 }
 
 /** Registra las rutas públicas (sin autenticación): salud del servicio. */

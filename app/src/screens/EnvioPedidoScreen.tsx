@@ -37,6 +37,8 @@ import {
   type ShippingClient,
   type ShippingState,
 } from '../shipping';
+import { PrimaryButton, SectionTitle } from '../ui/kit';
+import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 
 export interface EnvioPedidoScreenProps {
   /** Temporada cuyo Pedido se consulta (`GET /pedido/{temporadaId}`). */
@@ -101,6 +103,7 @@ function Campo({
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
+        placeholderTextColor={palette.textMutedOnLight}
         accessibilityLabel={label}
       />
     </View>
@@ -139,7 +142,7 @@ export function EnvioPedidoScreen({
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* ---------- Formulario de Dirección_Envío (Req 8.1, 8.2, 8.3) ---------- */}
-      <Text style={styles.title}>Dirección de envío</Text>
+      <SectionTitle>Dirección de envío</SectionTitle>
 
       <Campo
         label="Nombre del destinatario"
@@ -162,19 +165,15 @@ export function EnvioPedidoScreen({
       <Campo label="País" value={form.pais} onChangeText={setField('pais')} />
       <Campo label="Teléfono" value={form.telefono} onChangeText={setField('telefono')} />
 
-      <Pressable
-        style={styles.boton}
-        accessibilityRole="button"
+      <PrimaryButton
+        title={state.registroStatus === 'submitting' ? 'Guardando…' : 'Guardar dirección'}
         accessibilityLabel="Guardar dirección de envío"
         disabled={state.registroStatus === 'submitting'}
         onPress={() => {
           void pres.registerAddress(toCampos(form));
         }}
-      >
-        <Text style={styles.botonTexto}>
-          {state.registroStatus === 'submitting' ? 'Guardando…' : 'Guardar dirección'}
-        </Text>
-      </Pressable>
+        style={styles.guardar}
+      />
 
       {state.registroStatus === 'submitting' ? (
         <ActivityIndicator accessibilityLabel="Registrando dirección" />
@@ -197,7 +196,7 @@ export function EnvioPedidoScreen({
 
       {/* ---------- Estado del Pedido y tracking (Req 8.4) ---------- */}
       <View style={styles.separador} />
-      <Text style={styles.title}>Estado del pedido</Text>
+      <SectionTitle>Estado del pedido</SectionTitle>
 
       {state.pedidoStatus === 'loading' ? (
         <ActivityIndicator accessibilityLabel="Cargando estado del pedido" />
@@ -240,35 +239,29 @@ export function EnvioPedidoScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: 16 },
-  title: { fontSize: 20, fontWeight: '600', marginBottom: 12 },
-  campo: { marginBottom: 12 },
-  label: { fontSize: 13, marginBottom: 4, color: '#444' },
+  container: { flex: 1, backgroundColor: palette.canvas },
+  content: { padding: spacing.lg },
+  campo: { marginBottom: spacing.md },
+  label: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: spacing.xs },
   input: {
     borderWidth: 1,
-    borderColor: '#c4c4c4',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 15,
+    borderColor: palette.borderOnLight,
+    borderRadius: radius.sm,
+    backgroundColor: palette.surface,
+    color: palette.textOnLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontFamily: fonts.body,
+    fontSize: fontSize.body,
   },
-  boton: {
-    backgroundColor: '#1565c0',
-    borderRadius: 6,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  botonTexto: { color: '#ffffff', fontWeight: '700', fontSize: 15 },
-  confirmacion: { color: '#1b5e20', marginTop: 4 },
-  error: { color: '#b00020', marginTop: 4, marginBottom: 4 },
-  retry: { color: '#1565c0', fontWeight: '600' },
-  separador: { height: 1, backgroundColor: '#e0e0e0', marginVertical: 20 },
-  estado: { fontSize: 15, marginBottom: 6 },
-  tracking: { fontSize: 15, fontWeight: '600' },
-  sinTracking: { fontSize: 14, color: '#666' },
+  guardar: { marginTop: spacing.xs, marginBottom: spacing.sm },
+  confirmacion: { color: palette.success, fontFamily: fonts.body, marginTop: spacing.xs },
+  error: { color: palette.danger, fontFamily: fonts.body, marginTop: spacing.xs, marginBottom: spacing.xs },
+  retry: { color: palette.info, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
+  separador: { height: 1, backgroundColor: palette.borderOnLight, marginVertical: spacing.xl },
+  estado: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.body, marginBottom: spacing.sm },
+  tracking: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
+  sinTracking: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small },
 });
 
 export default EnvioPedidoScreen;

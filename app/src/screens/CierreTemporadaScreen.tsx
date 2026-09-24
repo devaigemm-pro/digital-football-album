@@ -36,6 +36,8 @@ import {
   type EarlyCloseState,
   type SeasonCloseClient,
 } from '../season';
+import { DangerButton, SectionTitle } from '../ui/kit';
+import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 
 export interface CierreTemporadaScreenProps {
   /** Temporada a cerrar de forma anticipada. */
@@ -79,7 +81,7 @@ export function CierreTemporadaScreen({
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Cierre anticipado de la temporada</Text>
+      <SectionTitle>Cierre anticipado de la temporada</SectionTitle>
 
       {/* ---------- Recuadros sin Foto_Principal (Req 10.2 / SRS 16.2) ---------- */}
       {state.faltantesStatus === 'loading' ? (
@@ -148,9 +150,8 @@ export function CierreTemporadaScreen({
             </Text>
           </View>
 
-          <Pressable
-            style={[styles.boton, !confirmado ? styles.botonDeshabilitado : null]}
-            accessibilityRole="button"
+          <DangerButton
+            title={cerrando ? 'Cerrando…' : 'Cerrar temporada ahora'}
             accessibilityLabel="Cerrar temporada ahora"
             disabled={!confirmado || cerrando}
             onPress={() => {
@@ -159,11 +160,8 @@ export function CierreTemporadaScreen({
                 fotosListas,
               });
             }}
-          >
-            <Text style={styles.botonTexto}>
-              {cerrando ? 'Cerrando…' : 'Cerrar temporada ahora'}
-            </Text>
-          </Pressable>
+            style={styles.botonCerrar}
+          />
 
           {cerrando ? (
             <ActivityIndicator accessibilityLabel="Cerrando la temporada" />
@@ -200,44 +198,34 @@ export function CierreTemporadaScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: 16 },
-  title: { fontSize: 20, fontWeight: '600', marginBottom: 12 },
+  container: { flex: 1, backgroundColor: palette.canvas },
+  content: { padding: spacing.lg },
   aviso: {
-    backgroundColor: '#fff8e1',
-    borderColor: '#ffca28',
+    backgroundColor: palette.warningBg,
+    borderColor: palette.gold,
     borderWidth: 1,
-    borderRadius: 6,
-    padding: 12,
-    marginBottom: 12,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
   },
-  avisoTitulo: { fontSize: 15, fontWeight: '700', marginBottom: 4, color: '#8d6e00' },
-  avisoTexto: { fontSize: 14, color: '#5f5a45' },
-  avisoNumeros: { fontSize: 14, fontWeight: '600', marginTop: 4, color: '#5f5a45' },
-  ok: { color: '#1b5e20', marginBottom: 12 },
-  fila: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  filaTexto: { flex: 1, marginLeft: 8, fontSize: 14 },
-  boton: {
-    backgroundColor: '#b00020',
-    borderRadius: 6,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  botonDeshabilitado: { backgroundColor: '#c9a1a8' },
-  botonTexto: { color: '#ffffff', fontWeight: '700', fontSize: 15 },
-  error: { color: '#b00020', marginTop: 4, marginBottom: 4 },
-  retry: { color: '#1565c0', fontWeight: '600' },
+  avisoTitulo: { color: palette.warning, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.bold, marginBottom: spacing.xs },
+  avisoTexto: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.small },
+  avisoNumeros: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.small, fontWeight: fontWeight.semibold, marginTop: spacing.xs },
+  ok: { color: palette.success, fontFamily: fonts.body, marginBottom: spacing.md },
+  fila: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
+  filaTexto: { flex: 1, marginLeft: spacing.sm, color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.small },
+  botonCerrar: { marginTop: spacing.xs, marginBottom: spacing.sm },
+  error: { color: palette.danger, fontFamily: fonts.body, marginTop: spacing.xs, marginBottom: spacing.xs },
+  retry: { color: palette.info, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
   resultado: {
-    backgroundColor: '#e8f5e9',
-    borderColor: '#66bb6a',
+    backgroundColor: palette.successBg,
+    borderColor: palette.success,
     borderWidth: 1,
-    borderRadius: 6,
-    padding: 12,
+    borderRadius: radius.md,
+    padding: spacing.md,
   },
-  resultadoTitulo: { fontSize: 16, fontWeight: '700', marginBottom: 4, color: '#1b5e20' },
-  resultadoTexto: { fontSize: 14, color: '#33691e' },
+  resultadoTitulo: { color: palette.success, fontFamily: fonts.body, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, marginBottom: spacing.xs },
+  resultadoTexto: { color: palette.success, fontFamily: fonts.body, fontSize: fontSize.small },
 });
 
 export default CierreTemporadaScreen;

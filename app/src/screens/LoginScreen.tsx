@@ -14,7 +14,7 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Button,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -27,6 +27,8 @@ import {
   type AuthProvider,
   type AuthSessionPresenter,
 } from '../session';
+import { Hero, PrimaryButton, SecondaryButton, Screen } from '../ui/kit';
+import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 // Adaptadores NATIVOS de autenticación (Apple/Google). Se importan directamente
 // aquí porque este `.tsx` está EXCLUIDO del typecheck de `app/tsconfig.json` y
 // se compila con Metro; obtienen el `identityToken`/`idToken` real que el
@@ -41,6 +43,14 @@ export interface LoginScreenProps {
   readonly presenter: AuthSessionPresenter;
   /** Modo inicial: iniciar sesión o registrarse (por defecto login). */
   readonly initialMode?: 'login' | 'register';
+  /**
+   * Si es `true`, oculta los botones sociales (Apple/Google) y deja SOLO el
+   * flujo de correo/contraseña. Para la build de prod-test con Supabase Auth,
+   * el flujo documentado (docs/FRONTEND_INTEGRATION.md §2) es email/password;
+   * el login social necesitaría configuración extra en Supabase/OAuth. Por
+   * defecto `true` (solo email/password).
+   */
+  readonly emailOnly?: boolean;
 }
 
 /**
@@ -51,6 +61,7 @@ export interface LoginScreenProps {
 export function LoginScreen({
   presenter,
   initialMode = 'login',
+  emailOnly = true,
 }: LoginScreenProps): React.JSX.Element {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [email, setEmail] = useState('');
@@ -117,80 +128,117 @@ export function LoginScreen({
   );
 
   const onEmail = useCallback(() => {
-    void authenticate({ provider: 'email', email, password });
+    // Normaliza el correo (sin espacios ni mayúsculas accidentales del teclado);
+    // la contraseña se envía tal cual (distingue mayúsculas).
+    const emailNorm = email.trim().toLowerCase();
+    void authenticate({ provider: 'email', email: emailNorm, password });
   }, [authenticate, email, password]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
-        {mode === 'register' ? 'Crear cuenta' : 'Iniciar sesión'}
-      </Text>
+    <Screen tone="light" flush>
+      <Hero eyebrow="Álbum del hincha" title={mode === 'register' ? 'Crea tu cuenta' : 'Inicia sesión'} />
 
-      <Button
-        title="Continuar con Apple"
-        onPress={() => onProvider('apple')}
-        disabled={busy}
-      />
-      <View style={styles.spacer} />
-      <Button
-        title="Continuar con Google"
-        onPress={() => onProvider('google')}
-        disabled={busy}
-      />
+      <View style={styles.body}>
+        {/* Botones sociales ocultos en la build de prod-test (email/password
+            únicamente). Se conservan detrás de `emailOnly=false` para cuando se
+            configure el login social contra Supabase/OAuth. */}
+        {emailOnly ? null : (
+          <>
+            <SecondaryButton
+              title="Continuar con Apple"
+              tone="light"
+              onPress={() => onProvider('apple')}
+              disabled={busy}
+              style={styles.spacer}
+            />
+            <SecondaryButton
+              title="Continuar con Google"
+              tone="light"
+              onPress={() => onProvider('google')}
+              disabled={busy}
+              style={styles.spacer}
+            />
+            <View style={styles.divider} />
+          </>
+        )}
 
-      <View style={styles.divider} />
+        <TextInput
+          style={styles.input}
+          placeholder="Correo electrónico"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          textContentType="emailAddress"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+          editable={!busy}
+          placeholderTextColor={palette.textMutedOnLight}
+          accessibilityLabel="Correo electrónico"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Contraseña"
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="password"
+          textContentType="password"
+          value={password}
+          onChangeText={setPassword}
+          editable={!busy}
+          placeholderTextColor={palette.textMutedOnLight}
+          accessibilityLabel="Contraseña"
+        />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Correo electrónico"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-        editable={!busy}
-        accessibilityLabel="Correo electrónico"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Contraseña"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        editable={!busy}
-        accessibilityLabel="Contraseña"
-      />
-      <Button
-        title={mode === 'register' ? 'Registrarse' : 'Entrar'}
-        onPress={onEmail}
-        disabled={busy}
-      />
+        <PrimaryButton
+          title={mode === 'register' ? 'Registrarse' : 'Entrar'}
+          onPress={onEmail}
+          disabled={busy}
+          style={styles.spacer}
+        />
 
-      <View style={styles.spacer} />
-      <Button
-        title={
-          mode === 'register'
-            ? '¿Ya tienes cuenta? Inicia sesión'
-            : '¿Nuevo? Crea una cuenta'
-        }
-        onPress={() => setMode(mode === 'register' ? 'login' : 'register')}
-        disabled={busy}
-      />
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={() => setMode(mode === 'register' ? 'login' : 'register')}
+          style={styles.switchMode}
+        >
+          <Text style={styles.switchModeText}>
+            {mode === 'register'
+              ? '¿Ya tienes cuenta? Inicia sesión'
+              : '¿Nuevo? Crea una cuenta'}
+          </Text>
+        </Pressable>
 
-      {busy ? <ActivityIndicator style={styles.spacer} /> : null}
-    </View>
+        {busy ? <ActivityIndicator color={palette.accent} style={styles.spacer} /> : null}
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: 'center' },
-  title: { fontSize: 24, fontWeight: '600', marginBottom: 24 },
+  // Colores EXPLÍCITOS (no dependientes del tema claro/oscuro del SO) para
+  // garantizar contraste legible (WCAG AA >= 4.5:1) sobre el fondo definido.
+  body: { flex: 1, padding: spacing.xl, justifyContent: 'center' },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+    borderColor: palette.borderOnLight,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    color: palette.textOnLight, // texto que escribe el usuario, legible sobre blanco
+    backgroundColor: palette.surface,
+    fontFamily: fonts.body,
+    fontSize: fontSize.body,
   },
-  divider: { height: 1, backgroundColor: '#eee', marginVertical: 24 },
-  spacer: { height: 12 },
+  divider: { height: 1, backgroundColor: palette.borderOnLight, marginVertical: spacing.xl },
+  spacer: { marginTop: spacing.md },
+  switchMode: { marginTop: spacing.lg, alignItems: 'center' },
+  switchModeText: {
+    color: palette.accent,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.semibold,
+  },
 });

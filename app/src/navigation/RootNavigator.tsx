@@ -43,10 +43,12 @@ export interface ScreenBundle {
   readonly Login: BoundScreen;
   readonly SeleccionClub: BoundScreen;
   readonly HomeAlbum: BoundScreen;
+  readonly Partidos: BoundScreen;
   readonly Captura: BoundScreen;
   readonly DetalleCard: BoundScreen;
   readonly Suscripcion: BoundScreen;
   readonly EnvioPedido: BoundScreen;
+  readonly Perfil: BoundScreen;
   readonly Ajustes: BoundScreen;
 }
 
@@ -85,6 +87,11 @@ function MainNavigator({ screens }: { screens: ScreenBundle }): React.JSX.Elemen
         options={{ title: 'Álbum' }}
       />
       <MainTabs.Screen
+        name="Partidos"
+        component={screens.Partidos}
+        options={{ title: 'Partidos' }}
+      />
+      <MainTabs.Screen
         name="Captura"
         component={screens.Captura}
         options={{ title: 'Captura' }}
@@ -103,6 +110,11 @@ function MainNavigator({ screens }: { screens: ScreenBundle }): React.JSX.Elemen
         name="EnvioPedido"
         component={screens.EnvioPedido}
         options={{ title: 'Envío' }}
+      />
+      <MainTabs.Screen
+        name="Perfil"
+        component={screens.Perfil}
+        options={{ title: 'Perfil' }}
       />
       <MainTabs.Screen
         name="Ajustes"

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" font-family="-apple-system, Segoe UI, Roboto, sans-serif">
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8A0B20"/>
+      <stop offset="1" stop-color="#C8102E"/>
+    </linearGradient>
+  </defs>
+  <rect width="390" height="844" fill="url(#bg1)"/>
+  <text x="24" y="34" fill="#FFFFFF" font-size="13" font-weight="600">9:41</text>
+  <text x="366" y="34" fill="#FFFFFF" font-size="12" text-anchor="end">100%</text>
+  <circle cx="195" cy="180" r="54" fill="#FFFFFF" opacity="0.12"/>
+  <circle cx="195" cy="180" r="42" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <path d="M195 150 l24 12 v22 l-24 14 -24-14 v-22 z" fill="#FFFFFF"/>
+  <text x="195" y="272" fill="#FFFFFF" font-size="24" font-weight="700" text-anchor="middle">Álbum de Fútbol</text>
+  <text x="195" y="300" fill="#FFFFFF" font-size="14" text-anchor="middle" opacity="0.85">Tu temporada, cromo a cromo</text>
+  <rect x="24" y="344" width="342" height="420" rx="20" fill="#FFFFFF"/>
+  <text x="48" y="392" fill="#111111" font-size="18" font-weight="700">Iniciar sesión</text>
+  <text x="48" y="424" fill="#555555" font-size="12">Correo electrónico</text>
+  <rect x="48" y="434" width="294" height="46" rx="10" fill="#F2F2F5" stroke="#E0E0E6"/>
+  <text x="64" y="462" fill="#9A9AA2" font-size="14">tu@correo.com</text>
+  <text x="48" y="504" fill="#555555" font-size="12">Contraseña</text>
+  <rect x="48" y="514" width="294" height="46" rx="10" fill="#F2F2F5" stroke="#E0E0E6"/>
+  <text x="64" y="542" fill="#9A9AA2" font-size="14">••••••••</text>
+  <rect x="48" y="580" width="294" height="48" rx="12" fill="#C8102E"/>
+  <text x="195" y="610" fill="#FFFFFF" font-size="16" font-weight="600" text-anchor="middle">Entrar</text>
+  <line x1="48" y1="652" x2="150" y2="652" stroke="#E0E0E6"/>
+  <text x="195" y="657" fill="#9A9AA2" font-size="12" text-anchor="middle">o continúa con</text>
+  <line x1="240" y1="652" x2="342" y2="652" stroke="#E0E0E6"/>
+  <rect x="48" y="676" width="140" height="46" rx="10" fill="#000000"/>
+  <text x="118" y="704" fill="#FFFFFF" font-size="14" text-anchor="middle"> Apple ID</text>
+  <rect x="202" y="676" width="140" height="46" rx="10" fill="#FFFFFF" stroke="#E0E0E6"/>
+  <text x="272" y="704" fill="#3C4043" font-size="14" text-anchor="middle">G  Google</text>
+  <text x="195" y="748" fill="#666666" font-size="12" text-anchor="middle">¿No tienes cuenta? <tspan fill="#C8102E" font-weight="600">Regístrate</tspan></text>
+  <text x="195" y="800" fill="#FFFFFF" font-size="10" text-anchor="middle" opacity="0.7">Req 1 · Req 22 — Auth vía Supabase (Apple / Google / email)</text>
+</svg>

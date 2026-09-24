@@ -15,9 +15,11 @@
 // Excluido del typecheck de `app/tsconfig.json` (RN no instalado en este entorno).
 
 import React, { useCallback, useState } from 'react';
-import { Alert, Button, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import type { AuthSessionPresenter } from '../session';
+import { DangerButton, Hero, Screen, SecondaryButton } from '../ui/kit';
+import { fonts, fontSize, fontWeight, palette, spacing } from '../theme/design-tokens';
 
 export interface AjustesScreenProps {
   /** Presenter de sesión inyectado por la navegación/composición raíz. */
@@ -92,27 +94,29 @@ export function AjustesScreen({
   }, [confirmDelete]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Ajustes</Text>
+    <Screen tone="light" flush>
+      <Hero eyebrow="Perfil" title="Ajustes" />
 
-      <Button title="Cerrar sesión" onPress={onLogout} disabled={busy} />
+      <View style={styles.body}>
+        <SecondaryButton title="Cerrar sesión" tone="light" onPress={onLogout} disabled={busy} />
 
-      <View style={styles.divider} />
+        <View style={styles.divider} />
 
-      <Text style={styles.dangerLabel}>Zona de peligro</Text>
-      <Button
-        title="Borrar cuenta"
-        color="#c0392b"
-        onPress={onDeletePress}
-        disabled={busy}
-      />
-    </View>
+        <Text style={styles.dangerLabel}>Zona de peligro</Text>
+        <DangerButton title="Borrar cuenta" onPress={onDeletePress} disabled={busy} />
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24 },
-  title: { fontSize: 24, fontWeight: '600', marginBottom: 24 },
-  divider: { height: 1, backgroundColor: '#eee', marginVertical: 24 },
-  dangerLabel: { fontSize: 14, color: '#c0392b', marginBottom: 8 },
+  body: { flex: 1, padding: spacing.xl },
+  divider: { height: 1, backgroundColor: palette.borderOnLight, marginVertical: spacing.xl },
+  dangerLabel: {
+    color: palette.danger,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.semibold,
+    marginBottom: spacing.sm,
+  },
 });

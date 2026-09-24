@@ -27,10 +27,12 @@ export type RouteName =
   | 'Login'
   | 'SeleccionClub'
   | 'HomeAlbum'
+  | 'Partidos'
   | 'Captura'
   | 'DetalleCard'
   | 'Suscripcion'
   | 'EnvioPedido'
+  | 'Perfil'
   | 'Ajustes';
 
 /**
@@ -42,10 +44,12 @@ export interface RouteParamList {
   Login: undefined;
   SeleccionClub: undefined;
   HomeAlbum: { temporadaId: string };
+  Partidos: { temporadaId: string };
   Captura: { partidoId: string; recuadroId?: string };
   DetalleCard: { recuadroId: string };
   Suscripcion: undefined;
   EnvioPedido: { temporadaId: string };
+  Perfil: undefined;
   Ajustes: undefined;
 }
 
@@ -87,6 +91,11 @@ export const ROUTE_REGISTRY: {
     navigator: 'mainTabs',
     requiredParams: ['temporadaId'],
   },
+  Partidos: {
+    name: 'Partidos',
+    navigator: 'mainTabs',
+    requiredParams: ['temporadaId'],
+  },
   Captura: {
     name: 'Captura',
     navigator: 'mainTabs',
@@ -107,6 +116,7 @@ export const ROUTE_REGISTRY: {
     navigator: 'mainTabs',
     requiredParams: ['temporadaId'],
   },
+  Perfil: { name: 'Perfil', navigator: 'mainTabs', requiredParams: [] },
   Ajustes: { name: 'Ajustes', navigator: 'mainTabs', requiredParams: [] },
 };
 

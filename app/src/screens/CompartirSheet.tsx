@@ -19,16 +19,12 @@
 //   - el estado del último intento: compartiendo / éxito / error (Req 6.2, 6.3).
 
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { SharePresenter, type ShareState } from '../share';
 import type { DigitalCard, SharePlatform } from '../viewmodels';
+import { PrimaryButton } from '../ui/kit';
+import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 
 /** Etiqueta legible de cada plataforma para el botón de compartir (Req 6.1). */
 const ETIQUETA_PLATAFORMA: Record<SharePlatform, string> = {
@@ -77,27 +73,25 @@ export function CompartirSheet({
 
   return (
     <View style={styles.container}>
+      <View style={styles.grabber} />
       <Text style={styles.title}>Compartir tu cromo</Text>
 
       <View style={styles.acciones}>
         {plataformas.map((plataforma) => (
-          <Pressable
+          <PrimaryButton
             key={plataforma}
-            accessibilityRole="button"
+            title={ETIQUETA_PLATAFORMA[plataforma]}
             accessibilityLabel={`Compartir en ${ETIQUETA_PLATAFORMA[plataforma]}`}
-            style={styles.boton}
             disabled={state.status === 'sharing'}
             onPress={() => compartir(plataforma)}
-          >
-            <Text style={styles.botonTexto}>{ETIQUETA_PLATAFORMA[plataforma]}</Text>
-          </Pressable>
+          />
         ))}
       </View>
 
       {/* Estado del intento capturado por el presentador (Req 6.2, 6.3). */}
       {state.status === 'sharing' ? (
         <View style={styles.estado}>
-          <ActivityIndicator accessibilityLabel="Compartiendo" />
+          <ActivityIndicator color={palette.accent} accessibilityLabel="Compartiendo" />
           <Text style={styles.estadoTexto}>Compartiendo…</Text>
         </View>
       ) : null}
@@ -116,21 +110,33 @@ export function CompartirSheet({
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  title: { fontSize: 18, fontWeight: '600', marginBottom: 12 },
-  acciones: { gap: 8 },
-  boton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#1565c0',
-    alignItems: 'center',
+  container: {
+    padding: spacing.lg,
+    backgroundColor: palette.surface,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
   },
-  botonTexto: { color: '#ffffff', fontWeight: '600' },
-  estado: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
-  estadoTexto: { marginTop: 12, fontSize: 14 },
-  exito: { color: '#2e7d32' },
-  error: { color: '#b00020' },
+  grabber: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: radius.pill,
+    backgroundColor: palette.borderOnLight,
+    marginBottom: spacing.md,
+  },
+  title: {
+    color: palette.textOnLight,
+    fontFamily: fonts.display,
+    fontSize: fontSize.title,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
+    marginBottom: spacing.md,
+  },
+  acciones: { gap: spacing.sm },
+  estado: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
+  estadoTexto: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginTop: spacing.md },
+  exito: { color: palette.success },
+  error: { color: palette.danger },
 });
 
 export default CompartirSheet;

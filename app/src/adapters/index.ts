@@ -22,10 +22,23 @@ export {
 } from './http-adapter-utils';
 
 // Autenticación / sesión (Req 22).
-export { HttpAuthClient } from './http-auth-client';
+//
+// NOTA: el `HttpAuthClient` (login/registro contra el backend) quedó OBSOLETO:
+// el backend deployado NO expone login/registro/refresh. La autenticación se
+// hace directamente contra Supabase Auth con `SupabaseAuthClient`
+// (app/src/auth/, `.tsx`). No se reexporta aquí para no inducir su uso.
 
 // Personalización / Club (Req 2).
 export { HttpClubClient } from './http-club-client';
+
+// Catálogo de clubes para la selección (`GET /clubs`).
+export {
+  HttpClubsCatalogClient,
+  type ClubsCatalogClient,
+  type ClubCatalogEntry,
+  type ClubPaletaColores,
+  type ClubActivosVisuales,
+} from './http-clubs-catalog-client';
 
 // Captura de momentos y contexto (Req 5, 6).
 export { HttpCaptureClient } from './http-capture-client';
@@ -47,3 +60,19 @@ export { HttpSeasonCloseClient } from './http-season-close-client';
 
 // Registro de notificaciones push (Req 26).
 export { HttpPushRegistrationClient } from './http-push-registration-client';
+
+// Perfil del usuario y partidos/láminas de la temporada (GET /me,
+// GET /me/temporadas, GET /temporadas/:id/partidos).
+export {
+  HttpProfileClient,
+  type ProfileClient,
+  type Perfil,
+  type PerfilUsuario,
+  type PerfilClub,
+  type Temporada,
+  type PartidoLamina,
+  type ResultadoPartido,
+  type EstadoTemporada,
+  type EstadoPartido,
+  type TipoCompeticion,
+} from './http-profile-client';

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" font-family="-apple-system, Segoe UI, Roboto, sans-serif">
+  <rect width="390" height="844" fill="#F5F5F7"/>
+  <rect width="390" height="120" fill="#C8102E"/>
+  <text x="24" y="34" fill="#FFFFFF" font-size="13" font-weight="600">9:41</text>
+  <text x="24" y="78" fill="#FFFFFF" font-size="22" font-weight="700">Elige tu club</text>
+  <text x="24" y="102" fill="#FFFFFF" font-size="13" opacity="0.85">La app se personaliza con su identidad</text>
+  <rect x="24" y="140" width="342" height="44" rx="12" fill="#FFFFFF" stroke="#E4E4EA"/>
+  <circle cx="48" cy="162" r="7" fill="none" stroke="#9A9AA2" stroke-width="2"/>
+  <line x1="53" y1="167" x2="59" y2="173" stroke="#9A9AA2" stroke-width="2"/>
+  <text x="70" y="167" fill="#9A9AA2" font-size="14">Buscar club...</text>
+  <rect x="24" y="204" width="342" height="88" rx="16" fill="#FFFFFF" stroke="#C8102E" stroke-width="2"/>
+  <circle cx="68" cy="248" r="26" fill="#8A0B20"/>
+  <path d="M68 230 l16 8 v14 l-16 10 -16-10 v-14 z" fill="#FFFFFF"/>
+  <text x="108" y="242" fill="#111111" font-size="16" font-weight="700">Atlético Kiro</text>
+  <text x="108" y="264" fill="#666666" font-size="12">Liga · Copa · Internacional</text>
+  <circle cx="340" cy="248" r="12" fill="#C8102E"/>
+  <path d="M334 248 l4 4 8-8" stroke="#FFFFFF" stroke-width="2.5" fill="none"/>
+  <text x="24" y="330" fill="#333333" font-size="13" font-weight="600">Vista previa del tema</text>
+  <rect x="24" y="344" width="72" height="48" rx="10" fill="#C8102E"/>
+  <text x="60" y="372" fill="#FFFFFF" font-size="10" text-anchor="middle">Primario</text>
+  <rect x="104" y="344" width="72" height="48" rx="10" fill="#FFFFFF" stroke="#E4E4EA"/>
+  <text x="140" y="372" fill="#333" font-size="10" text-anchor="middle">Secundario</text>
+  <rect x="184" y="344" width="72" height="48" rx="10" fill="#111111"/>
+  <text x="220" y="372" fill="#FFFFFF" font-size="10" text-anchor="middle">Acento</text>
+  <text x="24" y="428" fill="#333333" font-size="13" font-weight="600">Otros clubes</text>
+  <rect x="24" y="442" width="342" height="64" rx="14" fill="#FFFFFF" stroke="#E4E4EA"/>
+  <circle cx="60" cy="474" r="20" fill="#0A5BB5"/>
+  <text x="92" y="480" fill="#111111" font-size="15" font-weight="600">Deportivo Norte</text>
+  <rect x="24" y="514" width="342" height="64" rx="14" fill="#FFFFFF" stroke="#E4E4EA"/>
+  <circle cx="60" cy="546" r="20" fill="#1B7A3D"/>
+  <text x="92" y="552" fill="#111111" font-size="15" font-weight="600">Verde Unido</text>
+  <rect x="24" y="586" width="342" height="64" rx="14" fill="#FFFFFF" stroke="#E4E4EA"/>
+  <circle cx="60" cy="618" r="20" fill="#E8A200"/>
+  <text x="92" y="624" fill="#111111" font-size="15" font-weight="600">Águilas FC</text>
+  <rect x="24" y="672" width="342" height="52" rx="12" fill="#FFF4E5" stroke="#F0C36D"/>
+  <text x="40" y="696" fill="#8A5A00" font-size="11" font-weight="600">Temporada activa</text>
+  <text x="40" y="713" fill="#8A5A00" font-size="10.5">No puedes cambiar de club hasta cerrarla (HTTP 409)</text>
+  <rect x="24" y="740" width="342" height="50" rx="14" fill="#C8102E"/>
+  <text x="195" y="771" fill="#FFFFFF" font-size="16" font-weight="600" text-anchor="middle">Confirmar club</text>
+  <text x="195" y="820" fill="#9A9AA2" font-size="10" text-anchor="middle">Req 2 · Req 23 — PUT /me/club · IdentidadVisual → Tema_Club</text>
+</svg>

@@ -24,7 +24,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -38,6 +37,8 @@ import {
   type AlbumPreviewEntry,
   type AlbumPreviewState,
 } from '../album';
+import { Hero, Screen, StickerSlot } from '../ui/kit';
+import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 
 export interface HomeAlbumScreenProps {
   /** Temporada cuyo álbum se previsualiza. */
@@ -48,52 +49,23 @@ export interface HomeAlbumScreenProps {
   readonly presenter?: AlbumPreviewPresenter;
 }
 
-/** Resuelve la URI de una miniatura optimizada a una fuente de `Image` de RN. */
-function thumbnailSource(miniaturaKey: string): { uri: string } {
-  return { uri: miniaturaKey };
-}
-
-/** Celda de un Recuadro MONTADA: miniatura optimizada de la Foto_Principal (Req 4.1). */
-function RecuadroMontada({
-  numero,
-  miniaturaKey,
-}: {
-  numero: number;
-  miniaturaKey: string;
-}): React.ReactElement {
-  return (
-    <View style={styles.recuadro} accessibilityLabel={`Recuadro ${numero} montado`}>
-      <Image
-        style={styles.miniatura}
-        source={thumbnailSource(miniaturaKey)}
-        accessibilityRole="image"
-        accessibilityLabel={`Foto del recuadro ${numero}`}
-      />
-      <Text style={styles.numero}>{numero}</Text>
-    </View>
-  );
-}
-
-/** Celda de un Recuadro VACIO: silueta punteada de un Recuadro faltante (Req 4.2). */
-function RecuadroVacio({ numero }: { numero: number }): React.ReactElement {
-  return (
-    <View
-      style={[styles.recuadro, styles.silueta]}
-      accessibilityLabel={`Recuadro ${numero} vacío, falta la foto`}
-    >
-      <Text style={styles.numeroVacio}>{numero}</Text>
-    </View>
-  );
-}
-
-/** Pinta la entrada de un Recuadro según su estado (montada o vacía). */
+/**
+ * Pinta la entrada de un Recuadro según su estado, con el look de sticker del
+ * mockup: montado => miniatura + número; vacío => silueta punteada "Pega aquí"
+ * (Req 4.1, 4.2). La celda va envuelta para respetar el gap entre columnas.
+ */
 function renderRecuadro({
   item,
 }: ListRenderItemInfo<AlbumPreviewEntry>): React.ReactElement {
-  if (item.estado === 'MONTADA') {
-    return <RecuadroMontada numero={item.numero} miniaturaKey={item.miniaturaKey} />;
-  }
-  return <RecuadroVacio numero={item.numero} />;
+  const montada = item.estado === 'MONTADA';
+  return (
+    <View style={styles.cell}>
+      <StickerSlot
+        numero={item.numero}
+        imageUri={montada ? item.miniaturaKey : null}
+      />
+    </View>
+  );
 }
 
 /**
@@ -122,93 +94,77 @@ export function HomeAlbumScreen({
   }, [pres, temporadaId]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Mi álbum</Text>
+    <Screen tone="light" flush>
+      <Hero eyebrow="Temporada 2026" title="Mi álbum">
         {state.status === 'loading' ? (
           // Indicador no bloqueante: la lista sigue visible y operable (Req 4.5).
-          <ActivityIndicator accessibilityLabel="Cargando previsualización" />
+          <ActivityIndicator
+            color={palette.textOnDark}
+            accessibilityLabel="Cargando previsualización"
+            style={styles.heroSpinner}
+          />
         ) : null}
+      </Hero>
+
+      <View style={styles.body}>
+        {/* Indicador de faltantes: Recuadros sin Foto_Principal (Req 4.3). */}
+        {state.faltantesCount > 0 ? (
+          <View style={styles.faltantesBox}>
+            <Text style={styles.faltantes} accessibilityRole="text">
+              Te faltan {state.faltantesCount} recuadros: {state.faltantes.join(', ')}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Estado de error no bloqueante con opción de reintento (Req 4.5). */}
+        {state.status === 'error' && state.error !== null ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{state.error}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Reintentar cargar la previsualización"
+              onPress={() => {
+                void pres.load(temporadaId);
+              }}
+            >
+              <Text style={styles.retry}>Reintentar</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        <FlatList
+          data={state.recuadros}
+          keyExtractor={(item) => String(item.numero)}
+          renderItem={renderRecuadro}
+          numColumns={3}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.grid}
+          // La lista permanece desplazable durante la carga (UI operable — Req 4.5).
+          scrollEnabled
+        />
       </View>
-
-      {/* Indicador de faltantes: Recuadros sin Foto_Principal (Req 4.3). */}
-      {state.faltantesCount > 0 ? (
-        <Text style={styles.faltantes} accessibilityRole="text">
-          Te faltan {state.faltantesCount} recuadros:{' '}
-          {state.faltantes.join(', ')}
-        </Text>
-      ) : null}
-
-      {/* Estado de error no bloqueante con opción de reintento (Req 4.5). */}
-      {state.status === 'error' && state.error !== null ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{state.error}</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Reintentar cargar la previsualización"
-            onPress={() => {
-              void pres.load(temporadaId);
-            }}
-          >
-            <Text style={styles.retry}>Reintentar</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      <FlatList
-        data={state.recuadros}
-        keyExtractor={(item) => String(item.numero)}
-        renderItem={renderRecuadro}
-        numColumns={3}
-        // La lista permanece desplazable durante la carga (UI operable — Req 4.5).
-        scrollEnabled
-      />
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 12 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+  heroSpinner: { alignSelf: 'flex-start', marginTop: spacing.sm },
+  body: { flex: 1, paddingHorizontal: spacing.md, paddingTop: spacing.md },
+  faltantesBox: {
+    backgroundColor: palette.warningBg,
+    borderRadius: radius.md,
+    borderLeftWidth: 4,
+    borderLeftColor: palette.accent,
+    padding: spacing.md,
+    marginBottom: spacing.md,
   },
-  title: { fontSize: 20, fontWeight: '600' },
-  faltantes: { marginBottom: 8, fontSize: 14 },
-  errorBox: { marginBottom: 8 },
-  errorText: { color: '#b00020', marginBottom: 4 },
-  retry: { color: '#1565c0', fontWeight: '600' },
-  recuadro: {
-    flex: 1,
-    margin: 4,
-    aspectRatio: 3 / 4,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    backgroundColor: '#f2f2f2',
-  },
-  silueta: {
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    // #616161 (grey 700) sobre fondo claro alcanza ~6.19:1 (≥ 4.5:1, WCAG AA).
-    borderColor: '#616161',
-    backgroundColor: 'transparent',
-  },
-  miniatura: { ...StyleSheet.absoluteFillObject, resizeMode: 'cover' },
-  numero: {
-    position: 'absolute',
-    bottom: 4,
-    right: 6,
-    color: '#ffffff',
-    fontWeight: '700',
-    textShadowColor: '#000000',
-    textShadowRadius: 2,
-  },
-  // #616161 sobre fondo claro alcanza ~6.19:1 de contraste (≥ 4.5:1, WCAG AA).
-  numeroVacio: { color: '#616161', fontWeight: '700' },
+  faltantes: { color: palette.warning, fontFamily: fonts.body, fontSize: fontSize.small, fontWeight: fontWeight.semibold },
+  errorBox: { marginBottom: spacing.sm },
+  errorText: { color: palette.danger, fontFamily: fonts.body, marginBottom: spacing.xs },
+  retry: { color: palette.info, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
+  grid: { paddingBottom: spacing.lg },
+  row: { gap: spacing.sm, marginBottom: spacing.sm },
+  cell: { flex: 1 },
 });
 
 export default HomeAlbumScreen;

@@ -21,6 +21,28 @@
 export { mapIdentidadVisualToTheme } from '../viewmodels';
 export type { ClubTheme } from '../viewmodels';
 
+// Sistema de diseño (tokens puros derivados del mockup public/album.html).
+// TypeScript puro (sin React) que SÍ participa del typecheck; las pantallas
+// `.tsx` lo consumen para pintar con un lenguaje visual consistente.
+export {
+  buildTheme,
+  fonts,
+  fontSize,
+  fontWeight,
+  isHexColor,
+  palette,
+  radius,
+  shadow,
+  spacing,
+} from './design-tokens';
+export type {
+  AppTheme,
+  FontSizeToken,
+  Palette,
+  RadiusToken,
+  SpacingToken,
+} from './design-tokens';
+
 // Núcleo puro del provider de Tema_Club (Task 27.1).
 export {
   CLUB_CHANGE_CONFLICT,

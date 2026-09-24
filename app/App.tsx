@@ -2,38 +2,45 @@
  * App.tsx — Componente raíz (buildable entry point) del Álbum de Fútbol Digital.
  *
  * Monta el grafo de navegación REAL (`RootNavigator`) con adaptadores HTTP
- * concretos y los PUENTES NATIVOS REALES (captura, permisos, IAP, push, share,
- * autenticación Apple/Google), sustituyendo por completo a los stubs anteriores.
+ * concretos y los PUENTES NATIVOS REALES (captura, permisos, share), apuntando
+ * al BACKEND DEPLOYADO (Render) y a Supabase Auth (ver docs/FRONTEND_INTEGRATION.md).
+ *
+ * AUTENTICACIÓN (cambio de arquitectura, docs · §2):
+ *   - La app autentica DIRECTAMENTE contra Supabase Auth con `@supabase/supabase-js`
+ *     (email/password). El backend NO expone login/registro/refresh; solo
+ *     consume el `access_token` de Supabase como `Authorization: Bearer`.
+ *   - El Access_Token vigente vive en un holder en memoria que se SINCRONIZA con
+ *     la sesión de Supabase vía `onAuthStateChange` (login/logout/refresh). El
+ *     `HttpClient` lee ese holder para adjuntar el Bearer en cada petición.
+ *   - Ante un 401 del backend, `SupabaseSessionHttpClient` pide un token fresco a
+ *     supabase-js (`refreshSession`), actualiza el holder y reintenta UNA vez; si
+ *     sigue 401, cierra la sesión (Supabase `signOut` vía el presentador).
+ *
+ * FUNCIONES OCULTAS (docs · §7): suscripción/IAP, envío/pedido, notificaciones
+ * push, cierre anticipado y edición de contexto del Momento NO están disponibles
+ * en el backend deployado. Sus pantallas se sustituyen por un placeholder
+ * "No disponible todavía" en el navegador (ver screen-bindings / RootNavigator).
  *
  * NOTA DE ARQUITECTURA (invariante del proyecto):
- *   - La lógica agnóstica del framework (adaptadores HTTP, presentadores,
- *     modelo de red/sesión) vive en `.ts` PUROS que typechean bajo
- *     `app/tsconfig.json` y NO importan `react-native`.
- *   - El wiring NATIVO (Keychain, IAP, share nativo, bridge de notificaciones,
- *     `useColorScheme`, montaje de navegación) vive en ESTE `.tsx`, que está
- *     EXCLUIDO del typecheck. Es código real para cuando se instale el toolchain
- *     del cliente; aquí no participa en `tsc --noEmit`.
- *
- * Este archivo compone el stack de red (holder de Access_Token en memoria +
- * Keychain para el Refresh_Token + `HttpClient` con TLS + `SessionHttpClient`
- * con refresh single-flight), instancia los adaptadores HTTP sobre `send`,
- * construye el `AuthSessionPresenter`, INYECTA los adaptadores nativos reales y
- * enlaza las pantallas a través de `createScreenBundle`.
+ *   - La lógica agnóstica del framework (adaptadores HTTP, presentadores, red)
+ *     vive en `.ts` PUROS que typechean bajo `app/tsconfig.json` y NO importan
+ *     `react-native` ni `@supabase/supabase-js`.
+ *   - El wiring NATIVO/Supabase (`.tsx`) está EXCLUIDO del typecheck. Es código
+ *     real para cuando se instale el toolchain del cliente; aquí no participa en
+ *     `tsc --noEmit` ni se ejecuta en dispositivo.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import * as Keychain from 'react-native-keychain';
 
 import {
   HttpClient,
   InMemoryAccessTokenHolder,
-  SessionHttpClient,
-  makeAuthRefreshFn,
+  SupabaseSessionHttpClient,
 } from './src/net';
-import { KeychainSecureTokenStore } from './src/storage/secure-token-store';
 import { AuthSessionPresenter } from './src/session';
+import { InMemorySecureTokenStore } from './src/storage/secure-token-store';
 import {
   InMemoryPermissionStore,
   PermissionGate,
@@ -42,30 +49,33 @@ import { CapturePresenter } from './src/capture';
 
 import {
   HttpAlbumPreviewClient,
-  HttpAuthClient,
   HttpCaptureClient,
   HttpCardsClient,
   HttpClubClient,
-  HttpPushRegistrationClient,
-  HttpSeasonCloseClient,
-  HttpShippingClient,
+  HttpClubsCatalogClient,
+  HttpProfileClient,
   HttpSubscriptionClient,
 } from './src/adapters';
 
-import type { PushPlatform } from './src/notifications';
-import { NativeNotificationBridgeAdapter } from './src/notifications';
 import { SharePresenter, NativeShareBridgeAdapter } from './src/share';
 
-// Configuración por entorno (dev/staging/prod), validada y con TLS obligatorio.
+// Configuración por entorno (dev/prod), validada y con TLS obligatorio.
 import { appConfig } from './src/config';
 
+// Capa de autenticación Supabase (`.tsx`): cliente, helpers de sesión y el
+// `SupabaseAuthClient` que respalda el `AuthSessionPresenter`.
+import {
+  SupabaseAuthClient,
+  getAccessToken as getSupabaseAccessToken,
+  refreshAccessToken as refreshSupabaseAccessToken,
+  subscribeToAuthState,
+} from './src/auth';
+
 // Adaptadores NATIVOS REALES (todos `.tsx`, excluidos del typecheck): captura,
-// permisos, IAP, push, share y la inicialización única de módulos nativos.
+// permisos, share y la inicialización única de módulos nativos.
 import {
   imagePickerCaptureBridge,
   nativePermissionPrompt,
-  reactNativeIapPurchaser,
-  firebaseNotifeePushPort,
   reactNativeSharePort,
   initNativeModules,
 } from './src/adapters/native';
@@ -75,47 +85,17 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { createScreenBundle } from './src/navigation/screen-bindings';
 
 /**
- * Base URL del backend (API Gateway) tomada de la configuración por entorno
- * (`appConfig.apiBaseUrl`). `resolveConfig` ya garantiza que viaja sobre
- * `https://` (TLS obligatorio, Req 28.1); el `.env` seleccionado por el build
- * (dev/staging/prod) determina su valor.
+ * Base URL del backend deployado (Render), tomada de `appConfig.apiBaseUrl`.
+ * `resolveConfig` garantiza `https://` (TLS obligatorio, Req 28.1).
  */
 const API_BASE_URL = appConfig.apiBaseUrl;
 
-/**
- * Plataforma de push del dispositivo para el registro del Token_Push (Req 26.1).
- * El adaptador nativo usa `@react-native-firebase/messaging`, cuyo `getToken()`
- * devuelve un token FCM en ambas plataformas (en iOS envuelve el de APNs). Por
- * coherencia con esa implementación, se registra siempre como `'fcm'`.
- */
-const PUSH_PLATFORM: PushPlatform = 'fcm';
-
-/**
- * Puente nativo de captura de galería/cámara REAL
- * (`react-native-image-picker`). Implementa `CaptureNativeBridge`
- * (`pickFromGallery`/`takePhoto`) — Req 3.1/3.2.
- */
+/** Puente nativo de captura de galería/cámara REAL (`react-native-image-picker`). */
 const captureNative = imagePickerCaptureBridge;
 
 /**
- * Puerto de compra dentro de la app (IAP) REAL sobre `react-native-iap`
- * (StoreKit / BillingClient) — Req 25.
- */
-const iapPurchaser = reactNativeIapPurchaser;
-
-/**
- * Bridge nativo de notificaciones REAL: `NativeNotificationBridgeAdapter` sobre
- * el `NativePushPort` de Firebase Messaging + Notifee (permiso/token/display) —
- * Req 26.
- */
-const notificationBridge = new NativeNotificationBridgeAdapter(
-  firebaseNotifeePushPort,
-);
-
-/**
- * Presentador de compartición REAL: `NativeShareBridgeAdapter` sobre el
- * `NativeSharePort` de `react-native-share` (Instagram Stories / WhatsApp / X /
- * TikTok) — Req 6. Se construye una vez y lo consume la hoja `CompartirSheet`.
+ * Presentador de compartición REAL sobre `react-native-share`. Se construye una
+ * vez y lo consume la hoja `CompartirSheet` (Req 6).
  */
 const sharePresenter = new SharePresenter(
   new NativeShareBridgeAdapter(reactNativeSharePort),
@@ -125,39 +105,33 @@ function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Id del usuario autenticado. El par de tokens del login no lo expone (la
-  // sesión se identifica por el Access_Token); se poblará desde el endpoint de
-  // perfil una vez disponible. Hasta entonces permanece `null` y los wrappers de
-  // pantalla muestran un estado seguro. No se fabrica un id ficticio.
-  const [usuarioId, setUsuarioId] = useState<string | null>(null);
+  // Id del usuario autenticado. El backend deriva el usuario del JWT y no hay
+  // endpoint de perfil expuesto aún; permanece `null` (los wrappers muestran un
+  // estado seguro). No se fabrica un id ficticio.
+  const [usuarioId] = useState<string | null>(null);
 
   // ---------------------------------------------------------------------------
-  // Stack de red y sesión. Se construye UNA sola vez (useRef) para que el
-  // holder de tokens, el store y los adaptadores sean estables entre renders.
+  // Stack de red y sesión. Se construye UNA sola vez (useRef).
   // ---------------------------------------------------------------------------
   const stack = useRef<ReturnType<typeof buildNetworkStack> | null>(null);
   if (stack.current === null) {
     stack.current = buildNetworkStack(setIsAuthenticated);
   }
   const {
-    tokenStore,
+    accessTokenHolder,
     authPresenter,
     clubClient,
+    clubsCatalogClient,
     albumPreviewClient,
     captureClient,
     cardsClient,
     subscriptionClient,
-    shippingClient,
-    seasonCloseClient,
-    pushClient,
+    profileClient,
     capturePresenter,
     permissionGate,
   } = stack.current;
 
-  // Inicialización ÚNICA de módulos nativos al montar: configura Google Sign-In
-  // (webClientId de la config) e inicia la conexión IAP. `initNativeModules` no
-  // lanza por IAP (lo registra), pero se envuelve igualmente para que ningún
-  // fallo de arranque nativo tumbe la app: se registra y se continúa.
+  // Inicialización ÚNICA de módulos nativos al montar. No debe tumbar la app.
   useEffect(() => {
     void initNativeModules().catch((error) => {
       // eslint-disable-next-line no-console
@@ -165,28 +139,35 @@ function App(): React.JSX.Element {
     });
   }, []);
 
-  // Restauración de sesión al montar: si hay un Refresh_Token persistido en el
-  // Almacenamiento_Seguro, se asume una sesión previa y se entra optimista a las
-  // pantallas autenticadas; el `SessionHttpClient` validará/refrescará en la
-  // primera petición y, si el refresh falla (401), `onSessionExpired` volverá a
-  // marcar la sesión como no autenticada (Req 22.5). Documentado: entrada
-  // optimista para no mostrar el login a un usuario con sesión válida.
+  // Sincroniza el holder de Access_Token con la sesión de Supabase. supabase-js
+  // refresca el token automáticamente y emite `onAuthStateChange`; aquí se
+  // publica el token vigente en el holder (que alimenta `HttpClient`) y se
+  // refleja el estado de autenticación en React. Al montar, se restaura la
+  // sesión persistida (si la hay) leyendo el token actual de Supabase.
   useEffect(() => {
     let cancelado = false;
-    void tokenStore.getRefreshToken().then((refreshToken) => {
-      if (!cancelado && refreshToken) {
-        setIsAuthenticated(true);
+
+    void getSupabaseAccessToken().then((token) => {
+      if (cancelado) {
+        return;
       }
+      accessTokenHolder.set(token);
+      setIsAuthenticated(token !== null);
     });
+
+    const unsubscribe = subscribeToAuthState((token) => {
+      accessTokenHolder.set(token);
+      setIsAuthenticated(token !== null);
+    });
+
     return () => {
       cancelado = true;
+      unsubscribe();
     };
-  }, [tokenStore]);
+  }, [accessTokenHolder]);
 
   const onRedirectToLogin = useCallback(() => {
     setIsAuthenticated(false);
-    // Al salir de la sesión, se descarta el id de usuario cacheado.
-    setUsuarioId(null);
   }, []);
 
   // Pantallas enlazadas a sus clientes/presentadores concretos.
@@ -195,6 +176,7 @@ function App(): React.JSX.Element {
       createScreenBundle({
         authPresenter,
         clubClient,
+        clubsCatalogClient,
         albumPreviewClient,
         capturePresenter,
         captureClient,
@@ -202,30 +184,22 @@ function App(): React.JSX.Element {
         captureNative,
         cardsClient,
         subscriptionClient,
-        iapPurchaser,
-        shippingClient,
-        seasonCloseClient,
-        notificationBridge,
-        pushClient,
-        pushPlatform: PUSH_PLATFORM,
+        profileClient,
         sharePresenter,
-        // `usuarioId` proviene del estado de sesión y se poblará desde el perfil
-        // tras autenticar; hasta entonces `null` (estado seguro en los wrappers).
         usuarioId,
         onRedirectToLogin,
       }),
     [
       authPresenter,
       clubClient,
+      clubsCatalogClient,
       albumPreviewClient,
       capturePresenter,
       captureClient,
       permissionGate,
       cardsClient,
       subscriptionClient,
-      shippingClient,
-      seasonCloseClient,
-      pushClient,
+      profileClient,
       usuarioId,
       onRedirectToLogin,
     ],
@@ -243,16 +217,15 @@ function App(): React.JSX.Element {
 
 /**
  * Construye el stack de red y sesión y los adaptadores HTTP, y arma el
- * `AuthSessionPresenter`. Se aísla en una función para mantener el componente
- * legible y garantizar una construcción única (vía `useRef`).
+ * `AuthSessionPresenter` respaldado por Supabase. Se aísla en una función para
+ * mantener el componente legible y garantizar una construcción única (useRef).
  *
  * @param onAuthChange callback que refleja el estado de sesión en React.
  */
 function buildNetworkStack(onAuthChange: (authenticated: boolean) => void) {
-  // Access_Token en memoria (vida corta; no se persiste) y Refresh_Token en el
-  // Almacenamiento_Seguro nativo (Keychain iOS / Keystore Android) — Req 28.2/3.
+  // Access_Token en memoria, sincronizado con la sesión de Supabase (no se
+  // persiste aparte: la sesión persistida la gestiona supabase-js/AsyncStorage).
   const accessTokenHolder = new InMemoryAccessTokenHolder();
-  const tokenStore = new KeychainSecureTokenStore(Keychain);
 
   // Cliente HTTP base: TLS obligatorio + adjunto del Access_Token (Req 22.3/28.1).
   const httpClient = new HttpClient({
@@ -261,31 +234,33 @@ function buildNetworkStack(onAuthChange: (authenticated: boolean) => void) {
   });
   const baseSend = httpClient.send.bind(httpClient);
 
-  // Decorador de sesión: refresh single-flight con rotación y reintento (Req 22.4).
-  const sessionClient = new SessionHttpClient({
+  // Decorador de sesión Supabase: ante 401 refresca vía supabase-js y reintenta.
+  const sessionClient = new SupabaseSessionHttpClient({
     send: baseSend,
-    tokenStore,
     accessTokenHolder,
-    refresh: makeAuthRefreshFn(baseSend),
+    refresh: () => refreshSupabaseAccessToken(),
     onSessionExpired: () => onAuthChange(false),
   });
   const send = sessionClient.asSend();
 
-  // Adaptadores HTTP sobre `send`.
-  const authClient = new HttpAuthClient(send);
+  // Adaptadores HTTP sobre `send` (endpoints REALES del backend deployado).
   const clubClient = new HttpClubClient(send);
+  const clubsCatalogClient = new HttpClubsCatalogClient(send);
   const albumPreviewClient = new HttpAlbumPreviewClient(send);
   const captureClient = new HttpCaptureClient(send);
   const cardsClient = new HttpCardsClient(send);
   const subscriptionClient = new HttpSubscriptionClient(send);
-  const shippingClient = new HttpShippingClient(send);
-  const seasonCloseClient = new HttpSeasonCloseClient(send);
-  const pushClient = new HttpPushRegistrationClient(send);
+  const profileClient = new HttpProfileClient(send);
 
-  // Presenter de sesión: al cambiar de estado, refleja `isAuthenticated`.
+  // Presenter de sesión respaldado por Supabase Auth (email/password).
   const authPresenter = new AuthSessionPresenter({
-    authClient,
-    tokenStore,
+    authClient: new SupabaseAuthClient(),
+    // El Refresh_Token ya no se gestiona aquí: Supabase persiste su propia
+    // sesión (AsyncStorage) y refresca el token. Se usa un store EN MEMORIA
+    // no-persistente solo para satisfacer el contrato del presentador; la
+    // fuente de verdad de la sesión es Supabase. `logout` purga el holder y
+    // llama a `supabase.auth.signOut()` vía el `SupabaseAuthClient`.
+    tokenStore: new InMemorySecureTokenStore(),
     accessTokenHolder,
     onSessionChange: (status) => onAuthChange(status === 'authenticated'),
   });
@@ -299,16 +274,14 @@ function buildNetworkStack(onAuthChange: (authenticated: boolean) => void) {
 
   return {
     accessTokenHolder,
-    tokenStore,
     authPresenter,
     clubClient,
+    clubsCatalogClient,
     albumPreviewClient,
     captureClient,
     cardsClient,
     subscriptionClient,
-    shippingClient,
-    seasonCloseClient,
-    pushClient,
+    profileClient,
     capturePresenter,
     permissionGate,
   };

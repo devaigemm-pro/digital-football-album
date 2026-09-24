@@ -14,9 +14,11 @@
 // depende de React/React Native, cuyo toolchain se instala aparte.
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Button, FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Image, StyleSheet, Text, View } from 'react-native';
 
 import { CapturePresenter } from '../capture';
+import { Hero, PrimaryButton, Screen, SecondaryButton } from '../ui/kit';
+import { fonts, fontSize, palette, radius, spacing } from '../theme/design-tokens';
 import type { CapturePhotoInput } from '../capture';
 import {
   MOTIVOS_PERMISO,
@@ -96,40 +98,55 @@ export function CapturaScreen({
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.titulo}>Fotos del partido</Text>
-      <Text style={styles.motivo}>{explicacionGaleria}</Text>
-      <View style={styles.acciones}>
-        <Button
-          title="Cargar de galería"
-          onPress={() => void capturar('galeria')}
-          disabled={ocupado}
-        />
-        <Button
-          title="Tomar foto"
-          onPress={() => void capturar('camara')}
-          disabled={ocupado}
+    <Screen tone="light" flush>
+      <Hero eyebrow="Nuevo momento" title="Fotos del partido" />
+
+      <View style={styles.body}>
+        <Text style={styles.motivo}>{explicacionGaleria}</Text>
+        <View style={styles.acciones}>
+          <PrimaryButton
+            title="Cargar de galería"
+            onPress={() => void capturar('galeria')}
+            disabled={ocupado}
+            style={styles.accion}
+          />
+          <SecondaryButton
+            title="Tomar foto"
+            tone="light"
+            onPress={() => void capturar('camara')}
+            disabled={ocupado}
+            style={styles.accion}
+          />
+        </View>
+        <FlatList
+          data={subidas}
+          keyExtractor={(key) => key}
+          numColumns={3}
+          columnWrapperStyle={styles.row}
+          renderItem={({ item }) => (
+            <Image style={styles.miniatura} source={{ uri: item }} />
+          )}
+          ListEmptyComponent={<Text style={styles.vacio}>Aún no hay fotos.</Text>}
         />
       </View>
-      <FlatList
-        data={subidas}
-        keyExtractor={(key) => key}
-        renderItem={({ item }) => (
-          <Image style={styles.miniatura} source={{ uri: item }} />
-        )}
-        ListEmptyComponent={<Text style={styles.vacio}>Aún no hay fotos.</Text>}
-      />
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  titulo: { fontSize: 20, fontWeight: '600', marginBottom: 8 },
-  motivo: { fontSize: 13, opacity: 0.7, marginBottom: 12 },
-  acciones: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  miniatura: { width: 96, height: 96, borderRadius: 8, marginBottom: 8 },
-  vacio: { opacity: 0.6 },
+  body: { flex: 1, padding: spacing.lg },
+  motivo: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: spacing.md },
+  acciones: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
+  accion: { flex: 1 },
+  row: { gap: spacing.sm, marginBottom: spacing.sm },
+  miniatura: {
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: radius.sm,
+    borderWidth: 2,
+    borderColor: palette.surface,
+  },
+  vacio: { color: palette.textMutedOnLight, fontFamily: fonts.body },
 });
 
 export default CapturaScreen;
