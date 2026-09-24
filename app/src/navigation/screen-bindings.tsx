@@ -48,6 +48,7 @@ import { DigitalCardScreen } from '../screens/DigitalCardScreen';
 import { CompartirSheet } from '../screens/CompartirSheet';
 import { PerfilScreen } from '../screens/PerfilScreen';
 import { PartidosScreen } from '../screens/PartidosScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { useClubTheme } from '../theme/ClubThemeProvider';
 import { Badge, Crest, Hero, Screen } from '../ui/kit';
 import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
@@ -395,6 +396,35 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
     />
   );
 
+  // Compuerta de onboarding: mientras carga el perfil muestra un loader; si el
+  // usuario aún no tiene club O no tiene temporada activa, muestra el flujo de
+  // onboarding; si ya está listo, renderiza las pestañas (`children`). Reutiliza
+  // el presentador de perfil compartido, así que al terminar el onboarding (que
+  // recarga el perfil) la compuerta deja pasar automáticamente.
+  const OnboardingGate = ({ children }: { children: React.ReactNode }): React.ReactElement => {
+    const state = useProfile();
+    const perfil = state.perfil;
+    const necesitaOnboarding =
+      perfil !== null && (perfil.club === null || perfil.temporadaActiva === null);
+
+    if (state.status === 'loading' || state.status === 'idle') {
+      return <Placeholder mensaje="Cargando tu perfil…" />;
+    }
+    if (necesitaOnboarding) {
+      return (
+        <OnboardingScreen
+          clubsCatalogClient={deps.clubsCatalogClient}
+          profileClient={deps.profileClient}
+          presenter={profilePresenter}
+          onDone={() => {
+            void profilePresenter.loadProfile();
+          }}
+        />
+      );
+    }
+    return <>{children}</>;
+  };
+
   return {
     Login,
     SeleccionClub,
@@ -406,6 +436,7 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
     EnvioPedido,
     Perfil,
     Ajustes,
+    OnboardingGate,
   };
 }
 

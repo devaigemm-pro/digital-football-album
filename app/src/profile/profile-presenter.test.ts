@@ -17,6 +17,7 @@ import type {
   Perfil,
   PartidoLamina,
   ProfileClient,
+  SyncTemporadaResult,
   Temporada,
 } from '../adapters/http-profile-client';
 
@@ -76,6 +77,15 @@ class FakeProfileClient implements ProfileClient {
   listPartidos(): Promise<readonly PartidoLamina[]> {
     const p = this.opts.partidos ?? [PARTIDO];
     return p instanceof Error ? Promise.reject(p) : Promise.resolve(p);
+  }
+
+  syncTemporada(): Promise<SyncTemporadaResult> {
+    return Promise.resolve({
+      temporadaId: 'temp-1',
+      albumId: 'album-1',
+      partidos: 1,
+      recuadros: 1,
+    });
   }
 }
 

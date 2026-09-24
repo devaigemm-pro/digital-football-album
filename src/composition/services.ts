@@ -33,6 +33,13 @@ import { NotificationService } from '../services/notifications/notification-serv
 import { ShippingService } from '../services/shipping/shipping-service.js';
 import { PrintEngineService } from '../services/print-engine/print-engine-service.js';
 import { ClubService } from '../services/club/club-service.js';
+import {
+  ApiFootballSportsTransport,
+  ResilientSportsApiClient,
+  SeasonSyncService,
+  UnavailableSportsTransport,
+} from '../services/sports/index.js';
+import type { SportsApiTransport } from '../services/sports/index.js';
 import { InMemoryObjectStorage as MomentosObjectStorage } from '../services/momentos/object-storage.js';
 import {
   uploadFoto,
@@ -62,6 +69,16 @@ export interface AppConfig {
   readonly accessTokenTtlSeconds: number;
   /** TTL del refresh token en segundos. */
   readonly refreshTokenTtlSeconds: number;
+  /**
+   * API deportiva (opcional). Si no se provee `apiKey`, la sincronización de
+   * temporada queda NO disponible (transporte stub que falla con un mensaje
+   * claro, sin fingir éxito).
+   */
+  readonly sports?: {
+    readonly provider: 'none' | 'api-football';
+    readonly baseUrl?: string;
+    readonly apiKey?: string;
+  };
 }
 
 /** Servicios de dominio ya ensamblados y listos para inyectar en el borde. */
@@ -80,6 +97,12 @@ export interface AppServices {
   readonly shipping: ShippingService;
   readonly printEngine: PrintEngineService;
   readonly club: ClubService;
+  /**
+   * Sincronización de la Temporada del usuario desde la API deportiva
+   * (fetch fixture → clasificar → derivar álbum). Si no hay API key configurada,
+   * sus llamadas fallan con un mensaje "no disponible" (no finge éxito).
+   */
+  readonly seasonSync: SeasonSyncService;
   /** Almacén de objetos usado por la carga de fotos (Motor_Momentos). */
   readonly momentosStorage: MomentosObjectStoragePort;
   /** Notificador de asociación pendiente para los flujos de sports. */
@@ -233,6 +256,29 @@ export function createServices(options: CreateServicesOptions): AppServices {
 
   const club = new ClubService(repos.usuarios, repos.temporadas, repos.clubes);
 
+  // Cliente de la API deportiva: transporte real (API-Football) si hay API key;
+  // si no, un transporte stub que falla con "no disponible" (no finge éxito).
+  const sportsCfg = options.config.sports;
+  const sportsTransport: SportsApiTransport =
+    sportsCfg?.provider === 'api-football' && sportsCfg.apiKey
+      ? new ApiFootballSportsTransport({
+          baseUrl: sportsCfg.baseUrl ?? 'https://v3.football.api-sports.io',
+          apiKey: sportsCfg.apiKey,
+        })
+      : new UnavailableSportsTransport();
+  const sportsClient = new ResilientSportsApiClient({ transport: sportsTransport });
+  const seasonSync = new SeasonSyncService({
+    usuarios: repos.usuarios,
+    clubes: repos.clubes,
+    temporadas: repos.temporadas,
+    albumes: repos.albumes,
+    partidos: repos.partidos,
+    recuadros: repos.recuadros,
+    plantillas: repos.plantillas,
+    classifier,
+    sportsClient,
+  });
+
   // Carga de fotos cableada: función de dominio + repos + storage seleccionado.
   const uploadFotoWired = (partidoId: UUID, input: UploadFotoInput): Promise<UploadFotoResult> =>
     uploadFoto(partidoId, input, {
@@ -257,6 +303,7 @@ export function createServices(options: CreateServicesOptions): AppServices {
     shipping,
     printEngine,
     club,
+    seasonSync,
     momentosStorage,
     sportsNotifier,
     uploadFoto: uploadFotoWired,

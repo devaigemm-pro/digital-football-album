@@ -159,3 +159,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.2.0"))
     implementation("com.google.firebase:firebase-messaging")
 }
+
+// react-native-vector-icons: empaqueta los archivos de fuente de los iconos
+// (Ionicons, MaterialIcons, etc.) dentro del APK para que <Icon> los renderice.
+// Sin este `apply from`, los glifos no cargan y se ven cuadros vacíos.
+apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")

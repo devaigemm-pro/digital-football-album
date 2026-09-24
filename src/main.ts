@@ -49,6 +49,7 @@ function main(): void {
       accessTokenSecret: config.auth.accessTokenSecret,
       accessTokenTtlSeconds: config.auth.accessTokenTtlSeconds,
       refreshTokenTtlSeconds: config.auth.refreshTokenTtlSeconds,
+      sports: config.sports,
     },
     persistence: { driver: config.persistence.driver },
   });

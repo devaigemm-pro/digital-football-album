@@ -31,10 +31,19 @@ services:
       # está sujeta a CORS. Por eso CORS_ORIGINS es OPCIONAL: solo defínela en el
       # dashboard si algún día añades un cliente web (p. ej. panel de admin).
 
+      # Proveedor de la API deportiva (no secreto). Con la API key cargada,
+      # habilita la sincronización de temporada (POST /me/temporada).
+      - key: SPORTS_API_PROVIDER
+        value: api-football
+
       # --- Secretas (cargar en el dashboard de Render, nunca en el repo) ---
       # anon/publishable key de Supabase (para el JWKS de Auth).
       - key: SUPABASE_ANON_KEY
         sync: false
       # service_role key de Supabase (persistencia backend; omite RLS).
       - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # API key de API-Football (api-sports.io). Se carga en el dashboard de
+      # Render; sin ella, la sincronización de temporada queda "no disponible".
+      - key: SPORTS_API_KEY
         sync: false

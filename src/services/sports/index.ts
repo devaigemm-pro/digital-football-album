@@ -57,3 +57,17 @@ export type {
   FixtureEntry,
   IdGenerator,
 } from './album-derivation.js';
+
+// Transportes HTTP concretos (real API-Football + stub "no disponible").
+export {
+  ApiFootballSportsTransport,
+  UnavailableSportsTransport,
+} from './http-transport.js';
+export type { ApiFootballTransportOptions } from './http-transport.js';
+
+// Sincronización de la Temporada del usuario desde la API deportiva.
+export {
+  SeasonSyncService,
+  SeasonSyncNotFoundError,
+} from './season-sync-service.js';
+export type { SeasonSyncDeps, SeasonSyncResult } from './season-sync-service.js';

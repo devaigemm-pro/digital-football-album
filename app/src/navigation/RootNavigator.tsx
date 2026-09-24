@@ -21,9 +21,14 @@
 import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import {
+  createBottomTabNavigator,
+  type BottomTabNavigationOptions,
+} from '@react-navigation/bottom-tabs';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 import type { RouteParamList } from './route-model';
+import { palette } from '../theme/design-tokens';
 
 /**
  * Tipo de un componente de pantalla de React Navigation: recibe las `props` de
@@ -50,6 +55,13 @@ export interface ScreenBundle {
   readonly EnvioPedido: BoundScreen;
   readonly Perfil: BoundScreen;
   readonly Ajustes: BoundScreen;
+  /**
+   * Compuerta de onboarding: se renderiza en la zona autenticada y decide si
+   * mostrar el flujo de alta (sin club/temporada) o `children` (las pestañas).
+   * Recibe el navegador principal como `children`. Si no se provee, se muestran
+   * las pestañas directamente.
+   */
+  readonly OnboardingGate?: React.ComponentType<{ children: React.ReactNode }>;
 }
 
 // Stack de autenticación/onboarding (Login → Selección de Club).
@@ -78,9 +90,41 @@ function AuthNavigator({ screens }: { screens: ScreenBundle }): React.JSX.Elemen
 type MainTabsParamList = Omit<RouteParamList, 'Login' | 'SeleccionClub'>;
 const MainTabs = createBottomTabNavigator<MainTabsParamList>();
 
+/**
+ * Icono (Ionicons) de cada pestaña, en variante `-outline` cuando está inactiva
+ * y sólida cuando está activa. El nombre del route determina el glifo.
+ */
+const TAB_ICONS: Record<string, string> = {
+  HomeAlbum: 'book',
+  Partidos: 'football',
+  Captura: 'camera',
+  DetalleCard: 'sparkles',
+  Suscripcion: 'card',
+  EnvioPedido: 'cube',
+  Perfil: 'person',
+  Ajustes: 'settings',
+};
+
+/** Opciones comunes de las pestañas: iconos vectoriales + colores del sistema. */
+function tabScreenOptions({
+  route,
+}: {
+  route: { name: string };
+}): BottomTabNavigationOptions {
+  const base = TAB_ICONS[route.name] ?? 'ellipse';
+  return {
+    tabBarActiveTintColor: palette.accent,
+    tabBarInactiveTintColor: palette.textMutedOnLight,
+    tabBarStyle: { backgroundColor: palette.surface, borderTopColor: palette.borderOnLight },
+    tabBarIcon: ({ color, size, focused }) => (
+      <Icon name={focused ? base : `${base}-outline`} size={size} color={color} />
+    ),
+  };
+}
+
 function MainNavigator({ screens }: { screens: ScreenBundle }): React.JSX.Element {
   return (
-    <MainTabs.Navigator>
+    <MainTabs.Navigator screenOptions={tabScreenOptions}>
       <MainTabs.Screen
         name="HomeAlbum"
         component={screens.HomeAlbum}
@@ -150,7 +194,11 @@ export function RootNavigator({
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <RootStack.Screen name="Main">
-            {() => <MainNavigator screens={screens} />}
+            {() => {
+              const Gate = screens.OnboardingGate;
+              const tabs = <MainNavigator screens={screens} />;
+              return Gate ? <Gate>{tabs}</Gate> : tabs;
+            }}
           </RootStack.Screen>
         ) : (
           <RootStack.Screen name="Auth">

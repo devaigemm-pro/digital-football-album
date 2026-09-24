@@ -75,4 +75,5 @@ export {
   type EstadoTemporada,
   type EstadoPartido,
   type TipoCompeticion,
+  type SyncTemporadaResult,
 } from './http-profile-client';

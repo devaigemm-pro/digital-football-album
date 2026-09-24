@@ -15,6 +15,7 @@ import type {
   Perfil,
   PartidoLamina,
   ProfileClient,
+  SyncTemporadaResult,
 } from '../adapters/http-profile-client';
 
 /** Fase de una carga no bloqueante. */
@@ -36,17 +37,31 @@ export interface PartidosState {
   readonly error: string | null;
 }
 
+/** Fase de la sincronización de temporada desde la API deportiva. */
+export type SyncStatus = 'idle' | 'syncing' | 'done' | 'error';
+
+/** Estado observable de la sincronización de temporada (`POST /me/temporada`). */
+export interface SyncState {
+  readonly status: SyncStatus;
+  readonly result: SyncTemporadaResult | null;
+  readonly error: string | null;
+}
+
 export type ProfileStateListener = (state: ProfileState) => void;
 export type PartidosStateListener = (state: PartidosState) => void;
+export type SyncStateListener = (state: SyncState) => void;
 
 const INITIAL_PROFILE: ProfileState = { status: 'idle', perfil: null, error: null };
 const INITIAL_PARTIDOS: PartidosState = { status: 'idle', partidos: [], error: null };
+const INITIAL_SYNC: SyncState = { status: 'idle', result: null, error: null };
 
 /** Mensajes por defecto ante fallos de carga. */
 export const PROFILE_ERROR_MESSAGE =
   'No se pudo cargar tu perfil. Intenta de nuevo.';
 export const PARTIDOS_ERROR_MESSAGE =
   'No se pudieron cargar los partidos. Intenta de nuevo.';
+export const SYNC_ERROR_MESSAGE =
+  'No se pudo cargar la temporada. Intenta de nuevo.';
 
 function toErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error && err.message.trim().length > 0) {
@@ -67,8 +82,10 @@ function toErrorMessage(err: unknown, fallback: string): string {
 export class ProfilePresenter {
   private profileState: ProfileState = INITIAL_PROFILE;
   private partidosState: PartidosState = INITIAL_PARTIDOS;
+  private syncState: SyncState = INITIAL_SYNC;
   private readonly profileListeners = new Set<ProfileStateListener>();
   private readonly partidosListeners = new Set<PartidosStateListener>();
+  private readonly syncListeners = new Set<SyncStateListener>();
   private profileToken = 0;
   private partidosToken = 0;
 
@@ -146,6 +163,48 @@ export class ProfilePresenter {
         partidos: this.partidosState.partidos,
         error: toErrorMessage(err, PARTIDOS_ERROR_MESSAGE),
       });
+    }
+  }
+
+  // --- Sincronización de temporada (POST /me/temporada) ---------------------
+
+  getSyncState(): SyncState {
+    return this.syncState;
+  }
+
+  subscribeSync(listener: SyncStateListener): () => void {
+    this.syncListeners.add(listener);
+    listener(this.syncState);
+    return () => {
+      this.syncListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Sincroniza la temporada del usuario desde la API deportiva y, al terminar
+   * con éxito, recarga el perfil para que la temporada activa quede reflejada.
+   * Siempre resuelve; ante fallo deja el estado en `error` sin lanzar.
+   */
+  async syncTemporada(temporadaExterna: string): Promise<void> {
+    this.emitSync({ status: 'syncing', result: this.syncState.result, error: null });
+    try {
+      const result = await this.client.syncTemporada(temporadaExterna);
+      this.emitSync({ status: 'done', result, error: null });
+      // Refresca el perfil para exponer la temporada activa recién creada.
+      await this.loadProfile();
+    } catch (err) {
+      this.emitSync({
+        status: 'error',
+        result: this.syncState.result,
+        error: toErrorMessage(err, SYNC_ERROR_MESSAGE),
+      });
+    }
+  }
+
+  private emitSync(state: SyncState): void {
+    this.syncState = state;
+    for (const listener of this.syncListeners) {
+      listener(state);
     }
   }
 

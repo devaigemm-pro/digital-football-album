@@ -39,6 +39,20 @@ export interface BackendConfig {
       readonly key: string;
     };
   };
+
+  /**
+   * API deportiva (Servicio_Datos_Deportivos). Opcional: si no hay `apiKey`, la
+   * sincronización de temporada queda NO disponible (el servicio lo indica con
+   * un error claro, sin fingir éxito). No bloquea el arranque del backend.
+   */
+  readonly sports: {
+    /** Proveedor configurado. `none` cuando no hay API key. */
+    readonly provider: 'none' | 'api-football';
+    /** Base URL del proveedor (p. ej. https://v3.football.api-sports.io). */
+    readonly baseUrl?: string;
+    /** API key del proveedor (secreto; se carga en el entorno, nunca en el repo). */
+    readonly apiKey?: string;
+  };
 }
 
 /** Error de configuración que agrega todos los problemas detectados. */
@@ -162,6 +176,27 @@ export function loadConfig(env: Env = process.env): BackendConfig {
   const accessTokenTtlSeconds = readInt(env, 'ACCESS_TOKEN_TTL_SECONDS', 900, problemas);
   const refreshTokenTtlSeconds = readInt(env, 'REFRESH_TOKEN_TTL_SECONDS', 1_209_600, problemas);
 
+  // --- API deportiva (opcional; no bloquea el arranque) ---
+  // Solo se soporta 'api-football' por ahora. Sin API key, el proveedor es
+  // 'none' y la sincronización de temporada responde "no disponible".
+  const sportsProviderRaw = (env.SPORTS_API_PROVIDER ?? '').toLowerCase();
+  const sportsApiKey = env.SPORTS_API_KEY?.trim();
+  let sports: BackendConfig['sports'];
+  if (sportsApiKey && sportsApiKey.length > 0) {
+    if (sportsProviderRaw !== '' && sportsProviderRaw !== 'api-football') {
+      problemas.push(
+        `SPORTS_API_PROVIDER inválido: "${sportsProviderRaw}" (soportado: api-football).`,
+      );
+    }
+    sports = {
+      provider: 'api-football',
+      baseUrl: (env.SPORTS_API_BASE_URL ?? 'https://v3.football.api-sports.io').trim(),
+      apiKey: sportsApiKey,
+    };
+  } else {
+    sports = { provider: 'none' };
+  }
+
   if (problemas.length > 0) {
     throw new ConfigError(problemas);
   }
@@ -183,5 +218,6 @@ export function loadConfig(env: Env = process.env): BackendConfig {
       driver,
       ...(persistenceSupabase ? { supabase: persistenceSupabase } : {}),
     },
+    sports,
   };
 }

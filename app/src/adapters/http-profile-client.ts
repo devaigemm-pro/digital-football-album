@@ -105,6 +105,14 @@ interface TemporadasResponse {
   readonly temporadas: readonly Temporada[];
 }
 
+/** Resultado de `POST /me/temporada` (sincronización desde la API deportiva). */
+export interface SyncTemporadaResult {
+  readonly temporadaId: string;
+  readonly albumId: string;
+  readonly partidos: number;
+  readonly recuadros: number;
+}
+
 /**
  * Contrato del cliente de perfil/partidos. Inyectable en las pantallas de
  * Perfil, Home/Álbum y la lista de partidos (láminas).
@@ -116,6 +124,11 @@ export interface ProfileClient {
   listTemporadas(): Promise<readonly Temporada[]>;
   /** `GET /temporadas/:id/partidos`: partidos (láminas) de la temporada. */
   listPartidos(temporadaId: string): Promise<readonly PartidoLamina[]>;
+  /**
+   * `POST /me/temporada`: crea/sincroniza la Temporada del usuario desde la API
+   * deportiva. `temporadaExterna` con formato "<leagueId>:<season>".
+   */
+  syncTemporada(temporadaExterna: string): Promise<SyncTemporadaResult>;
 }
 
 /** Adaptador HTTP concreto de perfil/partidos. Autenticado (Bearer). */
@@ -141,5 +154,13 @@ export class HttpProfileClient implements ProfileClient {
     const path = `/temporadas/${encodeURIComponent(temporadaId)}/partidos`;
     const response = await this.send<PartidosResponse>(buildRequest('GET', path));
     return readOkBody(response, path).partidos;
+  }
+
+  /** `POST /me/temporada` → sincroniza la temporada desde la API deportiva. */
+  async syncTemporada(temporadaExterna: string): Promise<SyncTemporadaResult> {
+    const response = await this.send<SyncTemporadaResult>(
+      buildRequest('POST', '/me/temporada', { body: { temporadaExterna } }),
+    );
+    return readOkBody(response, 'POST /me/temporada');
   }
 }

@@ -237,6 +237,35 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
     }
   });
 
+  // Sincroniza/crea la Temporada del usuario desde la API deportiva:
+  // POST /me/temporada  body { temporadaExterna: string }
+  // Descarga el fixture del proveedor, clasifica y deriva el álbum (un Recuadro
+  // por Partido_Oficial). Si la API deportiva no está configurada, el servicio
+  // falla con un mensaje "no disponible" (no finge éxito) → 400 con el detalle.
+  router.post('/me/temporada', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    const body = context.request.body;
+    const temporadaExterna =
+      typeof body === 'object' && body !== null
+        ? (body as Record<string, unknown>)['temporadaExterna']
+        : undefined;
+    if (typeof temporadaExterna !== 'string' || temporadaExterna.trim() === '') {
+      return json(400, {
+        error: 'bad_request',
+        message: 'temporadaExterna (string, "<leagueId>:<season>") requerido.',
+      });
+    }
+    try {
+      const result = await services.seasonSync.syncSeason(
+        context.userId,
+        temporadaExterna.trim(),
+      );
+      return json(201, result);
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
   // Temporadas del usuario autenticado: GET /me/temporadas
   router.get('/me/temporadas', async (context) => {
     if (!context.userId) return json(400, { error: 'bad_request' });

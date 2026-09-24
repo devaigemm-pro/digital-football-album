@@ -7,11 +7,15 @@ export {
   ProfilePresenter,
   PROFILE_ERROR_MESSAGE,
   PARTIDOS_ERROR_MESSAGE,
+  SYNC_ERROR_MESSAGE,
 } from './profile-presenter';
 export type {
   LoadStatus,
   ProfileState,
   PartidosState,
+  SyncStatus,
+  SyncState,
   ProfileStateListener,
   PartidosStateListener,
+  SyncStateListener,
 } from './profile-presenter';
