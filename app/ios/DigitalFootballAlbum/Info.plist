@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Álbum de Fútbol Digital</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>DigitalFootballAlbum</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Solo para desarrollo: permite HTTP a localhost (Metro / dev server).
+		     La conexión al backend usa https (validada en src/config/env.ts). -->
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Se usa tu ubicación solo para verificar tu asistencia En Vivo al partido.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Se usa la cámara para tomar fotos del partido y montarlas en tu álbum.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Se accede a tu galería para cargar fotos del partido en tu álbum.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Se guarda en tu galería la foto o el cromo generado de tu álbum.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Se usa para medir el rendimiento y mejorar tu experiencia en el álbum. No se comparte con terceros con fines publicitarios.</string>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>arm64</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<!-- Notificaciones push remotas (APNs / Firebase Cloud Messaging). -->
+		<string>remote-notification</string>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<!-- Google Sign-In: el desarrollador debe definir IOS_URL_SCHEME con
+			     el "reversed client id" del cliente OAuth de iOS que aparece en
+			     GoogleService-Info.plist (p. ej.
+			     com.googleusercontent.apps.1234567890-abcdef). Se inyecta como
+			     build setting IOS_URL_SCHEME (ver .env / react-native-config). -->
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(IOS_URL_SCHEME)</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

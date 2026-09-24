@@ -1,0 +1,40 @@
+# Blueprint de Render para el backend del Álbum de Fútbol Digital.
+# https://render.com/docs/blueprint-spec
+#
+# Despliega el backend como web service basado en el Dockerfile del repo.
+# Los secretos se marcan con `sync: false`: Render NO los toma del repo; se
+# cargan una sola vez en el dashboard (o vía API) y quedan cifrados.
+
+services:
+  - type: web
+    name: album-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter # ajústalo al tráfico esperado
+    region: oregon # elige la región más cercana a tus usuarios
+    healthCheckPath: /health
+    autoDeploy: false # el deploy lo dispara el CI tras aplicar migraciones
+    envVars:
+      # --- No secretas ---
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      # Render inyecta PORT automáticamente; el backend lo respeta.
+      - key: PERSISTENCE_DRIVER
+        value: supabase
+      - key: AUTH_PROVIDER
+        value: supabase
+      - key: SUPABASE_URL
+        value: https://nliltolgmocerrwhjivi.supabase.co
+      # Orígenes CORS del/los cliente(s) web. Ajusta al dominio real del frontend.
+      - key: CORS_ORIGINS
+        sync: false
+
+      # --- Secretas (cargar en el dashboard de Render, nunca en el repo) ---
+      # anon/publishable key de Supabase (para el JWKS de Auth).
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      # service_role key de Supabase (persistencia backend; omite RLS).
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

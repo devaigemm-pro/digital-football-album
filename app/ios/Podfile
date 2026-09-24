@@ -1,0 +1,55 @@
+# Resolve react_native_pods.rb with node to allow for hoisting
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native/scripts/react_native_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
+platform :ios, min_ios_version_supported
+prepare_react_native_project!
+
+# -----------------------------------------------------------------------------
+# Firebase (@react-native-firebase) — GUÍA COMENTADA (desactivada por defecto).
+#
+# El proyecto usa @react-native-firebase/app y /messaging. Con el linkeo
+# dinámico estándar de RN 0.75 el build funciona en la mayoría de casos. Si al
+# ejecutar `pod install` o al compilar aparecen errores de linkeo del SDK de
+# Firebase (p. ej. "The Swift pod ... depends upon ..., which does not define
+# modules", o problemas al importar Firebase como framework), habilita frameworks
+# ESTÁTICOS descomentando el bloque siguiente y colocándolo AQUÍ, antes del
+# `target`. Documentado también en `app/README.md` (sección "iOS build").
+#
+#   $RNFirebaseAsStaticFramework = true
+#   use_frameworks! :linkage => :static
+#
+# Nota: al activar `use_frameworks!` puede ser necesario desactivar Flipper y
+# revisar otras dependencias que asuman linkeo dinámico. Déjalo COMENTADO por
+# defecto para conservar el build estándar.
+# -----------------------------------------------------------------------------
+
+linkage = ENV['USE_FRAMEWORKS']
+if linkage != nil
+  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+  use_frameworks! :linkage => linkage.to_sym
+end
+
+target 'DigitalFootballAlbum' do
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  post_install do |installer|
+    # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
+    )
+    __apply_Xcode_12_5_M1_post_install_workaround(installer)
+  end
+end

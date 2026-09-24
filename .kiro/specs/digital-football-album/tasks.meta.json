@@ -1,0 +1,1146 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Preparar estructura del proyecto backend y contratos base": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201289104
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201311577
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201640485
+      }
+    ],
+    "2.1 Definir tipos e interfaces del dominio": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201289367
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201644753
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201777295
+      }
+    ],
+    "2.2 Implementar el esquema PostgreSQL y las migraciones": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201289554
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201782298
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202095414
+      }
+    ],
+    "2.3 Implementar repositorios de acceso a datos (capa de persistencia)": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201289728
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201783158
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202096556
+      }
+    ],
+    "3.1 Implementar emisión de tokens (access JWT corto + refresh con rotación)": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201289853
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202103409
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202513942
+      }
+    ],
+    "3.2 Implementar borrado de cuenta (derecho al olvido GDPR/CCPA)": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201289976
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202545850
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202929662
+      }
+    ],
+    "4.1 Implementar middleware de autenticación y enrutado": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201290085
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202547250
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202930661
+      }
+    ],
+    "5. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201290204
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202946872
+      }
+    ],
+    "6.1 Implementar catálogo de planes y compra/upgrade vía IAP": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201290379
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202548650
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202932112
+      }
+    ],
+    "6.2 Implementar el manejador de webhooks de RevenueCat": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201290500
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202953057
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203349972
+      }
+    ],
+    "6.3 Implementar el punto único de entitlements (gating)": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201290623
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202954507
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203350480
+      }
+    ],
+    "7.1 Implementar asignación y cambio de Club con regla de bloqueo": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201290750
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202103666
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202514076
+      }
+    ],
+    "8.1 Implementar cliente de la API deportiva con timeout y reintentos": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201290855
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202104164
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202514177
+      }
+    ],
+    "8.2 Implementar `syncFixture` con saneamiento de registros": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201290989
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202549788
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202932911
+      }
+    ],
+    "8.3 Implementar la derivación y re-derivación del álbum desde el fixture": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201291112
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202955411
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203352541
+      }
+    ],
+    "8.4 Implementar `syncPartidoFinalizado` y `linkFoto`": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201291224
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202956600
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203353975
+      }
+    ],
+    "9.1 Implementar la clasificación de cada Partido_Oficial": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201291347
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202550750
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202934072
+      }
+    ],
+    "10. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201291468
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203354054
+      }
+    ],
+    "11.1 Implementar carga/captura y agrupación de fotos en el Momento": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201291598
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203362069
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203772100
+      }
+    ],
+    "11.2 Implementar selección de Foto_Principal y regla de edición por cierre": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201291732
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203785347
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204211068
+      }
+    ],
+    "11.3 Implementar contexto de asistencia, sub-modalidad, notas y jugador": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201291846
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203786411
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204212106
+      }
+    ],
+    "12.1 Implementar la previsualización de Recuadros": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201292038
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204230708
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205129465
+      }
+    ],
+    "13.1 Implementar la generación de Digital Cards con gating": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201292172
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203363243
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203773033
+      }
+    ],
+    "14. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201292272
+      }
+    ],
+    "15.1 Implementar el escalado a 300 DPI y su validación": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201292381
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204235501
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205130465
+      }
+    ],
+    "15.2 Implementar la generación del PDF_Libro": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201292513
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204248416
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205131260
+      }
+    ],
+    "15.3 Implementar la generación del PDF_Stickers con numeración heredada": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201292641
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204249600
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205132672
+      }
+    ],
+    "15.4 Implementar la validación de biunivocidad y la generación atómica": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201292849
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204250707
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205133565
+      }
+    ],
+    "15.5 Implementar la recuperación de impresión fallida": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201292973
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204251658
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205134965
+      }
+    ],
+    "16.1 Implementar la configuración de Fecha_Límite_Cierre (Config_Admin)": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201293072
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203364213
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203774199
+      }
+    ],
+    "16.2 Implementar el cierre de Temporada y disparo del Print_Engine": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201293240
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203784304
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204213107
+      }
+    ],
+    "17. Checkpoint - Asegurar que las pruebas pasan": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201293401
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205146967
+      }
+    ],
+    "18.1 Implementar recordatorios recurrentes de Recuadro vacío": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201293503
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204232157
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205135966
+      }
+    ],
+    "18.2 Implementar recordatorios de cierre escalonados en offsets locales": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201293606
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204233507
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205137400
+      }
+    ],
+    "19.1 Implementar registro/validación de dirección y estado del pedido": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201293805
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204234416
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205138865
+      }
+    ],
+    "20.1 Implementar cifrado en reposo y solicitud/revocación de permisos en la app": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201293906
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205139765
+      }
+    ],
+    "21.1 Implementar la UI personalizada por Club y la captura de momentos": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201294014
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205159565
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205644803
+      }
+    ],
+    "21.2 Implementar la compartición nativa a redes sociales": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201294134
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205160666
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205644097
+      }
+    ],
+    "22.1 Cablear el Programador de Jobs con los servicios": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201294241
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205158167
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205645797
+      }
+    ],
+    "23. Checkpoint final - Asegurar que todas las pruebas pasan": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790201294356
+      },
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205652504
+      }
+    ],
+    "2. Modelo de dominio, tipos y esquema de persistencia": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202096762
+      }
+    ],
+    "7. Servicio de Personalización / Selección de Club": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202514289
+      }
+    ],
+    "3. Servicio_Autenticación y gestión de sesión por tokens": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202929969
+      }
+    ],
+    "4. API Gateway: autenticación de peticiones y TLS": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202930911
+      }
+    ],
+    "9. Clasificador de Partidos": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790202934272
+      }
+    ],
+    "6. Servicio_Suscripción, entitlements y webhooks de RevenueCat": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203350695
+      }
+    ],
+    "8. Servicio_Datos_Deportivos y derivación del álbum": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203354189
+      }
+    ],
+    "13. Generador_Cards: Digital Cards y gating premium": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790203773154
+      }
+    ],
+    "11. Motor_Momentos: fotos, contexto, notas y votación": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204212405
+      }
+    ],
+    "16. Configuración administrativa y cierre de Temporada": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790204213357
+      }
+    ],
+    "12. Motor_Album: previsualización del álbum coleccionable": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205129714
+      }
+    ],
+    "15. Print_Engine: numeración, DPI, biunivocidad y atomicidad": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205135214
+      }
+    ],
+    "18. Servicio_Notificaciones anclado a hora local": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205137715
+      }
+    ],
+    "19. Servicio_Envío: dirección, pedido y tracking": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205139114
+      }
+    ],
+    "20. Seguridad y privacidad transversales": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205139965
+      }
+    ],
+    "21. Capa de app móvil: personalización, captura y compartición": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205645054
+      }
+    ],
+    "22. Wiring del Programador de Jobs y compatibilidad de plataforma": [
+      {
+        "executionId": "c1b2d2f8-f26c-47bc-b32c-7f8a2741baa8",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790205646003
+      }
+    ],
+    "24. Preparar el proyecto de la App_Móvil (React Native + TypeScript)": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209765912
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209784129
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790210376078
+      }
+    ],
+    "25.1 Implementar el cliente HTTP con TLS obligatorio y adjunto de Access_Token": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209766045
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790210390266
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790210799814
+      }
+    ],
+    "25.2 Implementar el refresh single-flight con rotación y reintento": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209766150
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790210810653
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211250755
+      }
+    ],
+    "25.3 Implementar el almacenamiento seguro de tokens": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209766325
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790210391275
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790210800733
+      }
+    ],
+    "25.4 Implementar el mapeo de errores del backend y la resiliencia de red": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209766441
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790210811982
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211251703
+      }
+    ],
+    "26.1 Implementar las pantallas de login multiproveedor y logout": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209766546
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211266091
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211653725
+      }
+    ],
+    "26.2 Implementar el borrado de cuenta con confirmación": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209766655
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211266997
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211654490
+      }
+    ],
+    "27.1 Implementar el provider de Tema_Club": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209766824
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790210812957
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211253116
+      }
+    ],
+    "27.2 Implementar la navegación y el grafo de pantallas": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209766949
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790210814116
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211253970
+      }
+    ],
+    "28.1 Implementar la pantalla de captura y agrupación de fotos": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209767060
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211268407
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211655613
+      }
+    ],
+    "28.2 Implementar la selección de Foto_Principal y el contexto del Momento": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209767173
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211668546
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212199890
+      }
+    ],
+    "28.3 Implementar el flujo de permisos del dispositivo (GDPR/CCPA)": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209767279
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211269789
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211657007
+      }
+    ],
+    "29.1 Implementar la pantalla de previsualización del álbum": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209767391
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211270601
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211658128
+      }
+    ],
+    "29.2 Implementar la generación de Digital Card y su gating visible": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209767516
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211669702
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212201212
+      }
+    ],
+    "29.3 Implementar la compartición nativa a redes": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209767632
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211670881
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212202290
+      }
+    ],
+    "30.1 Implementar la pantalla de suscripción con compra y upgrade vía IAP": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209767758
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211672288
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212203648
+      }
+    ],
+    "30.2 Implementar el registro y envío del Pedido": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209767876
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211673279
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212204330
+      }
+    ],
+    "30.3 Implementar el registro de notificaciones push y su renderizado": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209767997
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212247916
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212655242
+      }
+    ],
+    "30.4 Implementar el cierre anticipado de Temporada desde el cliente": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790209768117
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212248693
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212656232
+      }
+    ],
+    "25. Módulo de red y sesión del cliente": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211251825
+      }
+    ],
+    "27. Tema del Club y navegación": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211254116
+      }
+    ],
+    "26. Autenticación, sesión y ajustes de cuenta en el cliente": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790211654619
+      }
+    ],
+    "28. Captura de momentos y permisos en el cliente": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212200082
+      }
+    ],
+    "29. Previsualización del álbum, Digital Cards y compartición": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212202409
+      }
+    ],
+    "30. Suscripción (IAP), envío y notificaciones en el cliente": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212656364
+      }
+    ],
+    "31. Checkpoint del cliente móvil - Accesibilidad, compatibilidad y e2e": [
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790212668950
+      },
+      {
+        "executionId": "416d8109-7464-4d13-afad-b5bf04412bb4",
+        "chatSessionId": "sess_6125e7de-193e-4dd3-a5be-5fcbfec66df3",
+        "timestamp": 1790213022854
+      }
+    ]
+  }
+}

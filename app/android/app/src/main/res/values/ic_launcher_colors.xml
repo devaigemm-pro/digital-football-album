@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Color de fondo del icono adaptativo del launcher. Se referencia desde el
+  background del adaptive icon (mipmap-anydpi-v26/ic_launcher.xml).
+-->
+<resources>
+    <color name="ic_launcher_background">#0B6E4F</color>
+</resources>

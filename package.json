@@ -1,0 +1,47 @@
+{
+  "name": "digital-football-album",
+  "version": "0.1.0",
+  "description": "Backend del Álbum de Fútbol Digital (TypeScript)",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "start": "node dist/src/main.js",
+    "dev": "PERSISTENCE_DRIVER=memory ALLOW_INSECURE=true ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET:-dev-insecure-secret} node dist/src/main.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "verify:sql": "node migrations/verify-sql.mjs",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
+    "db:link": "supabase link --project-ref \"$SUPABASE_PROJECT_REF\"",
+    "db:push": "supabase db push",
+    "db:diff": "supabase db diff --linked",
+    "db:deploy": "supabase db push --linked"
+  },
+  "keywords": [
+    "album",
+    "futbol",
+    "backend",
+    "typescript"
+  ],
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "fast-check": "^3.23.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0"
+  }
+}

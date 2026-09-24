@@ -1,0 +1,34 @@
+{
+  // Config de TypeScript de la App_Móvil (cliente React Native).
+  //
+  // Es independiente del tsconfig del backend: usa moduleResolution "bundler"
+  // (Metro) y jsx react-native. No extiende @react-native/typescript-config aquí
+  // para que este archivo sea legible sin resolver node_modules del cliente;
+  // al instalar dependencias (fuera de este entorno) puede migrarse a
+  // `"extends": "@react-native/typescript-config/tsconfig.json"`.
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ESNext", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-native",
+    "allowJs": false,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true
+  },
+  "include": ["src", "e2e", "index.js"],
+  // Se excluyen los componentes React Native (`.tsx`): importan React,
+  // react-native y `@react-navigation/*`, cuyo toolchain NO está instalado en
+  // este entorno. El modelo/lógica agnóstica del framework vive en `.ts` y sí
+  // typechea aquí; los `.tsx` validan al instalar las dependencias del cliente.
+  "exclude": ["node_modules", "src/**/*.tsx"]
+}

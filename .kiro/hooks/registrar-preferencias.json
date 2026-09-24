@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Registrar sesión en segundo plano",
+      "trigger": "Stop",
+      "description": "Al terminar cada sesión, ejecuta en segundo plano un script que registra la sesión en .kiro/steering/preferencias-log.md sin interrumpir al usuario.",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/hooks/registrar-preferencias.mjs"
+      }
+    }
+  ]
+}

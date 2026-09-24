@@ -1,0 +1,18 @@
+node_modules
+dist
+.git
+.github
+.kiro
+.idea
+.npm-cache
+coverage
+supabase/.branches
+supabase/.temp
+test
+**/*.test.ts
+*.log
+.env
+.env.*
+Dockerfile
+.dockerignore
+digital albun requirement.docx

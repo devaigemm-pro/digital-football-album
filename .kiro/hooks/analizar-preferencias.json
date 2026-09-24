@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Analizar preferencias al terminar sesión",
+      "trigger": "Stop",
+      "description": "Al terminar cada sesión, revisa la conversación y, si surgieron preferencias o decisiones nuevas no registradas, propone añadirlas a .kiro/steering/preferencias.md con confirmación del usuario.",
+      "action": {
+        "type": "agent",
+        "prompt": "La sesión está por terminar. Revisa la conversación de esta sesión y determina si el usuario expresó alguna preferencia nueva, corrigió un enfoque, o tomó una decisión de negocio o técnica que aún NO esté registrada en .kiro/steering/preferencias.md.\n\nSi encontraste algo:\n- Resúmelo en una o dos líneas por preferencia, con el formato de la sección \"Preferencias específicas del usuario\" de ese archivo (fecha entre corchetes + descripción concisa).\n- Propón añadir esas entradas a .kiro/steering/preferencias.md y pide confirmación al usuario antes de escribir.\n\nSi no encontraste ninguna preferencia nueva, no hagas nada y no interrumpas al usuario."
+      }
+    }
+  ]
+}

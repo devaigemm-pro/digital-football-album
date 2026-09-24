@@ -1,0 +1,10 @@
+node_modules/
+.npm-cache/
+dist/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+# Excepción: la plantilla de variables SÍ se versiona (no contiene secretos).
+!.env.example
+.DS_Store

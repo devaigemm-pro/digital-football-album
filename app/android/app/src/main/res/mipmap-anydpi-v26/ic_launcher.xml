@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Icono adaptativo del launcher (Android 8.0+, API 26+). Compone las capas de
+  fondo y primer plano definidas como vectores en res/drawable. No requiere
+  ningún PNG raster: todo es authorable como texto.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>

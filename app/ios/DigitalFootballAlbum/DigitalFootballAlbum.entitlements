@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Push Notifications (APNs). Usa 'development' para builds de debug/TestFlight
+	     interno; Xcode/Archive lo promociona a 'production' según el perfil de
+	     aprovisionamiento. La capability "Push Notifications" debe estar activada
+	     en el App ID (Apple Developer portal) y en Signing & Capabilities. -->
+	<key>aps-environment</key>
+	<string>development</string>
+	<!-- Sign in with Apple (@invertase/react-native-apple-authentication).
+	     Requiere activar la capability "Sign In with Apple" en el App ID y en
+	     Signing & Capabilities de Xcode. -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+</dict>
+</plist>

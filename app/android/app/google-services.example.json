@@ -1,0 +1,30 @@
+{
+  "_comment": "TEMPLATE ONLY — do NOT use these values. Download your real google-services.json from the Firebase console (Project settings > Your apps > Android app with package com.digitalfootballalbum) and place it at app/android/app/google-services.json. The real file contains project keys and is gitignored (see app/.gitignore); this example is committed so the expected structure is documented. The com.google.gms.google-services Gradle plugin auto-applies only when google-services.json is present.",
+  "project_info": {
+    "project_number": "000000000000",
+    "project_id": "your-firebase-project-id",
+    "storage_bucket": "your-firebase-project-id.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "android_client_info": {
+          "package_name": "com.digitalfootballalbum"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_YOUR_ANDROID_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,137 @@
+name: CI
+
+# Pipeline de CI/CD del backend del Álbum de Fútbol Digital.
+# - quality:     typecheck, lint, format y tests unitarios (sin base de datos).
+# - integration: levanta Supabase local, aplica migraciones y corre los tests
+#                de integración/e2e contra el stack real.
+# - docker:      construye la imagen y la publica en GHCR (solo en push a main).
+# - deploy:      aplica migraciones al proyecto hosted y dispara el deploy en
+#                Render (solo push a main).
+#
+# Secretos del repo requeridos para el deploy (Settings > Secrets and variables):
+#   SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD,
+#   RENDER_DEPLOY_HOOK_URL.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancela ejecuciones previas del mismo ref para ahorrar recursos.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Calidad (typecheck, lint, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Formato
+        run: npm run format:check
+      - name: Tests unitarios
+        # Sin variables de Supabase: los tests de integración/e2e se auto-saltan.
+        run: npm test
+
+  integration:
+    name: Integración (Supabase local)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: npm ci
+      - name: Iniciar Supabase local (aplica migraciones + seed)
+        run: supabase start
+      - name: Exportar credenciales del stack local
+        run: |
+          echo "SUPABASE_URL=$(supabase status -o env | grep '^API_URL=' | cut -d'\"' -f2)" >> "$GITHUB_ENV"
+          echo "SUPABASE_ANON_KEY=$(supabase status -o env | grep '^ANON_KEY=' | cut -d'\"' -f2)" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep '^SERVICE_ROLE_KEY=' | cut -d'\"' -f2)" >> "$GITHUB_ENV"
+      - name: Tests de integración y e2e
+        run: npm test
+      - name: Detener Supabase
+        if: always()
+        run: supabase stop || true
+
+  docker:
+    name: Build y push de la imagen
+    runs-on: ubuntu-latest
+    needs: [quality, integration]
+    permissions:
+      contents: read
+      packages: write # publicar en GitHub Container Registry (GHCR)
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login en GHCR (solo en push a main)
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Metadatos de la imagen
+        id: meta
+        run: |
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - name: Build (siempre) y push (solo en push a main)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ${{ steps.meta.outputs.image }}:latest
+            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+
+  deploy:
+    name: Deploy (migraciones + release)
+    runs-on: ubuntu-latest
+    needs: [docker]
+    # Solo despliega en push a main y si están configurados los secretos.
+    if: github.event_name == 'push'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Aplicar migraciones al proyecto hosted
+        # Requiere los secretos del repo: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF,
+        # SUPABASE_DB_PASSWORD. La migración se aplica ANTES de liberar la imagen.
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+          supabase db push
+      # Release en Render: se dispara el deploy con el Deploy Hook del servicio
+      # (URL secreta que genera Render en Settings > Deploy Hook). Render
+      # construye la imagen desde el Dockerfile según render.yaml. Se ejecuta
+      # DESPUÉS de aplicar las migraciones para que el esquema esté listo.
+      - name: Disparar deploy en Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "Falta el secreto RENDER_DEPLOY_HOOK_URL; omito el deploy." >&2
+            exit 1
+          fi
+          echo "Disparando deploy en Render..."
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
+          echo "Deploy solicitado a Render."

@@ -1,0 +1,29 @@
+node_modules/
+coverage/
+.detox/
+# Cache local de npm (usada para instalar sin permisos de la cache global)
+.npm-cache/
+# Artefactos nativos generados por el toolchain (no versionar el build)
+ios/build/
+ios/Pods/
+# CocoaPods genera el .xcworkspace; se recrea con `pod install`, no se versiona.
+ios/*.xcworkspace
+# Estado/prefs por usuario de Xcode (no compartibles) y override local del entorno.
+ios/**/xcuserdata/
+*.xcuserstate
+ios/.xcode.env.local
+android/.gradle/
+android/app/build/
+*.log
+.DS_Store
+
+# Variables de entorno (react-native-config): contienen configuración por
+# entorno y posibles secretos. NO se versionan; solo `.env.example` sí.
+.env
+.env.*
+!.env.example
+
+# Firebase config (contains project keys — do not commit)
+android/app/google-services.json
+ios/GoogleService-Info.plist
+!android/app/google-services.example.json
