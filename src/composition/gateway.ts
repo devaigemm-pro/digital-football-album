@@ -281,6 +281,51 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
     }
   });
 
+  // Países disponibles (onboarding): GET /paises
+  router.get('/paises', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    try {
+      const paises = await services.onboarding.listCountries();
+      return json(200, { paises });
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
+  // Ligas/divisiones de un país: GET /paises/:pais/ligas?season=YYYY
+  router.get('/paises/:pais/ligas', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    const pais = pathSegment(context, 1);
+    if (!pais) return json(400, { error: 'bad_request' });
+    const season = Number.parseInt(context.request.query?.['season'] ?? '', 10);
+    if (!Number.isInteger(season) || season < 2000) {
+      return json(400, { error: 'bad_request', message: 'season (año) requerido.' });
+    }
+    try {
+      const ligas = await services.onboarding.leaguesByCountry(decodeURIComponent(pais), season);
+      return json(200, { ligas });
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
+  // Equipos (con logo) de una liga: GET /ligas/:ligaId/equipos?season=YYYY
+  router.get('/ligas/:ligaId/equipos', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    const ligaId = pathSegment(context, 1);
+    if (!ligaId) return json(400, { error: 'bad_request' });
+    const season = Number.parseInt(context.request.query?.['season'] ?? '', 10);
+    if (!Number.isInteger(season) || season < 2000) {
+      return json(400, { error: 'bad_request', message: 'season (año) requerido.' });
+    }
+    try {
+      const equipos = await services.onboarding.teamsByLeague(ligaId, season);
+      return json(200, { equipos });
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
   // Ligas de un equipo para una temporada: GET /equipos/:teamId/ligas?season=YYYY
   router.get('/equipos/:teamId/ligas', async (context) => {
     if (!context.userId) return json(400, { error: 'bad_request' });
@@ -404,6 +449,8 @@ function registerPublicRoutes(router: GatewayRouter, services: AppServices): voi
       status: 'ok',
       driver: services.persistence.driver,
       auth: 'supabase-or-hmac',
+      // Diagnóstico: proveedor deportivo configurado o no (sin exponer la key).
+      sports: services.sportsConfigured ? 'api-football' : 'none',
     }),
   );
 }

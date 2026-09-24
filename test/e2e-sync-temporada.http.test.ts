@@ -101,6 +101,31 @@ suite('e2e sync temporada (API-Football real)', () => {
   );
 
   it(
+    'flujo país → división → equipos (con logo) por HTTP real',
+    async () => {
+      const auth = { authorization: `Bearer ${token()}`, 'x-forwarded-proto': 'https' };
+      const resP = await fetch(`${baseUrl}/paises`, { headers: auth });
+      const pBody = (await resP.json()) as { paises?: Array<{ nombre: string }> };
+      expect(resP.status).toBe(200);
+      expect((pBody.paises ?? []).some((p) => p.nombre === 'Chile')).toBe(true);
+
+      const resL = await fetch(`${baseUrl}/paises/Chile/ligas?season=2023`, { headers: auth });
+      const lBody = (await resL.json()) as { ligas?: Array<{ ligaId: string; nombre: string }> };
+      expect(resL.status).toBe(200);
+      const primera = (lBody.ligas ?? []).find((l) => /primera divisi/i.test(l.nombre));
+      expect(primera).toBeDefined();
+
+      const resT = await fetch(`${baseUrl}/ligas/${primera!.ligaId}/equipos?season=2023`, { headers: auth });
+      const tBody = (await resT.json()) as { equipos?: Array<{ nombre: string; escudoUrl?: string }> };
+      expect(resT.status).toBe(200);
+      expect((tBody.equipos ?? []).length).toBeGreaterThan(0);
+      // Los equipos deben venir con logo (escudoUrl).
+      expect((tBody.equipos ?? [])[0]?.escudoUrl).toBeTruthy();
+    },
+    60_000,
+  );
+
+  it(
     'GET /equipos?buscar= devuelve equipos reales y /equipos/:id/ligas sus ligas',
     async () => {
       const auth = { authorization: `Bearer ${token()}`, 'x-forwarded-proto': 'https' };

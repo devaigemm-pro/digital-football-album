@@ -1,43 +1,38 @@
 // OnboardingScreen — alta guiada del hincha con datos REALES (API-Football).
 //
-// Pasos:
+// Flujo por país → división → equipo (con logo), en vez de un buscador libre:
 //   1. Bienvenida.
-//   2. Buscar y elegir tu equipo REAL por nombre (`GET /equipos?buscar=`).
-//      Al elegir, se persiste como Club real y se asigna (`POST /me/equipo`).
-//   3. Elegir la liga/competición de tu equipo (`GET /equipos/:id/ligas?season=`),
-//      filtrando amistosos.
-//   4. Cargar la temporada (`POST /me/temporada` con "<ligaId>:<season>") → deriva
-//      el álbum desde el fixture oficial.
+//   2. País: elegir el país (con bandera) — `GET /paises` (filtrable en la lista).
+//   3. División/liga: ligas del país esa temporada — `GET /paises/:pais/ligas`.
+//   4. Equipo: equipos de la división con su logo — `GET /ligas/:ligaId/equipos`.
+//      Al elegir: `POST /me/equipo` (persiste el club real) y luego
+//      `POST /me/temporada` con "<ligaId>:<season>" (deriva el álbum).
 //   5. Listo → entra a la app.
 //
-// Pantalla DELGADA: la lógica sensible vive en el ProfilePresenter (puro). Aquí
-// se orquestan los pasos y se pinta con el kit de UI. `.tsx` excluido del
-// typecheck (RN no instalado en este entorno).
+// Pantalla DELGADA: la lógica sensible vive en presenter/servicios puros. `.tsx`
+// excluido del typecheck (RN no instalado en este entorno).
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import type { EquipoBusqueda, LigaEquipo, ProfileClient } from '../adapters';
+import type { EquipoBusqueda, LigaPais, Pais, ProfileClient } from '../adapters';
 import { ProfilePresenter } from '../profile';
 import { Hero, PrimaryButton, Screen, SecondaryButton } from '../ui/kit';
 import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 
 export interface OnboardingScreenProps {
-  /** Cliente de perfil/onboarding (búsqueda de equipos, ligas, selección, sync). */
   readonly profileClient: ProfileClient;
-  /** Presentador de perfil compartido (opcional). */
   readonly presenter?: ProfilePresenter;
-  /** Se invoca cuando el onboarding termina (temporada cargada). */
   readonly onDone?: () => void;
 }
 
-type Paso = 'bienvenida' | 'equipo' | 'liga' | 'cargando' | 'listo';
+type Paso = 'bienvenida' | 'pais' | 'division' | 'equipo' | 'cargando' | 'listo';
 
-/** Temporada por defecto sugerida para buscar ligas (último año con cobertura amplia). */
+/** Temporada por defecto con cobertura amplia en el plan free. */
 const SEASON_DEFECTO = 2023;
 
-/** ¿La liga es una competición real (no amistosos)? */
-function esLigaReal(l: LigaEquipo): boolean {
+/** ¿La liga es una competición de club real (no amistosos)? */
+function esLigaReal(l: LigaPais): boolean {
   return !/friendl|amistos/i.test(l.nombre);
 }
 
@@ -52,61 +47,94 @@ export function OnboardingScreen({
   );
 
   const [paso, setPaso] = useState<Paso>('bienvenida');
-  const [query, setQuery] = useState('');
-  const [buscando, setBuscando] = useState(false);
-  const [resultados, setResultados] = useState<readonly EquipoBusqueda[]>([]);
-  const [equipo, setEquipo] = useState<EquipoBusqueda | null>(null);
-  const [ligas, setLigas] = useState<readonly LigaEquipo[]>([]);
-  const [ligasSeason] = useState(SEASON_DEFECTO);
+  const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [paises, setPaises] = useState<readonly Pais[]>([]);
+  const [filtroPais, setFiltroPais] = useState('');
+  const [pais, setPais] = useState<Pais | null>(null);
+
+  const [divisiones, setDivisiones] = useState<readonly LigaPais[]>([]);
+  const [division, setDivision] = useState<LigaPais | null>(null);
+
+  const [equipos, setEquipos] = useState<readonly EquipoBusqueda[]>([]);
   const [resultadoRecuadros, setResultadoRecuadros] = useState(0);
 
-  const buscar = (): void => {
+  // Carga la lista de países al entrar al paso 'pais' (una vez).
+  useEffect(() => {
+    if (paso !== 'pais' || paises.length > 0) return;
+    let cancelado = false;
+    setCargando(true);
+    setError(null);
+    profileClient
+      .listarPaises()
+      .then((lista) => {
+        if (!cancelado) setPaises(lista);
+      })
+      .catch(() => {
+        if (!cancelado) setError('No se pudieron cargar los países. Inténtalo de nuevo.');
+      })
+      .finally(() => {
+        if (!cancelado) setCargando(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [paso, paises.length, profileClient]);
+
+  const elegirPais = (p: Pais): void => {
     void (async () => {
-      setBuscando(true);
+      setPais(p);
+      setCargando(true);
       setError(null);
       try {
-        setResultados(await profileClient.buscarEquipos(query.trim()));
+        const ligas = await profileClient.ligasDePais(p.nombre, SEASON_DEFECTO);
+        setDivisiones(ligas.filter(esLigaReal));
+        setPaso('division');
       } catch {
-        setError('No se pudo buscar equipos. Revisa tu conexión e inténtalo de nuevo.');
+        setError('No se pudieron cargar las divisiones. Inténtalo de nuevo.');
       } finally {
-        setBuscando(false);
+        setCargando(false);
+      }
+    })();
+  };
+
+  const elegirDivision = (l: LigaPais): void => {
+    void (async () => {
+      setDivision(l);
+      setCargando(true);
+      setError(null);
+      try {
+        setEquipos(await profileClient.equiposDeLiga(l.ligaId, SEASON_DEFECTO));
+        setPaso('equipo');
+      } catch {
+        setError('No se pudieron cargar los equipos. Inténtalo de nuevo.');
+      } finally {
+        setCargando(false);
       }
     })();
   };
 
   const elegirEquipo = (e: EquipoBusqueda): void => {
-    void (async () => {
-      setBuscando(true);
-      setError(null);
-      setEquipo(e);
-      try {
-        await profileClient.seleccionarEquipo(e);
-        const disponibles = await profileClient.ligasDeEquipo(e.id, ligasSeason);
-        setLigas(disponibles.filter(esLigaReal));
-        setPaso('liga');
-      } catch {
-        setError('No se pudo seleccionar el equipo. Inténtalo de nuevo.');
-      } finally {
-        setBuscando(false);
-      }
-    })();
-  };
-
-  const elegirLiga = (l: LigaEquipo): void => {
     setPaso('cargando');
     setError(null);
     void (async () => {
       try {
-        const res = await profileClient.syncTemporada(`${l.ligaId}:${ligasSeason}`);
+        await profileClient.seleccionarEquipo(e);
+        const res = await profileClient.syncTemporada(`${division!.ligaId}:${SEASON_DEFECTO}`);
         setResultadoRecuadros(res.recuadros);
         await pres.loadProfile();
         setPaso('listo');
       } catch {
-        setError('No se pudo cargar la temporada. Inténtalo de nuevo.');
+        setError('No se pudo cargar tu temporada. Inténtalo de nuevo.');
       }
     })();
   };
+
+  const paisesFiltrados = useMemo(() => {
+    const q = filtroPais.trim().toLocaleLowerCase();
+    return q.length === 0 ? paises : paises.filter((p) => p.nombre.toLocaleLowerCase().includes(q));
+  }, [paises, filtroPais]);
 
   // --- Render por paso ------------------------------------------------------
 
@@ -117,54 +145,42 @@ export function OnboardingScreen({
         <Text style={styles.lead}>
           Documenta tu temporada partido a partido y arma tu álbum coleccionable.
         </Text>
-        <PrimaryButton title="Empezar" onPress={() => setPaso('equipo')} style={styles.cta} />
+        <PrimaryButton title="Empezar" onPress={() => setPaso('pais')} style={styles.cta} />
       </Screen>
     );
   }
 
-  if (paso === 'equipo') {
+  if (paso === 'pais') {
     return (
       <Screen tone="light" flush>
-        <Hero eyebrow="Paso 1 de 2" title="Busca tu equipo" />
+        <Hero eyebrow="Paso 1 de 3" title="Elige tu país" />
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          <View style={styles.searchRow}>
-            <TextInput
-              style={styles.input}
-              value={query}
-              onChangeText={setQuery}
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="Nombre del equipo (p. ej. Barcelona)"
-              placeholderTextColor={palette.textMutedOnLight}
-              onSubmitEditing={buscar}
-              accessibilityLabel="Nombre del equipo"
-            />
-          </View>
-          <PrimaryButton
-            title={buscando ? 'Buscando…' : 'Buscar'}
-            onPress={buscar}
-            disabled={buscando || query.trim().length < 2}
+          <TextInput
+            style={styles.input}
+            value={filtroPais}
+            onChangeText={setFiltroPais}
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder="Filtrar país (p. ej. Chile)"
+            placeholderTextColor={palette.textMutedOnLight}
+            accessibilityLabel="Filtrar país"
           />
+          {cargando ? <ActivityIndicator color={palette.accent} style={styles.spinner} /> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          {resultados.map((e) => (
+          {paisesFiltrados.slice(0, 60).map((p) => (
             <Pressable
-              key={e.id}
+              key={p.nombre}
               accessibilityRole="button"
-              disabled={buscando}
-              onPress={() => elegirEquipo(e)}
-              style={styles.equipoRow}
+              disabled={cargando}
+              onPress={() => elegirPais(p)}
+              style={styles.row}
             >
-              {e.escudoUrl ? (
-                <Image source={{ uri: e.escudoUrl }} style={styles.escudo} accessibilityRole="image" />
+              {p.banderaUrl ? (
+                <Image source={{ uri: p.banderaUrl }} style={styles.bandera} accessibilityRole="image" />
               ) : (
-                <View style={styles.escudo} />
+                <View style={styles.bandera} />
               )}
-              <View style={styles.equipoInfo}>
-                <Text style={styles.equipoNombre}>{e.nombre}</Text>
-                {e.pais ? <Text style={styles.equipoPais}>{e.pais}</Text> : null}
-              </View>
-              {buscando && equipo?.id === e.id ? <ActivityIndicator color={palette.accent} /> : null}
+              <Text style={styles.rowNombre}>{p.nombre}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -172,37 +188,64 @@ export function OnboardingScreen({
     );
   }
 
-  if (paso === 'liga') {
+  if (paso === 'division') {
     return (
       <Screen tone="light" flush>
-        <Hero eyebrow="Paso 2 de 2" title="Elige tu competición" />
+        <Hero eyebrow="Paso 2 de 3" title="Elige tu división" />
         <ScrollView contentContainerStyle={styles.body}>
-          <Text style={styles.help}>
-            Competiciones de {equipo?.nombre ?? 'tu equipo'} en la temporada {ligasSeason}.
-          </Text>
+          <Text style={styles.help}>Competiciones de {pais?.nombre ?? 'tu país'} · {SEASON_DEFECTO}</Text>
+          {cargando ? <ActivityIndicator color={palette.accent} style={styles.spinner} /> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          {ligas.length === 0 ? (
-            <Text style={styles.help}>
-              No se encontraron competiciones para esa temporada. Vuelve a elegir tu equipo.
-            </Text>
-          ) : null}
-          {ligas.map((l) => (
+          {divisiones.map((l) => (
             <Pressable
               key={l.ligaId}
               accessibilityRole="button"
-              onPress={() => elegirLiga(l)}
-              style={styles.ligaRow}
+              disabled={cargando}
+              onPress={() => elegirDivision(l)}
+              style={styles.row}
             >
-              <Text style={styles.ligaNombre}>{l.nombre}</Text>
-              {l.tipo ? <Text style={styles.ligaTipo}>{l.tipo}</Text> : null}
+              {l.logoUrl ? (
+                <Image source={{ uri: l.logoUrl }} style={styles.logo} accessibilityRole="image" />
+              ) : (
+                <View style={styles.logo} />
+              )}
+              <View style={styles.rowInfo}>
+                <Text style={styles.rowNombre}>{l.nombre}</Text>
+                {l.tipo ? <Text style={styles.rowSub}>{l.tipo}</Text> : null}
+              </View>
             </Pressable>
           ))}
-          <SecondaryButton
-            title="Volver a buscar equipo"
-            tone="light"
-            onPress={() => setPaso('equipo')}
-            style={styles.secondary}
-          />
+          <SecondaryButton title="Volver a país" tone="light" onPress={() => setPaso('pais')} style={styles.secondary} />
+        </ScrollView>
+      </Screen>
+    );
+  }
+
+  if (paso === 'equipo') {
+    return (
+      <Screen tone="light" flush>
+        <Hero eyebrow="Paso 3 de 3" title="Elige tu equipo" />
+        <ScrollView contentContainerStyle={styles.body}>
+          <Text style={styles.help}>{division?.nombre ?? 'División'} · {pais?.nombre ?? ''}</Text>
+          {cargando ? <ActivityIndicator color={palette.accent} style={styles.spinner} /> : null}
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {equipos.map((e) => (
+            <Pressable
+              key={e.id}
+              accessibilityRole="button"
+              disabled={cargando}
+              onPress={() => elegirEquipo(e)}
+              style={styles.row}
+            >
+              {e.escudoUrl ? (
+                <Image source={{ uri: e.escudoUrl }} style={styles.logo} accessibilityRole="image" />
+              ) : (
+                <View style={styles.logo} />
+              )}
+              <Text style={styles.rowNombre}>{e.nombre}</Text>
+            </Pressable>
+          ))}
+          <SecondaryButton title="Volver a división" tone="light" onPress={() => setPaso('division')} style={styles.secondary} />
         </ScrollView>
       </Screen>
     );
@@ -215,7 +258,7 @@ export function OnboardingScreen({
           <>
             <Text style={styles.bigTitle}>No se pudo cargar</Text>
             <Text style={styles.lead}>{error}</Text>
-            <SecondaryButton title="Elegir otra competición" onPress={() => setPaso('liga')} style={styles.cta} />
+            <SecondaryButton title="Elegir otro equipo" onPress={() => setPaso('equipo')} style={styles.cta} />
           </>
         ) : (
           <>
@@ -261,7 +304,7 @@ const styles = StyleSheet.create({
   cta: { marginTop: spacing.xl, alignSelf: 'stretch' },
   secondary: { marginTop: spacing.md, alignSelf: 'stretch' },
   body: { padding: spacing.lg },
-  searchRow: { marginBottom: spacing.md },
+  spinner: { marginVertical: spacing.md },
   input: {
     borderWidth: 1,
     borderColor: palette.borderOnLight,
@@ -271,9 +314,11 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     fontFamily: fonts.body,
     fontSize: fontSize.body,
+    marginBottom: spacing.md,
   },
-  error: { color: palette.danger, fontFamily: fonts.body, marginTop: spacing.md },
-  equipoRow: {
+  error: { color: palette.danger, fontFamily: fonts.body, marginBottom: spacing.md },
+  help: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: spacing.md },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -282,23 +327,13 @@ const styles = StyleSheet.create({
     borderColor: palette.borderOnLight,
     borderRadius: radius.lg,
     padding: spacing.md,
-    marginTop: spacing.sm,
-  },
-  escudo: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: palette.canvas },
-  equipoInfo: { flex: 1 },
-  equipoNombre: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
-  equipoPais: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginTop: 2 },
-  help: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: spacing.md, lineHeight: 20 },
-  ligaRow: {
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.borderOnLight,
-    borderRadius: radius.lg,
-    padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  ligaNombre: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.subtitle, fontWeight: fontWeight.semibold },
-  ligaTipo: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.caption, marginTop: 2 },
+  rowInfo: { flex: 1 },
+  rowNombre: { flex: 1, color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
+  rowSub: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.caption, marginTop: 2 },
+  bandera: { width: 32, height: 22, borderRadius: 3, backgroundColor: palette.canvas },
+  logo: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: palette.canvas },
 });
 
 export default OnboardingScreen;

@@ -28,6 +28,8 @@ import type {
   RawFichaPartido,
   RawFixture,
   RawLigaEquipo,
+  RawLigaPais,
+  RawPais,
   SportsApiTransport,
 } from './types.js';
 
@@ -83,10 +85,22 @@ interface ApiFootballTeamItem {
   };
 }
 
-/** Item de `leagues?team=&season=` de API-Football. */
+/** Item de `leagues?...` de API-Football. */
 interface ApiFootballLeagueItem {
-  readonly league?: { readonly id?: number; readonly name?: string; readonly type?: string };
+  readonly league?: {
+    readonly id?: number;
+    readonly name?: string;
+    readonly type?: string;
+    readonly logo?: string;
+  };
   readonly seasons?: readonly { readonly year?: number }[];
+}
+
+/** Item de `countries` de API-Football. */
+interface ApiFootballCountryItem {
+  readonly name?: string;
+  readonly code?: string | null;
+  readonly flag?: string | null;
 }
 
 /** Mapea el estado corto de API-Football a nuestro `estado` crudo. */
@@ -145,7 +159,79 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
       const season = Number.parseInt(decodeURIComponent(ligasMatch[2] as string), 10);
       return (await this.leaguesForTeam(teamId, season, signal)) as T;
     }
+    if (path === '/paises') {
+      return (await this.listCountries(signal)) as T;
+    }
+    const paisLigasMatch = /^\/paises\/([^/?]+)\/ligas\?season=(.+)$/.exec(path);
+    if (paisLigasMatch) {
+      const pais = decodeURIComponent(paisLigasMatch[1] as string);
+      const season = Number.parseInt(decodeURIComponent(paisLigasMatch[2] as string), 10);
+      return (await this.leaguesByCountry(pais, season, signal)) as T;
+    }
+    const ligaEquiposMatch = /^\/ligas\/([^/?]+)\/equipos\?season=(.+)$/.exec(path);
+    if (ligaEquiposMatch) {
+      const ligaId = decodeURIComponent(ligaEquiposMatch[1] as string);
+      const season = Number.parseInt(decodeURIComponent(ligaEquiposMatch[2] as string), 10);
+      return (await this.teamsByLeague(ligaId, season, signal)) as T;
+    }
     throw new SportsApiError(`Ruta de API deportiva no soportada: ${path}`);
+  }
+
+  /** Lista países (`countries`) y mapea a `RawPais`. */
+  private async listCountries(signal: AbortSignal): Promise<readonly RawPais[]> {
+    const url = `${this.baseUrl}/countries`;
+    const data = await this.request<ApiFootballResponse<ApiFootballCountryItem>>(url, signal);
+    return (data.response ?? []).flatMap((c) => {
+      if (c.name === undefined) return [];
+      const pais: RawPais = {
+        nombre: c.name,
+        ...(c.code !== undefined && c.code !== null ? { codigo: c.code } : {}),
+        ...(c.flag !== undefined && c.flag !== null ? { banderaUrl: c.flag } : {}),
+      };
+      return [pais];
+    });
+  }
+
+  /** Lista las ligas/divisiones de un país (`leagues?country=&season=`). */
+  private async leaguesByCountry(
+    country: string,
+    season: number,
+    signal: AbortSignal,
+  ): Promise<readonly RawLigaPais[]> {
+    const url = `${this.baseUrl}/leagues?country=${encodeURIComponent(country)}&season=${encodeURIComponent(String(season))}`;
+    const data = await this.request<ApiFootballResponse<ApiFootballLeagueItem>>(url, signal);
+    return (data.response ?? []).flatMap((item) => {
+      const l = item.league;
+      if (l?.id === undefined || l.name === undefined) return [];
+      const liga: RawLigaPais = {
+        ligaId: String(l.id),
+        nombre: l.name,
+        ...(l.type !== undefined ? { tipo: l.type } : {}),
+        ...(l.logo !== undefined ? { logoUrl: l.logo } : {}),
+      };
+      return [liga];
+    });
+  }
+
+  /** Lista los equipos de una liga/temporada (`teams?league=&season=`). */
+  private async teamsByLeague(
+    ligaId: string,
+    season: number,
+    signal: AbortSignal,
+  ): Promise<readonly RawEquipo[]> {
+    const url = `${this.baseUrl}/teams?league=${encodeURIComponent(ligaId)}&season=${encodeURIComponent(String(season))}`;
+    const data = await this.request<ApiFootballResponse<ApiFootballTeamItem>>(url, signal);
+    return (data.response ?? []).flatMap((item) => {
+      const t = item.team;
+      if (t?.id === undefined || t.name === undefined) return [];
+      const equipo: RawEquipo = {
+        id: String(t.id),
+        nombre: t.name,
+        ...(t.country !== undefined ? { pais: t.country } : {}),
+        ...(t.logo !== undefined ? { escudoUrl: t.logo } : {}),
+      };
+      return [equipo];
+    });
   }
 
   /** Busca equipos reales por nombre (`teams?search=`) y mapea a `RawEquipo`. */

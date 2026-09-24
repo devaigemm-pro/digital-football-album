@@ -144,6 +144,29 @@ interface LigasResponse {
   readonly ligas: readonly LigaEquipo[];
 }
 
+/** País disponible (`GET /paises`). */
+export interface Pais {
+  readonly nombre: string;
+  readonly codigo?: string;
+  readonly banderaUrl?: string;
+}
+
+/** Liga/división de un país (`GET /paises/:pais/ligas`). */
+export interface LigaPais {
+  readonly ligaId: string;
+  readonly nombre: string;
+  readonly tipo?: string;
+  readonly logoUrl?: string;
+}
+
+interface PaisesResponse {
+  readonly paises: readonly Pais[];
+}
+
+interface LigasPaisResponse {
+  readonly ligas: readonly LigaPais[];
+}
+
 /**
  * Contrato del cliente de perfil/partidos. Inyectable en las pantallas de
  * Perfil, Home/Álbum y la lista de partidos (láminas).
@@ -166,6 +189,12 @@ export interface ProfileClient {
   ligasDeEquipo(teamId: string, season: number): Promise<readonly LigaEquipo[]>;
   /** `POST /me/equipo`: persiste el equipo real elegido y lo asigna al usuario. */
   seleccionarEquipo(equipo: EquipoBusqueda): Promise<SeleccionEquipoResult>;
+  /** `GET /paises`: países disponibles (onboarding por país). */
+  listarPaises(): Promise<readonly Pais[]>;
+  /** `GET /paises/:pais/ligas?season=`: ligas/divisiones de un país. */
+  ligasDePais(pais: string, season: number): Promise<readonly LigaPais[]>;
+  /** `GET /ligas/:ligaId/equipos?season=`: equipos (con logo) de una liga. */
+  equiposDeLiga(ligaId: string, season: number): Promise<readonly EquipoBusqueda[]>;
 }
 
 /** Adaptador HTTP concreto de perfil/partidos. Autenticado (Bearer). */
@@ -221,5 +250,25 @@ export class HttpProfileClient implements ProfileClient {
       buildRequest('POST', '/me/equipo', { body: equipo }),
     );
     return readOkBody(response, 'POST /me/equipo');
+  }
+
+  /** `GET /paises` → países disponibles. */
+  async listarPaises(): Promise<readonly Pais[]> {
+    const response = await this.send<PaisesResponse>(buildRequest('GET', '/paises'));
+    return readOkBody(response, 'GET /paises').paises;
+  }
+
+  /** `GET /paises/:pais/ligas?season=` → ligas/divisiones del país. */
+  async ligasDePais(pais: string, season: number): Promise<readonly LigaPais[]> {
+    const path = `/paises/${encodeURIComponent(pais)}/ligas?season=${encodeURIComponent(String(season))}`;
+    const response = await this.send<LigasPaisResponse>(buildRequest('GET', path));
+    return readOkBody(response, path).ligas;
+  }
+
+  /** `GET /ligas/:ligaId/equipos?season=` → equipos de la liga (con logo). */
+  async equiposDeLiga(ligaId: string, season: number): Promise<readonly EquipoBusqueda[]> {
+    const path = `/ligas/${encodeURIComponent(ligaId)}/equipos?season=${encodeURIComponent(String(season))}`;
+    const response = await this.send<EquiposResponse>(buildRequest('GET', path));
+    return readOkBody(response, path).equipos;
   }
 }

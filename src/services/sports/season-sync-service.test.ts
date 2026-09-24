@@ -32,6 +32,15 @@ class FakeSportsClient implements SportsApiClient {
   leaguesForTeam(): Promise<readonly never[]> {
     return Promise.resolve([]);
   }
+  listCountries(): Promise<readonly never[]> {
+    return Promise.resolve([]);
+  }
+  leaguesByCountry(): Promise<readonly never[]> {
+    return Promise.resolve([]);
+  }
+  teamsByLeague(): Promise<readonly never[]> {
+    return Promise.resolve([]);
+  }
 }
 
 async function setup(fixtures: readonly RawFixture[], conClub = true) {

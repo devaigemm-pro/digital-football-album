@@ -79,4 +79,6 @@ export {
   type EquipoBusqueda,
   type LigaEquipo,
   type SeleccionEquipoResult,
+  type Pais,
+  type LigaPais,
 } from './http-profile-client';

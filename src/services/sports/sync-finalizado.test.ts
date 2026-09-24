@@ -65,6 +65,9 @@ function makeClient(ficha: RawFichaPartido): {
     },
     searchTeams: () => Promise.resolve([]),
     leaguesForTeam: () => Promise.resolve([]),
+    listCountries: () => Promise.resolve([]),
+    leaguesByCountry: () => Promise.resolve([]),
+    teamsByLeague: () => Promise.resolve([]),
   };
   return { client, calls: () => calls };
 }

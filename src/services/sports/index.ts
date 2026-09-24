@@ -75,4 +75,4 @@ export type { SeasonSyncDeps, SeasonSyncResult } from './season-sync-service.js'
 // Onboarding con datos reales (buscar equipo, listar ligas, seleccionar club).
 export { OnboardingService, OnboardingNotFoundError } from './onboarding-service.js';
 export type { OnboardingDeps, EquipoSeleccionadoResult } from './onboarding-service.js';
-export type { RawEquipo, RawLigaEquipo } from './types.js';
+export type { RawEquipo, RawLigaEquipo, RawPais, RawLigaPais } from './types.js';

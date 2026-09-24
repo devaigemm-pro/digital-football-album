@@ -109,6 +109,11 @@ export interface AppServices {
    * ligas y persistir el Club real elegido asignándolo al usuario.
    */
   readonly onboarding: OnboardingService;
+  /**
+   * `true` si hay un proveedor de API deportiva configurado (API key presente).
+   * Se expone en `/health` para diagnóstico, sin revelar la key.
+   */
+  readonly sportsConfigured: boolean;
   /** Almacén de objetos usado por la carga de fotos (Motor_Momentos). */
   readonly momentosStorage: MomentosObjectStoragePort;
   /** Notificador de asociación pendiente para los flujos de sports. */
@@ -317,6 +322,7 @@ export function createServices(options: CreateServicesOptions): AppServices {
     club,
     seasonSync,
     onboarding,
+    sportsConfigured: sportsCfg?.provider === 'api-football' && Boolean(sportsCfg.apiKey),
     momentosStorage,
     sportsNotifier,
     uploadFoto: uploadFotoWired,

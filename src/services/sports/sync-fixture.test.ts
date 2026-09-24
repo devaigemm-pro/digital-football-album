@@ -29,6 +29,9 @@ function makeClient(fixtures: readonly RawFixture[]): {
     },
     searchTeams: () => Promise.resolve([]),
     leaguesForTeam: () => Promise.resolve([]),
+    listCountries: () => Promise.resolve([]),
+    leaguesByCountry: () => Promise.resolve([]),
+    teamsByLeague: () => Promise.resolve([]),
   };
   return { client, fetchCalls: () => fetchCalls };
 }
@@ -202,6 +205,9 @@ describe('syncFixture', () => {
       },
       searchTeams: () => Promise.resolve([]),
       leaguesForTeam: () => Promise.resolve([]),
+      listCountries: () => Promise.resolve([]),
+      leaguesByCountry: () => Promise.resolve([]),
+      teamsByLeague: () => Promise.resolve([]),
     };
 
     await syncFixture('2024-2025', { client, signal: controller.signal });

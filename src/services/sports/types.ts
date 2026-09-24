@@ -78,6 +78,25 @@ export interface RawLigaEquipo {
   readonly temporadas: readonly number[];
 }
 
+/** País disponible en la API deportiva (onboarding por país). */
+export interface RawPais {
+  /** Nombre del país (p. ej. "Chile"). */
+  readonly nombre: string;
+  /** Código del país (p. ej. "CL"), si la API lo reporta. */
+  readonly codigo?: string;
+  /** URL de la bandera del país. */
+  readonly banderaUrl?: string;
+}
+
+/** Liga/división de un país (onboarding: elegir división). */
+export interface RawLigaPais {
+  readonly ligaId: string;
+  readonly nombre: string;
+  /** `League` (liga/división) o `Cup` (copa). */
+  readonly tipo?: string;
+  readonly logoUrl?: string;
+}
+
 /**
  * Cliente de la API deportiva externa (Req 9). Es la abstracción **mockeable**
  * de la que dependen los servicios de dominio: en pruebas se sustituye por un
@@ -116,6 +135,29 @@ export interface SportsApiClient {
     season: number,
     signal?: AbortSignal,
   ): Promise<readonly RawLigaEquipo[]>;
+
+  /** Lista los países disponibles (onboarding: elegir país). */
+  listCountries(signal?: AbortSignal): Promise<readonly RawPais[]>;
+
+  /**
+   * Lista las ligas/divisiones de un país para una temporada (onboarding:
+   * elegir división antes de ver los equipos).
+   */
+  leaguesByCountry(
+    country: string,
+    season: number,
+    signal?: AbortSignal,
+  ): Promise<readonly RawLigaPais[]>;
+
+  /**
+   * Lista los equipos de una liga en una temporada, con su logo (onboarding:
+   * elegir el equipo dentro de la división).
+   */
+  teamsByLeague(
+    ligaId: string,
+    season: number,
+    signal?: AbortSignal,
+  ): Promise<readonly RawEquipo[]>;
 }
 
 /**

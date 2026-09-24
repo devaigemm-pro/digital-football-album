@@ -19,6 +19,8 @@ import type {
   RawFichaPartido,
   RawFixture,
   RawLigaEquipo,
+  RawLigaPais,
+  RawPais,
   SportsApiClient,
   SportsApiTransport,
 } from './types.js';
@@ -144,6 +146,28 @@ export class ResilientSportsApiClient implements SportsApiClient {
   ): Promise<readonly RawLigaEquipo[]> {
     const path = `/equipos/${encodeURIComponent(teamId)}/ligas?season=${encodeURIComponent(String(season))}`;
     return this.executeWithResilience<readonly RawLigaEquipo[]>(path, signal);
+  }
+
+  listCountries(signal?: AbortSignal): Promise<readonly RawPais[]> {
+    return this.executeWithResilience<readonly RawPais[]>('/paises', signal);
+  }
+
+  leaguesByCountry(
+    country: string,
+    season: number,
+    signal?: AbortSignal,
+  ): Promise<readonly RawLigaPais[]> {
+    const path = `/paises/${encodeURIComponent(country)}/ligas?season=${encodeURIComponent(String(season))}`;
+    return this.executeWithResilience<readonly RawLigaPais[]>(path, signal);
+  }
+
+  teamsByLeague(
+    ligaId: string,
+    season: number,
+    signal?: AbortSignal,
+  ): Promise<readonly RawEquipo[]> {
+    const path = `/ligas/${encodeURIComponent(ligaId)}/equipos?season=${encodeURIComponent(String(season))}`;
+    return this.executeWithResilience<readonly RawEquipo[]>(path, signal);
   }
 
   /**
