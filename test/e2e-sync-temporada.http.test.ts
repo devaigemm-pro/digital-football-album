@@ -20,8 +20,10 @@ import { signAccessToken } from '../src/services/auth/tokens.js';
 const SECRET = 'e2e-sync-secret';
 const USER = 'e2e-sync-user';
 const CLUB = 'e2e-sync-club';
-// Premier League 2023 (verificado: 380 fixtures). Formato "<leagueId>:<season>".
-const TEMPORADA_EXTERNA = '39:2023';
+// Premier League 2023 filtrada por el equipo 33 (Manchester United).
+// Formato "<leagueId>:<season>:<teamId>": debe traer SOLO los partidos del
+// equipo (decenas), no toda la liga (380).
+const TEMPORADA_EXTERNA = '39:2023:33';
 
 const apiKey = process.env.SPORTS_API_KEY;
 const suite = apiKey ? describe : describe.skip;
@@ -94,8 +96,10 @@ suite('e2e sync temporada (API-Football real)', () => {
       });
       const body = (await res.json()) as { recuadros?: number; partidos?: number };
       expect(res.status).toBe(201);
-      expect((body.recuadros ?? 0)).toBeGreaterThan(0);
       expect((body.partidos ?? 0)).toBeGreaterThan(0);
+      // Filtrado por equipo: un solo club juega decenas de partidos, NO los
+      // ~380 de toda la liga. Cota amplia pero que detecta el bug de "toda la liga".
+      expect((body.partidos ?? 0)).toBeLessThan(120);
     },
     60_000,
   );

@@ -121,7 +121,11 @@ export function OnboardingScreen({
     void (async () => {
       try {
         await profileClient.seleccionarEquipo(e);
-        const res = await profileClient.syncTemporada(`${division!.ligaId}:${SEASON_DEFECTO}`);
+        // temporadaExterna = "<ligaId>:<season>:<teamId>" para traer SOLO los
+        // partidos del equipo elegido (no toda la liga).
+        const res = await profileClient.syncTemporada(
+          `${division!.ligaId}:${SEASON_DEFECTO}:${e.id}`,
+        );
         setResultadoRecuadros(res.recuadros);
         await pres.loadProfile();
         setPaso('listo');

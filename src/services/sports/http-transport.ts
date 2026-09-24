@@ -274,21 +274,30 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
     });
   }
 
-  /** Descarga y mapea los fixtures de "<leagueId>:<season>" a `RawFixture[]`. */
+  /**
+   * Descarga y mapea los fixtures de "<leagueId>:<season>[:<teamId>]" a
+   * `RawFixture[]`. Cuando se incluye `teamId`, se filtra el fixture por ese
+   * equipo (`&team=`), de modo que solo se traen SUS partidos (no toda la liga),
+   * y el `rival` de cada partido se resuelve como el equipo CONTRARIO.
+   */
   private async fetchFixtures(
     temporadaExterna: string,
     signal: AbortSignal,
   ): Promise<readonly RawFixture[]> {
-    const [league, season] = temporadaExterna.split(':');
+    const [league, season, teamId] = temporadaExterna.split(':');
     if (!league || !season) {
       throw new SportsApiError(
-        `temporadaExterna inválida: "${temporadaExterna}" (se espera "<leagueId>:<season>").`,
+        `temporadaExterna inválida: "${temporadaExterna}" (se espera "<leagueId>:<season>[:<teamId>]").`,
       );
     }
-    const url = `${this.baseUrl}/fixtures?league=${encodeURIComponent(league)}&season=${encodeURIComponent(season)}`;
+    let url = `${this.baseUrl}/fixtures?league=${encodeURIComponent(league)}&season=${encodeURIComponent(season)}`;
+    if (teamId) {
+      url += `&team=${encodeURIComponent(teamId)}`;
+    }
     const data = await this.request<ApiFootballResponse<ApiFootballFixtureItem>>(url, signal);
     const items = data.response ?? [];
-    return items.map((item) => this.mapFixture(item));
+    const teamIdNum = teamId ? Number.parseInt(teamId, 10) : undefined;
+    return items.map((item) => this.mapFixture(item, teamIdNum));
   }
 
   /** Descarga y mapea la ficha de un partido finalizado a `RawFichaPartido`. */
@@ -313,8 +322,14 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
     };
   }
 
-  /** Mapea un item de fixture del proveedor a nuestra forma cruda `RawFixture`. */
-  private mapFixture(item: ApiFootballFixtureItem): RawFixture {
+  /**
+   * Mapea un item de fixture del proveedor a nuestra forma cruda `RawFixture`.
+   *
+   * El `rival` se resuelve según el equipo del usuario (`teamIdNum`): es el
+   * equipo CONTRARIO (si el usuario es local, el rival es el visitante y
+   * viceversa). Si no se conoce el equipo, cae al visitante como aproximación.
+   */
+  private mapFixture(item: ApiFootballFixtureItem, teamIdNum?: number): RawFixture {
     // `exactOptionalPropertyTypes`: solo se incluyen las claves cuyo valor está
     // definido; las ausentes quedan fuera del objeto (no como `undefined`).
     const raw: {
@@ -327,7 +342,18 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
     const id = item.fixture?.id;
     if (id !== undefined) raw.partidoExternoId = String(id);
     if (item.league?.name !== undefined) raw.competicion = item.league.name;
-    if (item.teams?.away?.name !== undefined) raw.rival = item.teams.away.name;
+
+    // Rival = el equipo contrario al del usuario.
+    const home = item.teams?.home;
+    const away = item.teams?.away;
+    let rival: string | undefined;
+    if (teamIdNum !== undefined && home?.id !== undefined && away?.id !== undefined) {
+      rival = home.id === teamIdNum ? away.name : home.name;
+    } else {
+      rival = away?.name; // sin equipo conocido: aproximación al visitante
+    }
+    if (rival !== undefined) raw.rival = rival;
+
     if (item.fixture?.date !== undefined) raw.fechaHora = item.fixture.date;
     return raw;
   }
