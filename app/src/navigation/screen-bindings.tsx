@@ -492,26 +492,47 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
     const state = useProfile();
     const perfil = state.perfil;
 
+    // Salvaguarda anti-bloqueo: si la carga se queda "colgada" (sin resolver ni
+    // rechazar, p. ej. una petición que nunca vuelve) más de TIMEOUT, dejamos de
+    // esperar y mostramos el error accionable en vez de un loader eterno.
+    const [vencio, setVencio] = React.useState(false);
+    const enEspera = state.status === 'loading' || state.status === 'idle';
+    React.useEffect(() => {
+      if (!enEspera) {
+        setVencio(false);
+        return;
+      }
+      const t = setTimeout(() => setVencio(true), 12000);
+      return () => clearTimeout(t);
+    }, [enEspera]);
+
+    const cerrarSesion = (): void => {
+      void deps.authPresenter.logout().finally(() => deps.onRedirectToLogin?.());
+    };
+    const reintentar = (): void => {
+      setVencio(false);
+      void profilePresenter.loadProfile();
+    };
+
     // Si la carga del perfil FALLÓ (p. ej. sesión expirada, red o backend caído)
     // NO nos quedamos en el loader eterno: mostramos el error con reintento y una
     // salida (cerrar sesión). El caso `error` puede traer `perfil === null`, así
-    // que debe evaluarse ANTES que el loader.
-    if (state.status === 'error') {
+    // que debe evaluarse ANTES que el loader. `vencio` cubre el caso "colgado".
+    if (state.status === 'error' || vencio) {
       return (
         <ProfileError
-          mensaje={state.error ?? 'No se pudo cargar tu perfil.'}
-          onReintentar={() => {
-            void profilePresenter.loadProfile();
-          }}
-          onCerrarSesion={() => {
-            void deps.authPresenter.logout().finally(() => deps.onRedirectToLogin?.());
-          }}
+          mensaje={
+            state.error ??
+            'No se pudo cargar tu perfil (la conexión tardó demasiado). Revisa tu red o vuelve a iniciar sesión.'
+          }
+          onReintentar={reintentar}
+          onCerrarSesion={cerrarSesion}
         />
       );
     }
 
     // Mientras carga (o aún no ha cargado), no dejamos pasar: loader.
-    if (state.status === 'loading' || state.status === 'idle' || perfil === null) {
+    if (enEspera || perfil === null) {
       return <Placeholder mensaje="Cargando tu perfil…" />;
     }
     // Sin club o sin temporada activa => alta guiada (onboarding).

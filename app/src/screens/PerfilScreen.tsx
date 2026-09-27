@@ -63,7 +63,12 @@ export function PerfilScreen({
 
   useEffect(() => {
     const unsubscribe = pres.subscribeProfile(setState);
-    void pres.loadProfile();
+    // Solo dispara la carga si aún está `idle`. El presentador es COMPARTIDO con
+    // el OnboardingGate; re-lanzar `loadProfile` cuando ya está cargado lo pondría
+    // en `loading` y el gate ocultaría las pestañas (bucle de parpadeo).
+    if (pres.getProfileState().status === 'idle') {
+      void pres.loadProfile();
+    }
     return unsubscribe;
   }, [pres]);
 

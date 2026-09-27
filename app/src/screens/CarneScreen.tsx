@@ -105,11 +105,17 @@ export function CarneScreen({
     pres.getPartidosState(),
   );
 
-  // Carga el perfil al montar y, cuando llega la temporada activa, sus partidos.
+  // Se SUSCRIBE al presentador compartido; solo dispara la carga si aún está
+  // `idle`. Es clave NO re-lanzar `loadProfile` si el perfil ya está cargado (o
+  // cargándose): el presentador es COMPARTIDO con el OnboardingGate, y volver a
+  // ponerlo en `loading` haría que el gate ocultara esta pantalla, provocando un
+  // bucle montar/desmontar (parpadeo). Solo leemos el estado y reaccionamos.
   useEffect(() => {
     const offProfile = pres.subscribeProfile(setProfile);
     const offPartidos = pres.subscribePartidos(setPartidos);
-    void pres.loadProfile();
+    if (pres.getProfileState().status === 'idle') {
+      void pres.loadProfile();
+    }
     return () => {
       offProfile();
       offPartidos();
@@ -118,7 +124,8 @@ export function CarneScreen({
 
   const temporadaId = profile.perfil?.temporadaActiva?.id ?? null;
   useEffect(() => {
-    if (temporadaId) {
+    // Carga los partidos una sola vez por temporada (evita recargas en bucle).
+    if (temporadaId && pres.getPartidosState().status === 'idle') {
       void pres.loadPartidos(temporadaId);
     }
   }, [pres, temporadaId]);
