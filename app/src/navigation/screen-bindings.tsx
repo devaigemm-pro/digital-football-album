@@ -132,6 +132,45 @@ function Placeholder({ mensaje }: { mensaje: string }): React.ReactElement {
 }
 
 /**
+ * Estado de error al cargar el perfil (`GET /me`). Evita el loader eterno cuando
+ * la sesión expiró o el backend/red fallan: ofrece reintentar y cerrar sesión.
+ */
+function ProfileError({
+  mensaje,
+  onReintentar,
+  onCerrarSesion,
+}: {
+  mensaje: string;
+  onReintentar: () => void;
+  onCerrarSesion: () => void;
+}): React.ReactElement {
+  return (
+    <Screen tone="light" style={styles.centered}>
+      <View style={styles.centeredInner} accessibilityRole="summary">
+        <Text style={styles.placeholderText} accessibilityRole="text">
+          {mensaje}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Reintentar cargar tu perfil"
+          onPress={onReintentar}
+          style={styles.profileErrorRetry}
+        >
+          <Text style={styles.profileErrorRetryText}>Reintentar</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar sesión"
+          onPress={onCerrarSesion}
+        >
+          <Text style={styles.profileErrorLogout}>Cerrar sesión</Text>
+        </Pressable>
+      </View>
+    </Screen>
+  );
+}
+
+/**
  * Pantalla "No disponible todavía" para funciones cuyo backend aún no se expone
  * (docs/FRONTEND_INTEGRATION.md §7). No cablea ninguna llamada de red.
  */
@@ -453,6 +492,24 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
     const state = useProfile();
     const perfil = state.perfil;
 
+    // Si la carga del perfil FALLÓ (p. ej. sesión expirada, red o backend caído)
+    // NO nos quedamos en el loader eterno: mostramos el error con reintento y una
+    // salida (cerrar sesión). El caso `error` puede traer `perfil === null`, así
+    // que debe evaluarse ANTES que el loader.
+    if (state.status === 'error') {
+      return (
+        <ProfileError
+          mensaje={state.error ?? 'No se pudo cargar tu perfil.'}
+          onReintentar={() => {
+            void profilePresenter.loadProfile();
+          }}
+          onCerrarSesion={() => {
+            void deps.authPresenter.logout().finally(() => deps.onRedirectToLogin?.());
+          }}
+        />
+      );
+    }
+
     // Mientras carga (o aún no ha cargado), no dejamos pasar: loader.
     if (state.status === 'loading' || state.status === 'idle' || perfil === null) {
       return <Placeholder mensaje="Cargando tu perfil…" />;
@@ -564,6 +621,26 @@ const styles = StyleSheet.create({
     fontSize: fontSize.body,
     textAlign: 'center',
     lineHeight: 22,
+  },
+  profileErrorRetry: {
+    marginTop: spacing.lg,
+    backgroundColor: palette.accent,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+  },
+  profileErrorRetryText: {
+    color: palette.onAccent,
+    fontFamily: fonts.body,
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.bold,
+  },
+  profileErrorLogout: {
+    marginTop: spacing.md,
+    color: palette.info,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.semibold,
   },
   error: {
     color: palette.accent,
