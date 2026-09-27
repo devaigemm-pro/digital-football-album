@@ -17,11 +17,7 @@ import type {
   PartidoOficialRepository,
   RecuadroRepository,
 } from '../../persistence/repositories.js';
-import type {
-  RawFormacionEquipo,
-  RawGoleador,
-  SportsApiClient,
-} from '../sports/types.js';
+import type { RawFormacionEquipo, RawGoleador, SportsApiClient } from '../sports/types.js';
 
 /** Se lanza cuando el partido no existe. */
 export class PartidoDetalleNoEncontradoError extends Error {
@@ -98,9 +94,9 @@ export class MatchDetailService {
     const album = await albumes.findByTemporadaId(partido.temporadaId);
     const recuadro =
       album !== null
-        ? (await recuadros.findByAlbumId(album.id)).find(
+        ? ((await recuadros.findByAlbumId(album.id)).find(
             (r) => r.partidoOficialId === partidoId,
-          ) ?? null
+          ) ?? null)
         : null;
 
     // Momento (reseña/notas) y sus fotos.

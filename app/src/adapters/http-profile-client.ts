@@ -266,6 +266,11 @@ export interface ProfileClient {
   actualizarPerfil(input: ActualizarPerfilInput): Promise<PerfilUsuario>;
   /** `GET /partidos/:partidoId`: detalle del partido (resultado, goleadores, formaciones, momento). */
   getPartido(partidoId: string): Promise<PartidoDetalle>;
+  /**
+   * `POST /me/avatar`: sube la foto de perfil del hincha (avatar). Recibe el
+   * binario en base64; el backend lo guarda y persiste la `avatarUrl`.
+   */
+  subirAvatar(binarioBase64: string): Promise<{ avatarUrl: string }>;
 }
 
 /** Adaptador HTTP concreto de perfil/partidos. Autenticado (Bearer). */
@@ -356,5 +361,13 @@ export class HttpProfileClient implements ProfileClient {
     const path = `/partidos/${encodeURIComponent(partidoId)}`;
     const response = await this.send<PartidoDetalle>(buildRequest('GET', path));
     return readOkBody(response, path);
+  }
+
+  /** `POST /me/avatar` → sube el binario del avatar y persiste su `avatarUrl`. */
+  async subirAvatar(binarioBase64: string): Promise<{ avatarUrl: string }> {
+    const response = await this.send<{ avatarUrl: string }>(
+      buildRequest('POST', '/me/avatar', { body: { binarioBase64 } }),
+    );
+    return readOkBody(response, 'POST /me/avatar');
   }
 }

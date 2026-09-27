@@ -130,6 +130,10 @@ class FakeProfileClient implements ProfileClient {
   getPartido(): Promise<never> {
     return Promise.reject(new Error('no usado'));
   }
+
+  subirAvatar(): Promise<{ avatarUrl: string }> {
+    return Promise.resolve({ avatarUrl: 'avatars/fake.png' });
+  }
 }
 
 describe('ProfilePresenter.loadProfile', () => {

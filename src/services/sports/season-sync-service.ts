@@ -29,6 +29,7 @@ import type {
 import type { ClassifierService } from '../classifier/classifier-service.js';
 import { deriveAlbum, type FixtureEntry } from './album-derivation.js';
 import { syncFixture } from './sync-fixture.js';
+import { syncPartidoFinalizado } from './sync-finalizado.js';
 import type { SportsApiClient } from './types.js';
 
 /** Se lanza cuando el usuario o su Club no existen. */
@@ -101,9 +102,7 @@ export class SeasonSyncService {
       throw new SeasonSyncNotFoundError('Perfil de usuario no encontrado.');
     }
     if (usuario.clubId === null) {
-      throw new SeasonSyncNotFoundError(
-        'Debes seleccionar un club antes de cargar la temporada.',
-      );
+      throw new SeasonSyncNotFoundError('Debes seleccionar un club antes de cargar la temporada.');
     }
     const club = await clubes.findById(usuario.clubId);
     if (club === null) {
@@ -112,8 +111,7 @@ export class SeasonSyncService {
 
     // 1. Asegurar la Temporada (ACTIVA) del usuario para esa temporada externa.
     const existentes = await temporadas.findByUsuarioId(usuarioId);
-    let temporada =
-      existentes.find((t) => t.temporadaExterna === temporadaExterna) ?? null;
+    let temporada = existentes.find((t) => t.temporadaExterna === temporadaExterna) ?? null;
     if (temporada === null) {
       temporada = await temporadas.create({
         id: newId(),
@@ -158,11 +156,36 @@ export class SeasonSyncService {
         { rival: p.rival, tipoCompeticion: p.tipoCompeticion },
         { id: club.id },
       );
-      if (p.esClasico !== clasificado.esClasico || p.esInternacional !== clasificado.esInternacional) {
+      if (
+        p.esClasico !== clasificado.esClasico ||
+        p.esInternacional !== clasificado.esInternacional
+      ) {
         await this.deps.partidos.update(p.id, {
           esClasico: clasificado.esClasico,
           esInternacional: clasificado.esInternacional,
         });
+      }
+    }
+
+    // 6. Backfill del RESULTADO de los partidos ya FINALIZADOS. Al sincronizar
+    //    una temporada en curso o pasada, los partidos jugados deben mostrar su
+    //    marcador; `syncSeason` solo fijó el estado, no la ficha. Aquí se obtiene
+    //    la ficha (resultado, alineación, eventos) de cada partido finalizado y
+    //    se persiste (Req 9.3), para que el detalle no muestre "– / –". Es
+    //    tolerante a fallos por partido: si la ficha de uno falla, no se aborta
+    //    la sincronización completa.
+    for (const p of partidosTemporada) {
+      if (p.estado !== 'FINALIZADO' || p.resultado !== null) {
+        continue;
+      }
+      try {
+        await syncPartidoFinalizado(p.id, {
+          partidoRepository: this.deps.partidos,
+          client: sportsClient,
+        });
+      } catch {
+        // La ficha de este partido no está disponible aún: se deja sin
+        // resultado (el job de finalización lo reintentará más tarde).
       }
     }
 

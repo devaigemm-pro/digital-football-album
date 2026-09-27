@@ -149,10 +149,11 @@ export function OnboardingScreen({
     void (async () => {
       try {
         await profileClient.seleccionarEquipo(e);
-        // temporadaExterna = "<ligaId>:<season>:<teamId>" para traer SOLO los
-        // partidos del equipo elegido (no toda la liga).
+        // temporadaExterna = "team:<teamId>:<season>" para traer TODOS los
+        // partidos del equipo en TODAS las competiciones (liga + Copa Chile +
+        // internacional), no solo una liga (Req 4.2).
         const res = await profileClient.syncTemporada(
-          `${division!.ligaId}:${SEASON_DEFECTO}:${e.id}`,
+          `team:${e.id}:${SEASON_DEFECTO}`,
         );
         setResultadoRecuadros(res.recuadros);
         await pres.loadProfile();
@@ -267,7 +268,7 @@ export function OnboardingScreen({
             value={nombre}
             onChangeText={setNombre}
             placeholder="Tu nombre"
-            placeholderTextColor={palette.textMutedOnLight}
+            placeholderTextColor={palette.textMutedOnDark}
             accessibilityLabel="Nombre"
           />
 
@@ -278,7 +279,7 @@ export function OnboardingScreen({
             onChangeText={setAlias}
             autoCapitalize="none"
             placeholder="Cómo te dicen (opcional)"
-            placeholderTextColor={palette.textMutedOnLight}
+            placeholderTextColor={palette.textMutedOnDark}
             accessibilityLabel="Alias"
           />
 
@@ -290,7 +291,7 @@ export function OnboardingScreen({
             autoCapitalize="none"
             keyboardType="numbers-and-punctuation"
             placeholder="AAAA-MM-DD (opcional)"
-            placeholderTextColor={palette.textMutedOnLight}
+            placeholderTextColor={palette.textMutedOnDark}
             accessibilityLabel="Fecha de nacimiento"
           />
 
@@ -334,7 +335,7 @@ export function OnboardingScreen({
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="Filtrar país (p. ej. Chile)"
-            placeholderTextColor={palette.textMutedOnLight}
+            placeholderTextColor={palette.textMutedOnDark}
             accessibilityLabel="Filtrar país"
           />
           {cargando ? <ActivityIndicator color={palette.accent} style={styles.spinner} /> : null}
@@ -462,12 +463,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: palette.borderOnLight,
+    borderColor: palette.borderOnDark,
     borderStyle: 'dashed',
   },
-  avatarTexto: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small },
+  avatarTexto: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.small },
   label: {
-    color: palette.textOnLight,
+    color: palette.textOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.small,
     fontWeight: fontWeight.semibold,
@@ -499,31 +500,31 @@ const styles = StyleSheet.create({
   spinner: { marginVertical: spacing.md },
   input: {
     borderWidth: 1,
-    borderColor: palette.borderOnLight,
+    borderColor: palette.borderOnDark,
     borderRadius: radius.md,
-    backgroundColor: palette.surface,
-    color: palette.textOnLight,
+    backgroundColor: palette.glassFill,
+    color: palette.textOnDark,
     padding: spacing.md,
     fontFamily: fonts.body,
     fontSize: fontSize.body,
     marginBottom: spacing.md,
   },
   error: { color: palette.danger, fontFamily: fonts.body, marginBottom: spacing.md },
-  help: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: spacing.md },
+  help: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: spacing.md },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: palette.surface,
+    backgroundColor: palette.glassFill,
     borderWidth: 1,
-    borderColor: palette.borderOnLight,
+    borderColor: palette.borderOnDark,
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
   rowInfo: { flex: 1 },
-  rowNombre: { flex: 1, color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
-  rowSub: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.caption, marginTop: 2 },
+  rowNombre: { flex: 1, color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
+  rowSub: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.caption, marginTop: 2 },
   bandera: { width: 32, height: 22, borderRadius: 3, backgroundColor: palette.canvas },
   logo: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: palette.canvas },
 });

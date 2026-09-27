@@ -82,68 +82,60 @@ suite('e2e sync temporada (API-Football real)', () => {
     if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
-  it(
-    'POST /me/temporada carga el fixture real y deriva recuadros',
-    async () => {
-      const res = await fetch(`${baseUrl}/me/temporada`, {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${token()}`,
-          'content-type': 'application/json',
-          'x-forwarded-proto': 'https',
-        },
-        body: JSON.stringify({ temporadaExterna: TEMPORADA_EXTERNA }),
-      });
-      const body = (await res.json()) as { recuadros?: number; partidos?: number };
-      expect(res.status).toBe(201);
-      expect((body.partidos ?? 0)).toBeGreaterThan(0);
-      // Filtrado por equipo: un solo club juega decenas de partidos, NO los
-      // ~380 de toda la liga. Cota amplia pero que detecta el bug de "toda la liga".
-      expect((body.partidos ?? 0)).toBeLessThan(120);
-    },
-    60_000,
-  );
+  it('POST /me/temporada carga el fixture real y deriva recuadros', async () => {
+    const res = await fetch(`${baseUrl}/me/temporada`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token()}`,
+        'content-type': 'application/json',
+        'x-forwarded-proto': 'https',
+      },
+      body: JSON.stringify({ temporadaExterna: TEMPORADA_EXTERNA }),
+    });
+    const body = (await res.json()) as { recuadros?: number; partidos?: number };
+    expect(res.status).toBe(201);
+    expect(body.partidos ?? 0).toBeGreaterThan(0);
+    // Filtrado por equipo: un solo club juega decenas de partidos, NO los
+    // ~380 de toda la liga. Cota amplia pero que detecta el bug de "toda la liga".
+    expect(body.partidos ?? 0).toBeLessThan(120);
+  }, 60_000);
 
-  it(
-    'flujo país → división → equipos (con logo) por HTTP real',
-    async () => {
-      const auth = { authorization: `Bearer ${token()}`, 'x-forwarded-proto': 'https' };
-      const resP = await fetch(`${baseUrl}/paises`, { headers: auth });
-      const pBody = (await resP.json()) as { paises?: Array<{ nombre: string }> };
-      expect(resP.status).toBe(200);
-      expect((pBody.paises ?? []).some((p) => p.nombre === 'Chile')).toBe(true);
+  it('flujo país → división → equipos (con logo) por HTTP real', async () => {
+    const auth = { authorization: `Bearer ${token()}`, 'x-forwarded-proto': 'https' };
+    const resP = await fetch(`${baseUrl}/paises`, { headers: auth });
+    const pBody = (await resP.json()) as { paises?: Array<{ nombre: string }> };
+    expect(resP.status).toBe(200);
+    expect((pBody.paises ?? []).some((p) => p.nombre === 'Chile')).toBe(true);
 
-      const resL = await fetch(`${baseUrl}/paises/Chile/ligas?season=2023`, { headers: auth });
-      const lBody = (await resL.json()) as { ligas?: Array<{ ligaId: string; nombre: string }> };
-      expect(resL.status).toBe(200);
-      const primera = (lBody.ligas ?? []).find((l) => /primera divisi/i.test(l.nombre));
-      expect(primera).toBeDefined();
+    const resL = await fetch(`${baseUrl}/paises/Chile/ligas?season=2023`, { headers: auth });
+    const lBody = (await resL.json()) as { ligas?: Array<{ ligaId: string; nombre: string }> };
+    expect(resL.status).toBe(200);
+    const primera = (lBody.ligas ?? []).find((l) => /primera divisi/i.test(l.nombre));
+    expect(primera).toBeDefined();
 
-      const resT = await fetch(`${baseUrl}/ligas/${primera!.ligaId}/equipos?season=2023`, { headers: auth });
-      const tBody = (await resT.json()) as { equipos?: Array<{ nombre: string; escudoUrl?: string }> };
-      expect(resT.status).toBe(200);
-      expect((tBody.equipos ?? []).length).toBeGreaterThan(0);
-      // Los equipos deben venir con logo (escudoUrl).
-      expect((tBody.equipos ?? [])[0]?.escudoUrl).toBeTruthy();
-    },
-    60_000,
-  );
+    const resT = await fetch(`${baseUrl}/ligas/${primera!.ligaId}/equipos?season=2023`, {
+      headers: auth,
+    });
+    const tBody = (await resT.json()) as {
+      equipos?: Array<{ nombre: string; escudoUrl?: string }>;
+    };
+    expect(resT.status).toBe(200);
+    expect((tBody.equipos ?? []).length).toBeGreaterThan(0);
+    // Los equipos deben venir con logo (escudoUrl).
+    expect((tBody.equipos ?? [])[0]?.escudoUrl).toBeTruthy();
+  }, 60_000);
 
-  it(
-    'GET /equipos?buscar= devuelve equipos reales y /equipos/:id/ligas sus ligas',
-    async () => {
-      const auth = { authorization: `Bearer ${token()}`, 'x-forwarded-proto': 'https' };
-      const resEq = await fetch(`${baseUrl}/equipos?buscar=barcelona`, { headers: auth });
-      const eqBody = (await resEq.json()) as { equipos?: Array<{ id: string; nombre: string }> };
-      expect(resEq.status).toBe(200);
-      expect((eqBody.equipos ?? []).length).toBeGreaterThan(0);
+  it('GET /equipos?buscar= devuelve equipos reales y /equipos/:id/ligas sus ligas', async () => {
+    const auth = { authorization: `Bearer ${token()}`, 'x-forwarded-proto': 'https' };
+    const resEq = await fetch(`${baseUrl}/equipos?buscar=barcelona`, { headers: auth });
+    const eqBody = (await resEq.json()) as { equipos?: Array<{ id: string; nombre: string }> };
+    expect(resEq.status).toBe(200);
+    expect((eqBody.equipos ?? []).length).toBeGreaterThan(0);
 
-      const teamId = eqBody.equipos![0]!.id;
-      const resLg = await fetch(`${baseUrl}/equipos/${teamId}/ligas?season=2023`, { headers: auth });
-      const lgBody = (await resLg.json()) as { ligas?: Array<{ ligaId: string; nombre: string }> };
-      expect(resLg.status).toBe(200);
-      expect((lgBody.ligas ?? []).length).toBeGreaterThan(0);
-    },
-    60_000,
-  );
+    const teamId = eqBody.equipos![0]!.id;
+    const resLg = await fetch(`${baseUrl}/equipos/${teamId}/ligas?season=2023`, { headers: auth });
+    const lgBody = (await resLg.json()) as { ligas?: Array<{ ligaId: string; nombre: string }> };
+    expect(resLg.status).toBe(200);
+    expect((lgBody.ligas ?? []).length).toBeGreaterThan(0);
+  }, 60_000);
 });

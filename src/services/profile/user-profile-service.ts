@@ -86,9 +86,7 @@ export class UserProfileService {
     }
     if (input.sexo !== undefined) {
       if (!SEXOS_VALIDOS.includes(input.sexo)) {
-        throw new PerfilInvalidoError(
-          `sexo inválido; use uno de: ${SEXOS_VALIDOS.join(', ')}.`,
-        );
+        throw new PerfilInvalidoError(`sexo inválido; use uno de: ${SEXOS_VALIDOS.join(', ')}.`);
       }
       patch.sexo = input.sexo;
     }

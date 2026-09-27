@@ -41,6 +41,7 @@ import {
   fontWeight,
   palette,
   radius,
+  shadow,
   spacing,
 } from '../theme/design-tokens';
 
@@ -53,6 +54,11 @@ export interface CarneScreenProps {
   readonly onVerPartidos?: (temporadaId: string) => void;
   /** Navega a la selección/cambio de club (si aún no tiene). */
   readonly onElegirClub?: () => void;
+  /**
+   * Agrega/cambia la foto de perfil del hincha (la que se monta en la lámina
+   * del carné). Se dispara al tocar el "+" sobre la lámina del avatar.
+   */
+  readonly onAgregarFotoPerfil?: () => void;
 }
 
 /** Progreso del álbum: montadas / total (recuadros con Foto_Principal). */
@@ -91,6 +97,7 @@ export function CarneScreen({
   presenter,
   onVerPartidos,
   onElegirClub,
+  onAgregarFotoPerfil,
 }: CarneScreenProps): React.ReactElement {
   const theme = useAppTheme();
   const pres = useMemo(
@@ -165,13 +172,31 @@ export function CarneScreen({
           </View>
 
           <View style={styles.cardRow}>
-            {/* Avatar en formato lámina numerada (sticker) */}
+            {/* Avatar en formato lámina numerada (sticker). Tocable para
+                agregar/cambiar la foto de perfil del hincha; muestra un "+"
+                superpuesto como affordance (más visible si aún no hay foto). */}
             <View style={styles.stickerWrap}>
-              <StickerSlot
-                numero={progreso.montadas > 0 ? progreso.montadas : '★'}
-                imageUri={perfil?.usuario.avatarUrl ?? null}
-                label={perfil?.usuario.alias ? `@${perfil.usuario.alias}` : 'Tú'}
-              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  perfil?.usuario.avatarUrl
+                    ? 'Cambiar la foto de perfil de tu lámina'
+                    : 'Agregar la foto de perfil a tu lámina'
+                }
+                onPress={() => onAgregarFotoPerfil?.()}
+              >
+                <StickerSlot
+                  numero={progreso.montadas > 0 ? progreso.montadas : '★'}
+                  imageUri={perfil?.usuario.avatarUrl ?? null}
+                  label={perfil?.usuario.alias ? `@${perfil.usuario.alias}` : 'Tú'}
+                />
+                <View
+                  style={[styles.addFotoBadge, { backgroundColor: theme.palette.accent }]}
+                  pointerEvents="none"
+                >
+                  <Text style={styles.addFotoPlus}>+</Text>
+                </View>
+              </Pressable>
             </View>
 
             {/* Identidad */}
@@ -251,16 +276,22 @@ export function CarneScreen({
           </View>
         ) : null}
 
-        {/* Acción principal */}
+        {/* Acción principal: cada lámina es un partido; para agregar la foto a
+            una lámina se elige el partido y se sube ahí su Foto_Principal. */}
         {temporadaId ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Ver mis partidos y seguir coleccionando"
-            onPress={() => onVerPartidos?.(temporadaId)}
-            style={[styles.cta, { backgroundColor: theme.palette.accent }]}
-          >
-            <Text style={styles.ctaText}>Seguir coleccionando</Text>
-          </Pressable>
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Agregar la foto a una lámina de mi álbum"
+              onPress={() => onVerPartidos?.(temporadaId)}
+              style={[styles.cta, { backgroundColor: theme.palette.accent }]}
+            >
+              <Text style={styles.ctaText}>Agregar foto a mi lámina</Text>
+            </Pressable>
+            <Text style={styles.ctaHint}>
+              Elige un partido para montar su foto en la lámina.
+            </Text>
+          </>
         ) : (
           <Pressable
             accessibilityRole="button"
@@ -326,6 +357,27 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   stickerWrap: { width: 108 },
+  // Botón "+" superpuesto en la esquina de la lámina del avatar.
+  addFotoBadge: {
+    position: 'absolute',
+    right: -6,
+    bottom: -6,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: palette.inkSoft,
+    ...shadow.crest,
+  },
+  addFotoPlus: {
+    color: palette.onAccent,
+    fontFamily: fonts.body,
+    fontSize: 20,
+    fontWeight: fontWeight.bold,
+    lineHeight: 22,
+  },
   identidad: { flex: 1, justifyContent: 'center' },
   nombre: {
     color: palette.textOnDark,
@@ -405,6 +457,13 @@ const styles = StyleSheet.create({
     fontSize: fontSize.body,
     fontWeight: fontWeight.bold,
     letterSpacing: 0.3,
+  },
+  ctaHint: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
 
   errorBox: { marginTop: spacing.lg },

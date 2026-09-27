@@ -78,6 +78,79 @@ describe('ApiFootballSportsTransport — fixtures filtrados por equipo', () => {
     expect(urls[0]).not.toContain('team=');
   });
 
+  it('formato "team:<teamId>:<season>" consulta por equipo SIN liga (todas las competiciones: liga + copa)', async () => {
+    const { client, urls } = makeClient();
+    await client.fetchFixtures(`team:${TEAM_ID}:2023`);
+    // Sin `league=`: trae TODOS los partidos del equipo (Primera + Copa Chile + internacional).
+    expect(urls[0]).not.toContain('league=');
+    expect(urls[0]).toContain(`team=${TEAM_ID}`);
+    expect(urls[0]).toContain('season=2023');
+    expect(urls[0]).toContain('page=1');
+  });
+
+  it('recorre TODAS las páginas (no pierde partidos de páginas siguientes, p. ej. Copa Chile)', async () => {
+    const urls: string[] = [];
+    // Página 1: un partido de Primera; página 2: un partido de Copa Chile.
+    const fetchImpl = ((url: string) => {
+      urls.push(String(url));
+      const current = url.includes('page=2') ? 2 : 1;
+      const item =
+        current === 1
+          ? {
+              fixture: { id: 10, date: '2023-03-01T20:00:00Z', status: { short: 'FT' } },
+              league: { name: 'Primera División' },
+              teams: { home: { id: TEAM_ID, name: 'Colo Colo' }, away: { id: 99, name: 'Rival' } },
+            }
+          : {
+              fixture: { id: 20, date: '2023-04-01T20:00:00Z', status: { short: 'NS' } },
+              league: { name: 'Copa Chile' },
+              teams: { home: { id: 88, name: 'Otro' }, away: { id: TEAM_ID, name: 'Colo Colo' } },
+            };
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ response: [item], paging: { current, total: 2 } }),
+      } as unknown as Response);
+    }) as unknown as typeof fetch;
+
+    const transport = new ApiFootballSportsTransport({
+      baseUrl: 'https://v3.football.api-sports.io',
+      apiKey: 'test-key',
+      fetchImpl,
+    });
+    const client = new ResilientSportsApiClient({ transport, maxAttempts: 1 });
+
+    const fixtures = await client.fetchFixtures(`team:${TEAM_ID}:2023`);
+    // Se pidieron 2 páginas y se unieron ambos partidos (incluida la Copa Chile).
+    expect(urls.some((u) => u.includes('page=1'))).toBe(true);
+    expect(urls.some((u) => u.includes('page=2'))).toBe(true);
+    expect(fixtures).toHaveLength(2);
+    expect(fixtures.map((f) => f.competicion)).toContain('Copa Chile');
+  });
+
+  it('lanza si API-Football reporta errores (no los enmascara como "sin partidos")', async () => {
+    const fetchImpl = (() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            response: [],
+            errors: { token: 'cuota excedida' },
+            paging: { current: 1, total: 1 },
+          }),
+      } as unknown as Response)) as unknown as typeof fetch;
+
+    const transport = new ApiFootballSportsTransport({
+      baseUrl: 'https://v3.football.api-sports.io',
+      apiKey: 'test-key',
+      fetchImpl,
+    });
+    const client = new ResilientSportsApiClient({ transport, maxAttempts: 1 });
+
+    await expect(client.fetchFixtures(`team:${TEAM_ID}:2023`)).rejects.toThrow();
+  });
+
   it('resuelve el rival como el equipo contrario (local y visitante)', async () => {
     const { client } = makeClient();
     const fixtures = await client.fetchFixtures(`265:2023:${TEAM_ID}`);

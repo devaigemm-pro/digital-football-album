@@ -90,8 +90,20 @@ async function setup(fixtures: readonly RawFixture[], conClub = true) {
 describe('SeasonSyncService.syncSeason', () => {
   it('crea la temporada ACTIVA y deriva un recuadro por partido oficial', async () => {
     const { repos, service } = await setup([
-      { partidoExternoId: 'p1', competicion: 'Premier League', rival: 'Rival Clasico', fechaHora: '2023-08-10T20:00:00Z', estado: 'FINISHED' },
-      { partidoExternoId: 'p2', competicion: 'Premier League', rival: 'Otro', fechaHora: '2023-08-17T20:00:00Z', estado: 'NS' },
+      {
+        partidoExternoId: 'p1',
+        competicion: 'Premier League',
+        rival: 'Rival Clasico',
+        fechaHora: '2023-08-10T20:00:00Z',
+        estado: 'FINISHED',
+      },
+      {
+        partidoExternoId: 'p2',
+        competicion: 'Premier League',
+        rival: 'Otro',
+        fechaHora: '2023-08-17T20:00:00Z',
+        estado: 'NS',
+      },
     ]);
 
     const result = await service.syncSeason('user-1', TEMP_EXTERNA);
@@ -107,7 +119,13 @@ describe('SeasonSyncService.syncSeason', () => {
 
   it('clasifica esClasico según las rivalidades del club', async () => {
     const { repos, service } = await setup([
-      { partidoExternoId: 'p1', competicion: 'Premier League', rival: 'Rival Clasico', fechaHora: '2023-08-10T20:00:00Z', estado: 'FINISHED' },
+      {
+        partidoExternoId: 'p1',
+        competicion: 'Premier League',
+        rival: 'Rival Clasico',
+        fechaHora: '2023-08-10T20:00:00Z',
+        estado: 'FINISHED',
+      },
     ]);
     await service.syncSeason('user-1', TEMP_EXTERNA);
     const partidos = await repos.partidos.findByTemporadaId(
@@ -118,7 +136,13 @@ describe('SeasonSyncService.syncSeason', () => {
 
   it('es idempotente: re-sincronizar no duplica la temporada', async () => {
     const { repos, service } = await setup([
-      { partidoExternoId: 'p1', competicion: 'Premier League', rival: 'Otro', fechaHora: '2023-08-10T20:00:00Z', estado: 'NS' },
+      {
+        partidoExternoId: 'p1',
+        competicion: 'Premier League',
+        rival: 'Otro',
+        fechaHora: '2023-08-10T20:00:00Z',
+        estado: 'NS',
+      },
     ]);
     await service.syncSeason('user-1', TEMP_EXTERNA);
     await service.syncSeason('user-1', TEMP_EXTERNA);

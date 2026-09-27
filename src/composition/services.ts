@@ -49,10 +49,7 @@ import {
   type UploadFotoInput,
   type UploadFotoResult,
 } from '../services/momentos/upload-foto.js';
-import {
-  updateMomento,
-  type UpdateMomentoPatch,
-} from '../services/momentos/update-momento.js';
+import { updateMomento, type UpdateMomentoPatch } from '../services/momentos/update-momento.js';
 import {
   setFotoPrincipal,
   type SetFotoPrincipalResult,
@@ -148,10 +145,12 @@ export interface AppServices {
    * Fija la Foto_Principal (foto de la lámina) de un Recuadro, ya cableado con
    * los repositorios. Impone la guarda de edición por cierre (409 si cerró).
    */
-  readonly setFotoPrincipal: (
-    recuadroId: UUID,
-    fotoId: UUID,
-  ) => Promise<SetFotoPrincipalResult>;
+  readonly setFotoPrincipal: (recuadroId: UUID, fotoId: UUID) => Promise<SetFotoPrincipalResult>;
+  /**
+   * Sube la FOTO DE PERFIL del hincha (avatar): sube el binario al object
+   * storage y persiste su `avatarUrl` en el Usuario. La usa `POST /me/avatar`.
+   */
+  readonly uploadAvatar: (usuarioId: UUID, binario: Uint8Array) => Promise<{ avatarUrl: string }>;
 }
 
 /** Opciones de ensamblado del composition root. */
@@ -351,10 +350,7 @@ export function createServices(options: CreateServicesOptions): AppServices {
     });
 
   // Selección de Foto_Principal (foto de la lámina) cableada con los repos.
-  const setFotoPrincipalWired = (
-    recuadroId: UUID,
-    fotoId: UUID,
-  ): Promise<SetFotoPrincipalResult> =>
+  const setFotoPrincipalWired = (recuadroId: UUID, fotoId: UUID): Promise<SetFotoPrincipalResult> =>
     setFotoPrincipal(recuadroId, fotoId, {
       recuadros: repos.recuadros,
       partidos: repos.partidos,
@@ -362,6 +358,19 @@ export function createServices(options: CreateServicesOptions): AppServices {
       fotos: repos.fotos,
       temporadas: repos.temporadas,
     });
+
+  // Subida de la FOTO DE PERFIL del hincha: sube el binario al object storage
+  // (mismo bucket cifrado que las fotos) y persiste su `avatarUrl` en el
+  // Usuario (`PATCH` interno vía UserProfileService). Devuelve el usuario
+  // actualizado. Es el binario que el "+" del carné monta como avatar.
+  const uploadAvatarWired = async (
+    usuarioId: UUID,
+    binario: Uint8Array,
+  ): Promise<{ avatarUrl: string }> => {
+    const objectKey = await momentosStorage.upload(binario);
+    const usuario = await userProfile.actualizar(usuarioId, { avatarUrl: objectKey });
+    return { avatarUrl: usuario.avatarUrl ?? objectKey };
+  };
 
   return {
     persistence,
@@ -388,5 +397,6 @@ export function createServices(options: CreateServicesOptions): AppServices {
     uploadFoto: uploadFotoWired,
     updateMomento: updateMomentoWired,
     setFotoPrincipal: setFotoPrincipalWired,
+    uploadAvatar: uploadAvatarWired,
   };
 }

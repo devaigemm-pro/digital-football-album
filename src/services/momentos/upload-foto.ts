@@ -86,7 +86,13 @@ export interface UploadFotoResult {
 }
 
 /** Contexto por defecto de un Momento recién creado (se ajusta luego en Task 11.3). */
-const CONTEXTO_POR_DEFECTO: ContextoAsistencia = 'TRANSMISION';
+// Contexto por defecto al crear el Momento en la primera foto. DEBE ser un
+// contexto que permita `subModalidad = null`, es decir NO TRANSMISION: el CHECK
+// `chk_submodalidad_solo_transmision` exige que TRANSMISION traiga sub_modalidad
+// (y que los demás contextos la tengan en null). Usar 'TRANSMISION' aquí con
+// subModalidad null viola la restricción al insertar. 'EN_VIVO_LOCAL' es el
+// valor por defecto seguro; el usuario edita el contexto real por separado.
+const CONTEXTO_POR_DEFECTO: ContextoAsistencia = 'EN_VIVO_LOCAL';
 
 /**
  * Asegura el `Momento` del partido (relación 1:1 con `PartidoOficial`): devuelve

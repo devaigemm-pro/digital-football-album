@@ -25,13 +25,7 @@ import type {
   PlantillaAlbumRepository,
   UsuarioRepository,
 } from '../../persistence/repositories.js';
-import type {
-  RawEquipo,
-  RawLigaEquipo,
-  RawLigaPais,
-  RawPais,
-  SportsApiClient,
-} from './types.js';
+import type { RawEquipo, RawLigaEquipo, RawLigaPais, RawPais, SportsApiClient } from './types.js';
 
 /** Se lanza cuando el usuario no existe. */
 export class OnboardingNotFoundError extends Error {
@@ -107,9 +101,7 @@ export class OnboardingService {
    */
   async leaguesByCountry(country: string, season: number): Promise<readonly RawLigaPais[]> {
     const ligas = await this.deps.sportsClient.leaguesByCountry(country, season);
-    return ligas
-      .filter((l) => (l.tipo ?? '').toLocaleLowerCase() === 'league')
-      .slice(0, 2);
+    return ligas.filter((l) => (l.tipo ?? '').toLocaleLowerCase() === 'league').slice(0, 2);
   }
 
   /** Lista los equipos (con logo) de una liga/temporada. */

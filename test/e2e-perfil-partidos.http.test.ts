@@ -16,7 +16,14 @@ import { createServices, type AppServices } from '../src/composition/services.js
 import { mountGateway } from '../src/composition/gateway.js';
 import { createHttpServer } from '../src/composition/http-server.js';
 import { signAccessToken } from '../src/services/auth/tokens.js';
-import type { Album, Club, PartidoOficial, Recuadro, Temporada, Usuario } from '../src/domain/types.js';
+import type {
+  Album,
+  Club,
+  PartidoOficial,
+  Recuadro,
+  Temporada,
+  Usuario,
+} from '../src/domain/types.js';
 
 const SECRET = 'e2e-secret-hs256';
 const USUARIO_ID = 'e2e-user-1';
@@ -91,7 +98,10 @@ async function seed(services: AppServices): Promise<void> {
 }
 
 /** Petición HTTP real autenticada contra el servidor levantado. */
-async function get(path: string, sub: string = USUARIO_ID): Promise<{ status: number; body: unknown }> {
+async function get(
+  path: string,
+  sub: string = USUARIO_ID,
+): Promise<{ status: number; body: unknown }> {
   const res = await fetch(`${baseUrl}${path}`, {
     headers: {
       authorization: `Bearer ${token(sub)}`,
@@ -128,7 +138,11 @@ describe('e2e HTTP — perfil y partidos (servidor Node real)', () => {
   it('GET /me devuelve el perfil por HTTP real', async () => {
     const { status, body } = await get('/me');
     expect(status).toBe(200);
-    const b = body as { usuario: { id: string }; club: { nombre: string } | null; temporadaActiva: { id: string } | null };
+    const b = body as {
+      usuario: { id: string };
+      club: { nombre: string } | null;
+      temporadaActiva: { id: string } | null;
+    };
     expect(b.usuario.id).toBe(USUARIO_ID);
     expect(b.club?.nombre).toBe('Atlético E2E');
     expect(b.temporadaActiva?.id).toBe(TEMPORADA_ID);
@@ -137,7 +151,13 @@ describe('e2e HTTP — perfil y partidos (servidor Node real)', () => {
   it('GET /temporadas/:id/partidos devuelve los partidos por HTTP real', async () => {
     const { status, body } = await get(`/temporadas/${TEMPORADA_ID}/partidos`);
     expect(status).toBe(200);
-    const b = body as { partidos: Array<{ partidoId: string; numeroRecuadro: number | null; tieneFotoPrincipal: boolean }> };
+    const b = body as {
+      partidos: Array<{
+        partidoId: string;
+        numeroRecuadro: number | null;
+        tieneFotoPrincipal: boolean;
+      }>;
+    };
     expect(b.partidos).toHaveLength(1);
     expect(b.partidos[0]?.partidoId).toBe('e2e-partido-1');
     expect(b.partidos[0]?.numeroRecuadro).toBe(1);

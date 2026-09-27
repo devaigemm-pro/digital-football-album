@@ -186,9 +186,7 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
     } = {};
     if (typeof b['contextoAsistencia'] === 'string') {
       patch.contextoAsistencia = b['contextoAsistencia'] as
-        | 'EN_VIVO_LOCAL'
-        | 'EN_VIVO_VISITA'
-        | 'TRANSMISION';
+        'EN_VIVO_LOCAL' | 'EN_VIVO_VISITA' | 'TRANSMISION';
     }
     if (b['subModalidad'] === null || typeof b['subModalidad'] === 'string') {
       patch.subModalidad = b['subModalidad'] as 'TELEVISION' | 'BAR' | 'STREAMING' | null;
@@ -303,8 +301,7 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
       if (usuario === null) {
         return json(404, { error: 'usuario_no_encontrado', message: 'Perfil no encontrado.' });
       }
-      const club =
-        usuario.clubId !== null ? await repos.clubes.findById(usuario.clubId) : null;
+      const club = usuario.clubId !== null ? await repos.clubes.findById(usuario.clubId) : null;
       // Temporada ACTIVA (a lo sumo una relevante para el flujo del álbum). Si
       // hubiera varias, se toma la primera; el ciclo de vida garantiza una activa.
       const activas = await repos.temporadas.findActivasByUsuarioId(context.userId);
@@ -340,7 +337,14 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
     }
     const b = body as Record<string, unknown>;
     const input: Record<string, unknown> = {};
-    for (const campo of ['nombre', 'alias', 'fechaNacimiento', 'sexo', 'avatarUrl', 'zonaHoraria']) {
+    for (const campo of [
+      'nombre',
+      'alias',
+      'fechaNacimiento',
+      'sexo',
+      'avatarUrl',
+      'zonaHoraria',
+    ]) {
       if (typeof b[campo] === 'string') {
         input[campo] = b[campo];
       }
@@ -365,6 +369,36 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
     }
   });
 
+  // Sube la FOTO DE PERFIL del hincha (avatar): POST /me/avatar
+  // Body JSON { binarioBase64: string }. Sube el binario al object storage y
+  // persiste la `avatarUrl` en el usuario. Devuelve { avatarUrl }.
+  router.post('/me/avatar', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    const body = context.request.body;
+    if (typeof body !== 'object' || body === null) {
+      return json(400, { error: 'bad_request', message: 'Cuerpo JSON requerido.' });
+    }
+    const binarioBase64 = (body as Record<string, unknown>)['binarioBase64'];
+    if (typeof binarioBase64 !== 'string' || binarioBase64.length === 0) {
+      return json(400, {
+        error: 'bad_request',
+        message: 'binarioBase64 (string) requerido.',
+      });
+    }
+    let binario: Uint8Array;
+    try {
+      binario = new Uint8Array(Buffer.from(binarioBase64, 'base64'));
+    } catch {
+      return json(400, { error: 'bad_request', message: 'binarioBase64 inválido.' });
+    }
+    try {
+      const result = await services.uploadAvatar(context.userId, binario);
+      return json(201, result);
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
   // Sincroniza/crea la Temporada del usuario desde la API deportiva:
   // POST /me/temporada  body { temporadaExterna: string }
   // Descarga el fixture del proveedor, clasifica y deriva el álbum (un Recuadro
@@ -384,10 +418,7 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
       });
     }
     try {
-      const result = await services.seasonSync.syncSeason(
-        context.userId,
-        temporadaExterna.trim(),
-      );
+      const result = await services.seasonSync.syncSeason(context.userId, temporadaExterna.trim());
       return json(201, result);
     } catch (err) {
       return errorResponse(err);
@@ -504,8 +535,9 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
   router.get('/me/temporadas', async (context) => {
     if (!context.userId) return json(400, { error: 'bad_request' });
     try {
-      const temporadas =
-        await services.persistence.repositories.temporadas.findByUsuarioId(context.userId);
+      const temporadas = await services.persistence.repositories.temporadas.findByUsuarioId(
+        context.userId,
+      );
       return json(200, { temporadas });
     } catch (err) {
       return errorResponse(err);
@@ -542,9 +574,7 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
       // Mapa partidoOficialId -> Recuadro (numero, fotoPrincipal) para enriquecer.
       const album = await repos.albumes.findByTemporadaId(temporadaId);
       const recuadros = album !== null ? await repos.recuadros.findByAlbumId(album.id) : [];
-      const recuadroPorPartido = new Map(
-        recuadros.map((r) => [r.partidoOficialId, r]),
-      );
+      const recuadroPorPartido = new Map(recuadros.map((r) => [r.partidoOficialId, r]));
 
       const items = partidos.map((p) => {
         const recuadro = recuadroPorPartido.get(p.id) ?? null;

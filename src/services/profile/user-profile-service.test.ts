@@ -52,9 +52,9 @@ describe('UserProfileService.actualizar', () => {
 
   it('rechaza sexo inválido', async () => {
     const { svc } = await setup();
-    await expect(
-      svc.actualizar('u1', { sexo: 'X' as unknown as 'OTRO' }),
-    ).rejects.toBeInstanceOf(PerfilInvalidoError);
+    await expect(svc.actualizar('u1', { sexo: 'X' as unknown as 'OTRO' })).rejects.toBeInstanceOf(
+      PerfilInvalidoError,
+    );
   });
 
   it('falla si el usuario no existe', async () => {

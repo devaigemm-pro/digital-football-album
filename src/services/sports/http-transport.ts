@@ -75,6 +75,21 @@ interface ApiFootballFixtureItem {
 interface ApiFootballResponse<T> {
   readonly response?: readonly T[];
   readonly errors?: unknown;
+  /** Paginación de API-Football: `{ current, total }` (1-indexado). */
+  readonly paging?: { readonly current?: number; readonly total?: number };
+}
+
+/**
+ * ¿La respuesta trae errores de API-Football? El proveedor devuelve HTTP 200
+ * incluso ante errores de cuota/plan/parámetros, poblando `errors` (un objeto
+ * no vacío o un array). Ignorarlo enmascara un fallo como "sin resultados".
+ */
+function tieneErroresApiFootball(errors: unknown): boolean {
+  if (errors == null) return false;
+  if (Array.isArray(errors)) return errors.length > 0;
+  if (typeof errors === 'object') return Object.keys(errors).length > 0;
+  if (typeof errors === 'string') return errors.trim().length > 0;
+  return false;
 }
 
 /** Item de `teams?search=` de API-Football. */
@@ -117,22 +132,38 @@ interface ApiFootballEventItem {
 interface ApiFootballLineupItem {
   readonly team?: { readonly name?: string };
   readonly formation?: string;
-  readonly startXI?: readonly { readonly player?: { readonly id?: number; readonly name?: string } }[];
+  readonly startXI?: readonly {
+    readonly player?: { readonly id?: number; readonly name?: string };
+  }[];
 }
 
-/** Mapea el estado corto de API-Football a nuestro `estado` crudo. */
+/**
+ * Mapea el estado corto de API-Football a nuestro `estado` crudo. SOLO se
+ * considera FINALIZADO un partido efectivamente jugado y terminado (FT/AET/PEN
+ * y sus variantes de cierre). Los estados "en juego" → EN_CURSO. TODO lo demás
+ * —no iniciado (NS/TBD), aplazado (PST), cancelado (CANC), suspendido (SUSP),
+ * interrumpido (INT), etc.— → PROGRAMADO. Así un partido que aún no se juega
+ * NUNCA queda como FINALIZADO (que además implicaría un marcador inexistente).
+ */
 function mapEstado(short: string | undefined): string {
   switch (short) {
-    case 'FT':
-    case 'AET':
-    case 'PEN':
+    // Terminados (jugados y cerrados).
+    case 'FT': // Full time
+    case 'AET': // After extra time
+    case 'PEN': // Penalties
+    case 'WO': // Walkover (resultado por no presentación)
       return 'FINALIZADO';
-    case '1H':
-    case '2H':
-    case 'HT':
-    case 'ET':
-    case 'LIVE':
+    // En juego.
+    case '1H': // Primer tiempo
+    case '2H': // Segundo tiempo
+    case 'HT': // Entretiempo
+    case 'ET': // Tiempo extra
+    case 'BT': // Descanso de tiempo extra
+    case 'P': // Tanda de penales en curso
+    case 'LIVE': // En vivo (genérico)
       return 'EN_CURSO';
+    // No iniciado / sin jugar / no concluido: NS, TBD, PST, CANC, SUSP, INT,
+    // ABD, AWD, y cualquier otro estado desconocido → PROGRAMADO (no jugado).
     default:
       return 'PROGRAMADO';
   }
@@ -301,20 +332,72 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
     temporadaExterna: string,
     signal: AbortSignal,
   ): Promise<readonly RawFixture[]> {
-    const [league, season, teamId] = temporadaExterna.split(':');
-    if (!league || !season) {
-      throw new SportsApiError(
-        `temporadaExterna inválida: "${temporadaExterna}" (se espera "<leagueId>:<season>[:<teamId>]").`,
-      );
+    const parts = temporadaExterna.split(':');
+    let url: string;
+    let teamIdNum: number | undefined;
+
+    // Formato POR EQUIPO (recomendado): "team:<teamId>:<season>". Trae TODOS los
+    // partidos del equipo en la temporada, de TODAS las competiciones (liga,
+    // copa nacional, internacional), no solo una liga. Así aparecen p. ej. los
+    // partidos de Copa Chile además de los de Primera División (Req 4.2). El
+    // filtrado de amistosos y la clasificación por tipo se hacen aguas arriba.
+    if (parts[0] === 'team') {
+      const [, teamId, season] = parts;
+      if (!teamId || !season) {
+        throw new SportsApiError(
+          `temporadaExterna inválida: "${temporadaExterna}" (se espera "team:<teamId>:<season>").`,
+        );
+      }
+      url = `${this.baseUrl}/fixtures?team=${encodeURIComponent(teamId)}&season=${encodeURIComponent(season)}`;
+      teamIdNum = Number.parseInt(teamId, 10);
+    } else {
+      // Formato LEGACY por liga: "<leagueId>:<season>[:<teamId>]" (una sola liga).
+      const [league, season, teamId] = parts;
+      if (!league || !season) {
+        throw new SportsApiError(
+          `temporadaExterna inválida: "${temporadaExterna}" (se espera "team:<teamId>:<season>" o "<leagueId>:<season>[:<teamId>]").`,
+        );
+      }
+      url = `${this.baseUrl}/fixtures?league=${encodeURIComponent(league)}&season=${encodeURIComponent(season)}`;
+      if (teamId) {
+        url += `&team=${encodeURIComponent(teamId)}`;
+      }
+      teamIdNum = teamId ? Number.parseInt(teamId, 10) : undefined;
     }
-    let url = `${this.baseUrl}/fixtures?league=${encodeURIComponent(league)}&season=${encodeURIComponent(season)}`;
-    if (teamId) {
-      url += `&team=${encodeURIComponent(teamId)}`;
-    }
-    const data = await this.request<ApiFootballResponse<ApiFootballFixtureItem>>(url, signal);
-    const items = data.response ?? [];
-    const teamIdNum = teamId ? Number.parseInt(teamId, 10) : undefined;
+
+    // Descarga TODAS las páginas: API-Football pagina la respuesta y, si solo se
+    // leyera la primera, se perderían partidos (p. ej. los de Copa Chile podrían
+    // caer en páginas siguientes). Se recorren usando `paging.current/total`.
+    const items = await this.fetchAllPages<ApiFootballFixtureItem>(url, signal);
     return items.map((item) => this.mapFixture(item, teamIdNum));
+  }
+
+  /**
+   * Recorre todas las páginas de un endpoint paginado de API-Football y devuelve
+   * la unión de `response`. Inspecciona `errors` en cada página y lanza
+   * `SportsApiError` si el proveedor reportó un error (cuota/plan/parámetros),
+   * en vez de devolver una lista vacía que se confundiría con "sin datos".
+   * Tope de seguridad de páginas para no iterar indefinidamente.
+   */
+  private async fetchAllPages<T>(baseUrl: string, signal: AbortSignal): Promise<readonly T[]> {
+    const MAX_PAGINAS = 20;
+    const acumulado: T[] = [];
+    let pagina = 1;
+    let totalPaginas = 1;
+    do {
+      const sep = baseUrl.includes('?') ? '&' : '?';
+      const url = `${baseUrl}${sep}page=${pagina}`;
+      const data = await this.request<ApiFootballResponse<T>>(url, signal);
+      if (tieneErroresApiFootball(data.errors)) {
+        throw new SportsApiError(
+          `API deportiva devolvió errores para ${baseUrl}: ${JSON.stringify(data.errors)}`,
+        );
+      }
+      acumulado.push(...(data.response ?? []));
+      totalPaginas = data.paging?.total ?? 1;
+      pagina += 1;
+    } while (pagina <= totalPaginas && pagina <= MAX_PAGINAS);
+    return acumulado;
   }
 
   /**

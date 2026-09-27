@@ -32,6 +32,7 @@ import type {
   ClubClient,
   DigitalCard,
 } from '../viewmodels';
+import { encodeBase64 } from '../adapters';
 import type { ClubsCatalogClient, ClubCatalogEntry, ProfileClient } from '../adapters';
 import type { SharePresenter } from '../share';
 import { CapturePresenter, MomentoDetailPresenter } from '../capture';
@@ -329,6 +330,18 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
         props.navigation?.navigate('Partidos', { temporadaId })
       }
       onElegirClub={() => props.navigation?.navigate('SeleccionClub')}
+      // El "+" de la lámina abre la galería, sube la foto de perfil del hincha
+      // (`POST /me/avatar`) y refresca el perfil para montarla en el carné.
+      onAgregarFotoPerfil={() =>
+        void (async () => {
+          const seleccion = await deps.captureNative.pickFromGallery();
+          if (!seleccion) {
+            return; // el usuario canceló el selector.
+          }
+          await deps.profileClient.subirAvatar(encodeBase64(seleccion.binario));
+          await profilePresenter.loadProfile();
+        })()
+      }
     />
   );
 

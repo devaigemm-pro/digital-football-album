@@ -59,9 +59,24 @@ describe('OnboardingService.leaguesByCountry', () => {
   it('excluye copas y deja solo divisiones de liga', async () => {
     const svc = servicio([
       { ligaId: '527', nombre: 'Super Cup', tipo: 'Cup', temporadas: [] } as unknown as RawLigaPais,
-      { ligaId: '265', nombre: 'Primera División', tipo: 'League', temporadas: [] } as unknown as RawLigaPais,
-      { ligaId: '267', nombre: 'Copa Chile', tipo: 'Cup', temporadas: [] } as unknown as RawLigaPais,
-      { ligaId: '266', nombre: 'Primera B', tipo: 'League', temporadas: [] } as unknown as RawLigaPais,
+      {
+        ligaId: '265',
+        nombre: 'Primera División',
+        tipo: 'League',
+        temporadas: [],
+      } as unknown as RawLigaPais,
+      {
+        ligaId: '267',
+        nombre: 'Copa Chile',
+        tipo: 'Cup',
+        temporadas: [],
+      } as unknown as RawLigaPais,
+      {
+        ligaId: '266',
+        nombre: 'Primera B',
+        tipo: 'League',
+        temporadas: [],
+      } as unknown as RawLigaPais,
     ]);
     const ligas = await svc.leaguesByCountry('Chile', 2023);
     expect(ligas.map((l) => l.nombre)).toEqual(['Primera División', 'Primera B']);
@@ -69,9 +84,24 @@ describe('OnboardingService.leaguesByCountry', () => {
 
   it('limita a las 2 divisiones principales aunque haya más', async () => {
     const svc = servicio([
-      { ligaId: '265', nombre: 'Primera', tipo: 'League', temporadas: [] } as unknown as RawLigaPais,
-      { ligaId: '266', nombre: 'Segunda', tipo: 'League', temporadas: [] } as unknown as RawLigaPais,
-      { ligaId: '711', nombre: 'Tercera', tipo: 'League', temporadas: [] } as unknown as RawLigaPais,
+      {
+        ligaId: '265',
+        nombre: 'Primera',
+        tipo: 'League',
+        temporadas: [],
+      } as unknown as RawLigaPais,
+      {
+        ligaId: '266',
+        nombre: 'Segunda',
+        tipo: 'League',
+        temporadas: [],
+      } as unknown as RawLigaPais,
+      {
+        ligaId: '711',
+        nombre: 'Tercera',
+        tipo: 'League',
+        temporadas: [],
+      } as unknown as RawLigaPais,
     ]);
     const ligas = await svc.leaguesByCountry('X', 2023);
     expect(ligas).toHaveLength(2);
