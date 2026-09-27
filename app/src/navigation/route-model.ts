@@ -26,6 +26,7 @@
 export type RouteName =
   | 'Login'
   | 'SeleccionClub'
+  | 'Carne'
   | 'HomeAlbum'
   | 'Partidos'
   | 'DetallePartido'
@@ -44,6 +45,7 @@ export type RouteName =
 export interface RouteParamList {
   Login: undefined;
   SeleccionClub: undefined;
+  Carne: undefined;
   HomeAlbum: { temporadaId: string };
   Partidos: { temporadaId: string };
   DetallePartido: { partidoId: string };
@@ -88,6 +90,7 @@ export const ROUTE_REGISTRY: {
     navigator: 'authStack',
     requiredParams: [],
   },
+  Carne: { name: 'Carne', navigator: 'mainTabs', requiredParams: [] },
   HomeAlbum: {
     name: 'HomeAlbum',
     navigator: 'mainTabs',

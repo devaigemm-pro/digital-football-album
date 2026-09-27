@@ -48,6 +48,7 @@ import { DigitalCardScreen } from '../screens/DigitalCardScreen';
 import { CompartirSheet } from '../screens/CompartirSheet';
 import { PerfilScreen } from '../screens/PerfilScreen';
 import { PartidosScreen } from '../screens/PartidosScreen';
+import { CarneScreen } from '../screens/CarneScreen';
 import { DetallePartidoScreen } from '../screens/DetallePartidoScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { useClubTheme } from '../theme/ClubThemeProvider';
@@ -276,6 +277,22 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
 
   // --- Main tabs ----------------------------------------------------------
 
+  // Carné del coleccionista: pantalla de aterrizaje. Muestra el perfil en
+  // formato lámina (avatar sticker + nombre + escudo del club) y el progreso
+  // real del álbum. Reutiliza el presentador de perfil compartido.
+  const Carne = (props: {
+    navigation?: { navigate: (route: string, params?: Record<string, unknown>) => void };
+  }): React.ReactElement => (
+    <CarneScreen
+      client={deps.profileClient}
+      presenter={profilePresenter}
+      onVerPartidos={(temporadaId) =>
+        props.navigation?.navigate('Partidos', { temporadaId })
+      }
+      onElegirClub={() => props.navigation?.navigate('SeleccionClub')}
+    />
+  );
+
   // Home/Álbum: obtiene el `temporadaId` del perfil (temporada activa) y carga
   // la previsualización real. Si aún no hay temporada, guía al usuario en vez de
   // fingir contenido.
@@ -462,6 +479,7 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
   return {
     Login,
     SeleccionClub,
+    Carne,
     HomeAlbum,
     Partidos,
     DetallePartido,

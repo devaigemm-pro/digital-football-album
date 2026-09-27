@@ -47,6 +47,7 @@ export type BoundScreen = React.ComponentType<any>;
 export interface ScreenBundle {
   readonly Login: BoundScreen;
   readonly SeleccionClub: BoundScreen;
+  readonly Carne: BoundScreen;
   readonly HomeAlbum: BoundScreen;
   readonly Partidos: BoundScreen;
   readonly DetallePartido: BoundScreen;
@@ -96,6 +97,7 @@ const MainTabs = createBottomTabNavigator<MainTabsParamList>();
  * y sólida cuando está activa. El nombre del route determina el glifo.
  */
 const TAB_ICONS: Record<string, string> = {
+  Carne: 'id-card',
   HomeAlbum: 'book',
   Partidos: 'football',
   DetallePartido: 'football',
@@ -127,6 +129,11 @@ function tabScreenOptions({
 function MainNavigator({ screens }: { screens: ScreenBundle }): React.JSX.Element {
   return (
     <MainTabs.Navigator screenOptions={tabScreenOptions}>
+      <MainTabs.Screen
+        name="Carne"
+        component={screens.Carne}
+        options={{ title: 'Carné' }}
+      />
       <MainTabs.Screen
         name="HomeAlbum"
         component={screens.HomeAlbum}
