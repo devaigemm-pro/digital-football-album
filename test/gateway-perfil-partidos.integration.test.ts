@@ -54,6 +54,23 @@ function request(path: string, sub: string = USUARIO_ID): GatewayRequest {
   };
 }
 
+/** Petición mutadora (POST/PATCH/PUT) con cuerpo JSON, autenticada. */
+function mutate(
+  method: 'POST' | 'PATCH' | 'PUT',
+  path: string,
+  body: unknown,
+  sub: string = USUARIO_ID,
+): GatewayRequest {
+  return {
+    method,
+    path,
+    headers: { authorization: `Bearer ${token(sub)}` },
+    isSecure: true,
+    clientId: 'ip-test',
+    body,
+  };
+}
+
 /** Siembra el grafo mínimo Usuario→Club→Temporada→Album→Partido→Recuadro. */
 async function seed(services: AppServices): Promise<void> {
   const repos = services.persistence.repositories;
@@ -197,5 +214,95 @@ describe('gateway — perfil y partidos (in-memory)', () => {
     const res = await gateway.handle(request('/me', OTRO_USUARIO_ID));
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ error: 'usuario_no_encontrado' });
+  });
+
+  it('PATCH /me actualiza los datos de perfil', async () => {
+    const res = await gateway.handle(
+      mutate('PATCH', '/me', {
+        nombre: 'Camila',
+        alias: 'cami',
+        fechaNacimiento: '1995-06-15',
+        sexo: 'FEMENINO',
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = res.body as {
+      usuario: { nombre: string; alias: string; sexo: string; fechaNacimiento: string };
+    };
+    expect(body.usuario.nombre).toBe('Camila');
+    expect(body.usuario.alias).toBe('cami');
+    expect(body.usuario.sexo).toBe('FEMENINO');
+    // GET /me refleja los cambios.
+    const me = await gateway.handle(request('/me'));
+    expect((me.body as { usuario: { nombre: string } }).usuario.nombre).toBe('Camila');
+  });
+
+  it('PATCH /me rechaza fecha de nacimiento inválida (400)', async () => {
+    const res = await gateway.handle(mutate('PATCH', '/me', { fechaNacimiento: '2999-01-01' }));
+    expect(res.status).toBe(400);
+  });
+
+  it('GET /partidos/:id devuelve el detalle del partido (resultado + recuadro)', async () => {
+    const res = await gateway.handle(request(`/partidos/${PARTIDO_ID}`));
+    expect(res.status).toBe(200);
+    const body = res.body as {
+      partidoId: string;
+      rival: string;
+      resultado: { golesLocal: number; golesVisita: number } | null;
+      numeroRecuadro: number | null;
+    };
+    expect(body.partidoId).toBe(PARTIDO_ID);
+    expect(body.rival).toBe('Rival FC');
+    expect(body.resultado).toMatchObject({ golesLocal: 2, golesVisita: 1 });
+    expect(body.numeroRecuadro).toBe(1);
+  });
+
+  it('PUT /recuadros/:id/foto-principal marca la foto de la lámina', async () => {
+    const repos = services.persistence.repositories;
+    // Crea momento + foto del partido para poder marcarla como principal.
+    await repos.momentos.create({
+      id: 'momento-1',
+      partidoOficialId: PARTIDO_ID,
+      contextoAsistencia: 'EN_VIVO_LOCAL',
+      subModalidad: null,
+      geoVerificado: false,
+      notas: '',
+      jugadorDelPartido: null,
+    });
+    await repos.fotos.create({
+      id: 'foto-1',
+      momentoId: 'momento-1',
+      objectKey: 'fotos/x.jpg',
+      anchoPx: 2400,
+      altoPx: 3400,
+      estadoAsociacion: 'ASOCIADA',
+    });
+    const res = await gateway.handle(
+      mutate('PUT', '/recuadros/recuadro-1/foto-principal', { fotoId: 'foto-1' }),
+    );
+    expect(res.status).toBe(200);
+    expect((res.body as { recuadro: { fotoPrincipalId: string } }).recuadro.fotoPrincipalId).toBe(
+      'foto-1',
+    );
+  });
+
+  it('PATCH /momentos/:id guarda la reseña (notas)', async () => {
+    const repos = services.persistence.repositories;
+    await repos.momentos.create({
+      id: 'momento-2',
+      partidoOficialId: PARTIDO_ID,
+      contextoAsistencia: 'EN_VIVO_LOCAL',
+      subModalidad: null,
+      geoVerificado: false,
+      notas: '',
+      jugadorDelPartido: null,
+    });
+    const res = await gateway.handle(
+      mutate('PATCH', '/momentos/momento-2', { notas: 'Gran partido, doblete.' }),
+    );
+    expect(res.status).toBe(200);
+    expect((res.body as { momento: { notas: string } }).momento.notas).toBe(
+      'Gran partido, doblete.',
+    );
   });
 });

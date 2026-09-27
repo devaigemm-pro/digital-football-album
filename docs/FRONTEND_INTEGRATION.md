@@ -155,6 +155,45 @@ temporada ACTIVA (o `null`). Es el punto de entrada del flujo: de aquí sale el
 ```
 `404 usuario_no_encontrado` si el perfil aún no existe.
 
+### `PATCH /me`
+Actualiza los datos de perfil del usuario (parche parcial). Campos: `nombre`,
+`alias`, `fechaNacimiento` (YYYY-MM-DD, no futura), `sexo`
+(`MASCULINO|FEMENINO|OTRO|PREFIERO_NO_DECIR`), `avatarUrl`, `zonaHoraria`.
+Devuelve `{ usuario }` con los campos actualizados. `400` si algún dato es inválido.
+
+### `GET /partidos/:partidoId`
+Detalle de un partido/lámina: datos del partido + recuadro + momento + ficha en
+vivo (goleadores y formaciones desde la API deportiva).
+```jsonc
+{
+  "partidoId": "uuid",
+  "rival": "Rival FC",
+  "competicion": "Primera División",
+  "fechaHora": "...", "estado": "FINALIZADO",
+  "esClasico": true, "esInternacional": false,
+  "resultado": { "golesLocal": 2, "golesVisita": 1 },
+  "numeroRecuadro": 1,
+  "recuadroId": "uuid|null",
+  "momentoId": "uuid|null",
+  "notas": "reseña del hincha",
+  "jugadorDelPartido": "...|null",
+  "fotoPrincipalId": "uuid|null",
+  "fotos": [ { "id": "uuid", "objectKey": "...", "esPrincipal": true } ],
+  "goleadores": [ { "minuto": 34, "jugador": "R. Soto", "equipo": "..." } ],
+  "formaciones": [ { "equipo": "...", "formacion": "4-3-3", "titulares": [ { "id": "..", "nombre": ".." } ] } ]
+}
+```
+
+### `PATCH /momentos/:momentoId`
+Actualiza el Momento (reseña/notas y contexto). Parche parcial: `notas`,
+`contextoAsistencia` (`EN_VIVO_LOCAL|EN_VIVO_VISITA|TRANSMISION`), `subModalidad`
+(`TELEVISION|BAR|STREAMING|null`, solo válida en Transmisión), `geoVerificado`,
+`jugadorDelPartido`. Devuelve `{ momento }`.
+
+### `PUT /recuadros/:recuadroId/foto-principal`
+Marca la foto de la lámina (única Foto_Principal del recuadro). Body `{ fotoId }`.
+`409 edicion_cerrada` si la temporada no está ACTIVA o pasó la fecha límite.
+
 ### `GET /me/temporadas`
 Todas las temporadas del usuario autenticado.
 ```json

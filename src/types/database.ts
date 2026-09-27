@@ -585,6 +585,11 @@ export type Database = {
           id: string;
           proveedor_auth: Database['public']['Enums']['proveedor_auth'];
           zona_horaria: string;
+          nombre: string | null;
+          alias: string | null;
+          fecha_nacimiento: string | null;
+          sexo: Database['public']['Enums']['sexo_usuario'] | null;
+          avatar_url: string | null;
         };
         Insert: {
           club_id?: string | null;
@@ -593,6 +598,11 @@ export type Database = {
           id: string;
           proveedor_auth: Database['public']['Enums']['proveedor_auth'];
           zona_horaria?: string;
+          nombre?: string | null;
+          alias?: string | null;
+          fecha_nacimiento?: string | null;
+          sexo?: Database['public']['Enums']['sexo_usuario'] | null;
+          avatar_url?: string | null;
         };
         Update: {
           club_id?: string | null;
@@ -601,6 +611,11 @@ export type Database = {
           id?: string;
           proveedor_auth?: Database['public']['Enums']['proveedor_auth'];
           zona_horaria?: string;
+          nombre?: string | null;
+          alias?: string | null;
+          fecha_nacimiento?: string | null;
+          sexo?: Database['public']['Enums']['sexo_usuario'] | null;
+          avatar_url?: string | null;
         };
         Relationships: [
           {
@@ -630,6 +645,7 @@ export type Database = {
         'CONFIGURACION' | 'ACTIVA' | 'CERRADA' | 'IMPRESION' | 'LISTA' | 'ENVIADA' | 'FALLIDA';
       plan_suscripcion: 'BASICO' | 'PREMIUM';
       proveedor_auth: 'apple' | 'google' | 'email';
+      sexo_usuario: 'MASCULINO' | 'FEMENINO' | 'OTRO' | 'PREFIERO_NO_DECIR';
       sub_modalidad_transmision: 'TELEVISION' | 'BAR' | 'STREAMING';
       tipo_competicion: 'LIGA' | 'COPA_NACIONAL' | 'INTERNACIONAL';
     };

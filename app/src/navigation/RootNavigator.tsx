@@ -49,6 +49,7 @@ export interface ScreenBundle {
   readonly SeleccionClub: BoundScreen;
   readonly HomeAlbum: BoundScreen;
   readonly Partidos: BoundScreen;
+  readonly DetallePartido: BoundScreen;
   readonly Captura: BoundScreen;
   readonly DetalleCard: BoundScreen;
   readonly Suscripcion: BoundScreen;
@@ -97,6 +98,7 @@ const MainTabs = createBottomTabNavigator<MainTabsParamList>();
 const TAB_ICONS: Record<string, string> = {
   HomeAlbum: 'book',
   Partidos: 'football',
+  DetallePartido: 'football',
   Captura: 'camera',
   DetalleCard: 'sparkles',
   Suscripcion: 'card',
@@ -134,6 +136,12 @@ function MainNavigator({ screens }: { screens: ScreenBundle }): React.JSX.Elemen
         name="Partidos"
         component={screens.Partidos}
         options={{ title: 'Partidos' }}
+      />
+      <MainTabs.Screen
+        name="DetallePartido"
+        component={screens.DetallePartido}
+        // Pantalla de detalle: se llega desde "Partidos"; se oculta de la barra.
+        options={{ title: 'Detalle', tabBarButton: () => null, tabBarStyle: { display: 'none' } }}
       />
       <MainTabs.Screen
         name="Captura"

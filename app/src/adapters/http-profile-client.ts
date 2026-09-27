@@ -34,12 +34,30 @@ export type TipoCompeticion = 'LIGA' | 'COPA_NACIONAL' | 'INTERNACIONAL';
 /** Estado de un partido según la API deportiva. */
 export type EstadoPartido = 'PROGRAMADO' | 'EN_CURSO' | 'FINALIZADO';
 
-/** Datos del usuario devueltos por `GET /me`. */
+/** Sexo declarado en el perfil. */
+export type Sexo = 'MASCULINO' | 'FEMENINO' | 'OTRO' | 'PREFIERO_NO_DECIR';
+
+/** Datos del usuario devueltos por `GET /me` (perfil ampliado). */
 export interface PerfilUsuario {
   readonly id: string;
   readonly email: string;
   readonly clubId: string | null;
   readonly zonaHoraria: string;
+  readonly nombre: string | null;
+  readonly alias: string | null;
+  readonly fechaNacimiento: string | null;
+  readonly sexo: Sexo | null;
+  readonly avatarUrl: string | null;
+}
+
+/** Parche de actualización de perfil (`PATCH /me`). */
+export interface ActualizarPerfilInput {
+  readonly nombre?: string;
+  readonly alias?: string;
+  readonly fechaNacimiento?: string;
+  readonly sexo?: Sexo;
+  readonly avatarUrl?: string;
+  readonly zonaHoraria?: string;
 }
 
 /** Club del perfil (misma forma que el catálogo, con `id`). */
@@ -98,6 +116,55 @@ export interface PartidoLamina {
 interface PartidosResponse {
   readonly temporadaId: string;
   readonly partidos: readonly PartidoLamina[];
+}
+
+/** Goleador de un partido (detalle). */
+export interface Goleador {
+  readonly minuto: number;
+  readonly jugador: string;
+  readonly equipo: string;
+}
+
+/** Jugador de una formación. */
+export interface JugadorFormacion {
+  readonly id: string;
+  readonly nombre: string;
+}
+
+/** Formación de un equipo en el partido. */
+export interface FormacionEquipo {
+  readonly equipo: string;
+  readonly formacion?: string;
+  readonly titulares: readonly JugadorFormacion[];
+}
+
+/** Foto asociada al momento del partido. */
+export interface FotoMomento {
+  readonly id: string;
+  readonly objectKey: string;
+  readonly esPrincipal: boolean;
+}
+
+/** Detalle completo de un partido/lámina (`GET /partidos/:partidoId`). */
+export interface PartidoDetalle {
+  readonly partidoId: string;
+  readonly rival: string;
+  readonly competicion: string;
+  readonly fechaHora: string;
+  readonly estado: EstadoPartido;
+  readonly esClasico: boolean;
+  readonly esInternacional: boolean;
+  readonly resultado: ResultadoPartido | null;
+  readonly numeroRecuadro: number | null;
+  /** Id del recuadro asociado (para fijar la Foto_Principal), o null si aún no existe. */
+  readonly recuadroId: string | null;
+  readonly momentoId: string | null;
+  readonly notas: string;
+  readonly jugadorDelPartido: string | null;
+  readonly fotoPrincipalId: string | null;
+  readonly fotos: readonly FotoMomento[];
+  readonly goleadores: readonly Goleador[];
+  readonly formaciones: readonly FormacionEquipo[];
 }
 
 /** Respuesta de `GET /me/temporadas`. */
@@ -195,6 +262,10 @@ export interface ProfileClient {
   ligasDePais(pais: string, season: number): Promise<readonly LigaPais[]>;
   /** `GET /ligas/:ligaId/equipos?season=`: equipos (con logo) de una liga. */
   equiposDeLiga(ligaId: string, season: number): Promise<readonly EquipoBusqueda[]>;
+  /** `PATCH /me`: actualiza los datos de perfil; devuelve el perfil actualizado. */
+  actualizarPerfil(input: ActualizarPerfilInput): Promise<PerfilUsuario>;
+  /** `GET /partidos/:partidoId`: detalle del partido (resultado, goleadores, formaciones, momento). */
+  getPartido(partidoId: string): Promise<PartidoDetalle>;
 }
 
 /** Adaptador HTTP concreto de perfil/partidos. Autenticado (Bearer). */
@@ -270,5 +341,20 @@ export class HttpProfileClient implements ProfileClient {
     const path = `/ligas/${encodeURIComponent(ligaId)}/equipos?season=${encodeURIComponent(String(season))}`;
     const response = await this.send<EquiposResponse>(buildRequest('GET', path));
     return readOkBody(response, path).equipos;
+  }
+
+  /** `PATCH /me` → actualiza el perfil; devuelve `usuario`. */
+  async actualizarPerfil(input: ActualizarPerfilInput): Promise<PerfilUsuario> {
+    const response = await this.send<{ usuario: PerfilUsuario }>(
+      buildRequest('PATCH', '/me', { body: input }),
+    );
+    return readOkBody(response, 'PATCH /me').usuario;
+  }
+
+  /** `GET /partidos/:partidoId` → detalle del partido. */
+  async getPartido(partidoId: string): Promise<PartidoDetalle> {
+    const path = `/partidos/${encodeURIComponent(partidoId)}`;
+    const response = await this.send<PartidoDetalle>(buildRequest('GET', path));
+    return readOkBody(response, path);
   }
 }

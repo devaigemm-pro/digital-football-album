@@ -34,7 +34,7 @@ import type {
 } from '../viewmodels';
 import type { ClubsCatalogClient, ClubCatalogEntry, ProfileClient } from '../adapters';
 import type { SharePresenter } from '../share';
-import type { CapturePresenter } from '../capture';
+import { CapturePresenter, MomentoDetailPresenter } from '../capture';
 import type { CaptureNativeBridge } from '../screens/CapturaScreen';
 import type { PermissionGate } from '../permissions';
 import type { SubscriptionClient } from '../subscription';
@@ -48,6 +48,7 @@ import { DigitalCardScreen } from '../screens/DigitalCardScreen';
 import { CompartirSheet } from '../screens/CompartirSheet';
 import { PerfilScreen } from '../screens/PerfilScreen';
 import { PartidosScreen } from '../screens/PartidosScreen';
+import { DetallePartidoScreen } from '../screens/DetallePartidoScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { useClubTheme } from '../theme/ClubThemeProvider';
 import { Badge, Crest, Hero, Screen } from '../ui/kit';
@@ -317,7 +318,34 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
       <PartidosScreen
         temporadaId={temporadaId}
         client={deps.profileClient}
-        onTomarFoto={(partidoId) => props.navigation?.navigate('Captura', { partidoId })}
+        onTomarFoto={(partidoId) =>
+          props.navigation?.navigate('DetallePartido', { partidoId })
+        }
+      />
+    );
+  };
+
+  // Detalle del partido: resultado + goleadores; botón "Detalles" abre las
+  // formaciones junto a la lámina (adjuntar foto) y la reseña. Reutiliza el
+  // presentador de captura y uno de detalle del Momento (Foto_Principal +
+  // notas), ambos respaldados por el backend real.
+  const momentoPresenter = new MomentoDetailPresenter(deps.captureClient);
+  const DetallePartido = (
+    props: { route?: { params?: { partidoId?: string } } },
+  ): React.ReactElement => {
+    const { partidoId } = useParams<{ partidoId: string }>(props);
+    if (!partidoId) {
+      return (
+        <Placeholder mensaje="Elige un partido en la pestaña Partidos para ver su detalle." />
+      );
+    }
+    return (
+      <DetallePartidoScreen
+        partidoId={partidoId}
+        client={deps.profileClient}
+        capturePresenter={deps.capturePresenter}
+        momentoPresenter={momentoPresenter}
+        native={deps.captureNative}
       />
     );
   };
@@ -386,6 +414,9 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
       presenter={profilePresenter}
       onAjustes={() => props.navigation?.navigate('Ajustes')}
       onCambiarClub={() => props.navigation?.navigate('SeleccionClub')}
+      onLogout={() => {
+        void deps.authPresenter.logout().finally(() => deps.onRedirectToLogin?.());
+      }}
     />
   );
 
@@ -419,6 +450,9 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
           onDone={() => {
             void profilePresenter.loadProfile();
           }}
+          onLogout={() => {
+            void deps.authPresenter.logout().finally(() => deps.onRedirectToLogin?.());
+          }}
         />
       );
     }
@@ -430,6 +464,7 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
     SeleccionClub,
     HomeAlbum,
     Partidos,
+    DetallePartido,
     Captura,
     DetalleCard,
     Suscripcion,

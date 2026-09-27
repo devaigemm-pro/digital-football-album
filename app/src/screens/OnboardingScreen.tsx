@@ -15,21 +15,39 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import type { EquipoBusqueda, LigaPais, Pais, ProfileClient } from '../adapters';
+import type { EquipoBusqueda, LigaPais, Pais, ProfileClient, Sexo } from '../adapters';
 import { ProfilePresenter } from '../profile';
-import { Hero, PrimaryButton, Screen, SecondaryButton } from '../ui/kit';
+import { Chip, Hero, PrimaryButton, Screen, SecondaryButton } from '../ui/kit';
 import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
+
+/** Puente opcional para elegir la foto de avatar desde la galería. */
+export interface AvatarPickerBridge {
+  /** Abre la galería y devuelve una URL/URI de imagen, o null si se cancela. */
+  pickImage(): Promise<string | null>;
+}
 
 export interface OnboardingScreenProps {
   readonly profileClient: ProfileClient;
   readonly presenter?: ProfilePresenter;
   readonly onDone?: () => void;
+  /** Puente opcional para elegir avatar (si falta, se omite el avatar). */
+  readonly avatarPicker?: AvatarPickerBridge;
+  /** Cierra la sesión (opción visible durante el alta). */
+  readonly onLogout?: () => void;
 }
 
-type Paso = 'bienvenida' | 'pais' | 'division' | 'equipo' | 'cargando' | 'listo';
+type Paso = 'bienvenida' | 'perfil' | 'pais' | 'division' | 'equipo' | 'cargando' | 'listo';
 
 /** Temporada por defecto con cobertura amplia en el plan free. */
 const SEASON_DEFECTO = 2023;
+
+/** Opciones de sexo para el perfil. */
+const OPCIONES_SEXO: ReadonlyArray<{ valor: Sexo; etiqueta: string }> = [
+  { valor: 'MASCULINO', etiqueta: 'Masculino' },
+  { valor: 'FEMENINO', etiqueta: 'Femenino' },
+  { valor: 'OTRO', etiqueta: 'Otro' },
+  { valor: 'PREFIERO_NO_DECIR', etiqueta: 'Prefiero no decir' },
+];
 
 /** ¿La liga es una competición de club real (no amistosos)? */
 function esLigaReal(l: LigaPais): boolean {
@@ -40,6 +58,8 @@ export function OnboardingScreen({
   profileClient,
   presenter,
   onDone,
+  avatarPicker,
+  onLogout,
 }: OnboardingScreenProps): React.ReactElement {
   const pres = useMemo(
     () => presenter ?? new ProfilePresenter(profileClient),
@@ -49,6 +69,14 @@ export function OnboardingScreen({
   const [paso, setPaso] = useState<Paso>('bienvenida');
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Datos de perfil.
+  const [nombre, setNombre] = useState('');
+  const [alias, setAlias] = useState('');
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
+  const [sexo, setSexo] = useState<Sexo | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [guardandoPerfil, setGuardandoPerfil] = useState(false);
 
   const [paises, setPaises] = useState<readonly Pais[]>([]);
   const [filtroPais, setFiltroPais] = useState('');
@@ -140,6 +168,56 @@ export function OnboardingScreen({
     return q.length === 0 ? paises : paises.filter((p) => p.nombre.toLocaleLowerCase().includes(q));
   }, [paises, filtroPais]);
 
+  /** Valida fecha ISO (YYYY-MM-DD) no futura, o vacía (opcional). */
+  const fechaValida = (): boolean => {
+    if (fechaNacimiento.trim() === '') return true;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaNacimiento)) return false;
+    const t = Date.parse(fechaNacimiento);
+    return !Number.isNaN(t) && t <= Date.now();
+  };
+
+  const elegirAvatar = (): void => {
+    if (!avatarPicker) return;
+    void (async () => {
+      try {
+        const uri = await avatarPicker.pickImage();
+        if (uri) setAvatarUrl(uri);
+      } catch {
+        // Cancelado o sin permiso: se omite el avatar.
+      }
+    })();
+  };
+
+  /** Guarda el perfil (PATCH /me) y avanza a elegir país. */
+  const guardarPerfil = (): void => {
+    if (nombre.trim().length === 0) {
+      setError('Ingresa tu nombre para continuar.');
+      return;
+    }
+    if (!fechaValida()) {
+      setError('La fecha de nacimiento debe tener formato AAAA-MM-DD y no ser futura.');
+      return;
+    }
+    setGuardandoPerfil(true);
+    setError(null);
+    void (async () => {
+      try {
+        await profileClient.actualizarPerfil({
+          nombre: nombre.trim(),
+          ...(alias.trim() ? { alias: alias.trim() } : {}),
+          ...(fechaNacimiento.trim() ? { fechaNacimiento: fechaNacimiento.trim() } : {}),
+          ...(sexo ? { sexo } : {}),
+          ...(avatarUrl ? { avatarUrl } : {}),
+        });
+        setPaso('pais');
+      } catch {
+        setError('No se pudo guardar tu perfil. Inténtalo de nuevo.');
+      } finally {
+        setGuardandoPerfil(false);
+      }
+    })();
+  };
+
   // --- Render por paso ------------------------------------------------------
 
   if (paso === 'bienvenida') {
@@ -149,7 +227,97 @@ export function OnboardingScreen({
         <Text style={styles.lead}>
           Documenta tu temporada partido a partido y arma tu álbum coleccionable.
         </Text>
-        <PrimaryButton title="Empezar" onPress={() => setPaso('pais')} style={styles.cta} />
+        <PrimaryButton title="Empezar" onPress={() => setPaso('perfil')} style={styles.cta} />
+        {onLogout ? (
+          <SecondaryButton title="Cerrar sesión" onPress={onLogout} style={styles.secondary} />
+        ) : null}
+      </Screen>
+    );
+  }
+
+  if (paso === 'perfil') {
+    return (
+      <Screen tone="light" flush>
+        <Hero eyebrow="Paso 1 de 4" title="Tu perfil" />
+        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+          {/* Avatar */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Elegir foto de perfil"
+            onPress={elegirAvatar}
+            style={styles.avatarWrap}
+          >
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} accessibilityRole="image" />
+            ) : (
+              <View style={[styles.avatar, styles.avatarVacio]}>
+                <Text style={styles.avatarTexto}>
+                  {avatarPicker ? 'Foto' : 'Sin foto'}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+          {avatarPicker ? (
+            <Text style={styles.help}>Toca la imagen para elegir tu foto de perfil.</Text>
+          ) : null}
+
+          <Text style={styles.label}>Nombre</Text>
+          <TextInput
+            style={styles.input}
+            value={nombre}
+            onChangeText={setNombre}
+            placeholder="Tu nombre"
+            placeholderTextColor={palette.textMutedOnLight}
+            accessibilityLabel="Nombre"
+          />
+
+          <Text style={styles.label}>Alias</Text>
+          <TextInput
+            style={styles.input}
+            value={alias}
+            onChangeText={setAlias}
+            autoCapitalize="none"
+            placeholder="Cómo te dicen (opcional)"
+            placeholderTextColor={palette.textMutedOnLight}
+            accessibilityLabel="Alias"
+          />
+
+          <Text style={styles.label}>Fecha de nacimiento</Text>
+          <TextInput
+            style={styles.input}
+            value={fechaNacimiento}
+            onChangeText={setFechaNacimiento}
+            autoCapitalize="none"
+            keyboardType="numbers-and-punctuation"
+            placeholder="AAAA-MM-DD (opcional)"
+            placeholderTextColor={palette.textMutedOnLight}
+            accessibilityLabel="Fecha de nacimiento"
+          />
+
+          <Text style={styles.label}>Sexo</Text>
+          <View style={styles.chips}>
+            {OPCIONES_SEXO.map((o) => (
+              <Chip
+                key={o.valor}
+                label={o.etiqueta}
+                selected={sexo === o.valor}
+                onPress={() => setSexo(o.valor)}
+                style={styles.chip}
+              />
+            ))}
+          </View>
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <PrimaryButton
+            title={guardandoPerfil ? 'Guardando…' : 'Continuar'}
+            onPress={guardarPerfil}
+            disabled={guardandoPerfil}
+            style={styles.cta}
+          />
+          {onLogout ? (
+            <SecondaryButton title="Cerrar sesión" tone="light" onPress={onLogout} style={styles.secondary} />
+          ) : null}
+        </ScrollView>
       </Screen>
     );
   }
@@ -157,7 +325,7 @@ export function OnboardingScreen({
   if (paso === 'pais') {
     return (
       <Screen tone="light" flush>
-        <Hero eyebrow="Paso 1 de 3" title="Elige tu país" />
+        <Hero eyebrow="Paso 2 de 4" title="Elige tu país" />
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <TextInput
             style={styles.input}
@@ -195,7 +363,7 @@ export function OnboardingScreen({
   if (paso === 'division') {
     return (
       <Screen tone="light" flush>
-        <Hero eyebrow="Paso 2 de 3" title="Elige tu división" />
+        <Hero eyebrow="Paso 3 de 4" title="Elige tu división" />
         <ScrollView contentContainerStyle={styles.body}>
           <Text style={styles.help}>Competiciones de {pais?.nombre ?? 'tu país'} · {SEASON_DEFECTO}</Text>
           {cargando ? <ActivityIndicator color={palette.accent} style={styles.spinner} /> : null}
@@ -228,7 +396,7 @@ export function OnboardingScreen({
   if (paso === 'equipo') {
     return (
       <Screen tone="light" flush>
-        <Hero eyebrow="Paso 3 de 3" title="Elige tu equipo" />
+        <Hero eyebrow="Paso 4 de 4" title="Elige tu equipo" />
         <ScrollView contentContainerStyle={styles.body}>
           <Text style={styles.help}>{division?.nombre ?? 'División'} · {pais?.nombre ?? ''}</Text>
           {cargando ? <ActivityIndicator color={palette.accent} style={styles.spinner} /> : null}
@@ -288,6 +456,26 @@ export function OnboardingScreen({
 }
 
 const styles = StyleSheet.create({
+  avatarWrap: { alignSelf: 'center', marginBottom: spacing.sm },
+  avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: palette.canvas },
+  avatarVacio: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: palette.borderOnLight,
+    borderStyle: 'dashed',
+  },
+  avatarTexto: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small },
+  label: {
+    color: palette.textOnLight,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.semibold,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
+  chip: { marginBottom: spacing.xs },
   center: { alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   bigTitle: {
     color: palette.textOnDark,

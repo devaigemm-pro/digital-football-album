@@ -141,7 +141,20 @@ export interface Usuario {
   email: string;
   clubId: UUID | null;
   zonaHoraria: ZonaHoraria;
+  /** Nombre para mostrar del hincha (perfil). */
+  nombre?: string | null;
+  /** Alias/apodo del hincha (perfil). */
+  alias?: string | null;
+  /** Fecha de nacimiento ISO 8601 (solo fecha), para el perfil. */
+  fechaNacimiento?: ISODate | null;
+  /** Sexo declarado por el usuario (perfil). */
+  sexo?: Sexo | null;
+  /** URL/clave del avatar del usuario en el object storage (perfil). */
+  avatarUrl?: string | null;
 }
+
+/** Sexo declarado en el perfil del usuario. */
+export type Sexo = 'MASCULINO' | 'FEMENINO' | 'OTRO' | 'PREFIERO_NO_DECIR';
 
 /**
  * Refresh_Token por sesión. `familiaId` agrupa la cadena de rotación;

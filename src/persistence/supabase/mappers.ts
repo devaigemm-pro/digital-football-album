@@ -130,6 +130,11 @@ export const usuarioMapper: EntityMapper<Usuario, 'usuarios'> = {
     email: r.email,
     clubId: r.club_id,
     zonaHoraria: r.zona_horaria,
+    nombre: r.nombre,
+    alias: r.alias,
+    fechaNacimiento: r.fecha_nacimiento,
+    sexo: r.sexo,
+    avatarUrl: r.avatar_url,
   }),
   toRow: (p) => {
     const out: Record<string, unknown> = {};
@@ -138,6 +143,11 @@ export const usuarioMapper: EntityMapper<Usuario, 'usuarios'> = {
     set(out, 'email', p.email);
     set(out, 'club_id', p.clubId);
     set(out, 'zona_horaria', p.zonaHoraria);
+    set(out, 'nombre', p.nombre);
+    set(out, 'alias', p.alias);
+    set(out, 'fecha_nacimiento', p.fechaNacimiento);
+    set(out, 'sexo', p.sexo);
+    set(out, 'avatar_url', p.avatarUrl);
     return out;
   },
 };

@@ -5,10 +5,11 @@
 // Implementa el contrato `SeasonCloseClient`
 // (app/src/season/early-close-presenter.ts) sobre el Módulo de red:
 //   - `getRecuadrosFaltantes` → reutiliza `GET /album/{temporadaId}/preview`
-//     (misma fuente que la previsualización del álbum) y mapea
+//     (endpoint REAL del backend deployado) y mapea
 //     `recuadrosSinFotoPrincipal: number[]` a `RecuadroFaltante[]` (Req 10.2).
-//   - `requestEarlyClose`     → `POST /temporadas/{temporadaId}/cierre-anticipado`
-//     body `{ fotosListasConfirmadas }` → `TemporadaCierreData` (Req 10.4 / SRS 16.4).
+//   - `requestEarlyClose`     → NO disponible en el backend deployado
+//     (docs/FRONTEND_INTEGRATION.md · §7: el cierre anticipado no se expone
+//     todavía). Lanza `NotAvailableError`; la UI de cierre se oculta.
 //
 // El backend es la autoridad del cierre; el adaptador solo mapea la respuesta y
 // deja que el mapeo de errores central clasifique los rechazos.
@@ -21,6 +22,7 @@ import type {
   SeasonCloseClient,
   TemporadaCierreData,
 } from '../season';
+import { NotAvailableError } from '../net/errors';
 import { buildRequest, readOkBody, type SendFn } from './http-adapter-utils';
 
 /**
@@ -51,24 +53,16 @@ export class HttpSeasonCloseClient implements SeasonCloseClient {
   }
 
   /**
-   * Solicita el cierre anticipado de la Temporada (Req 10.4 / SRS 16.4). Reenvía
-   * la confirmación OPCIONAL de "fotos listas para imprenta" tal cual y devuelve
-   * el estado de la Temporada que el presentador espeja (Req 10.3, 10.4).
+   * NO disponible: el cierre anticipado de la Temporada no está expuesto en el
+   * backend deployado (docs · §7). La UI de cierre se oculta.
+   * @throws {NotAvailableError}
    */
   async requestEarlyClose(
-    temporadaId: string,
-    params: { readonly fotosListasConfirmadas: boolean },
+    _temporadaId: string,
+    _params: { readonly fotosListasConfirmadas: boolean },
   ): Promise<TemporadaCierreData> {
-    const response = await this.send<TemporadaCierreData>(
-      buildRequest(
-        'POST',
-        `/temporadas/${encodeURIComponent(temporadaId)}/cierre-anticipado`,
-        { body: { fotosListasConfirmadas: params.fotosListasConfirmadas } },
-      ),
-    );
-    return readOkBody(
-      response,
-      'POST /temporadas/{temporadaId}/cierre-anticipado',
+    throw new NotAvailableError(
+      'cierre anticipado de Temporada (POST /temporadas/{id}/cierre-anticipado)',
     );
   }
 }

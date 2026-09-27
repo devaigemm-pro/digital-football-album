@@ -35,6 +35,13 @@ export type {
   TokenPair,
 } from './session-client';
 
+// Decorador de sesión respaldado por Supabase (refresh de token externo).
+export { SupabaseSessionHttpClient } from './supabase-session';
+export type {
+  ExternalRefreshFn,
+  SupabaseSessionHttpClientConfig,
+} from './supabase-session';
+
 // Task 25.4 — mapeo de errores del backend y resiliencia de red (Req 27.2–27.5).
 export {
   ClientNetworkError,
@@ -43,7 +50,9 @@ export {
   PremiumRequiredError,
   NetworkError,
   TimeoutError,
+  NotAvailableError,
   PREMIUM_REQUIRED_MESSAGE,
+  PREMIUM_REQUIRED_CODE,
   classifyResponse,
   classifyTransportError,
   backoffDelay,

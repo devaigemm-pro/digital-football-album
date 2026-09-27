@@ -9,11 +9,19 @@
 // código real para cuando se instale el toolchain del cliente.
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { ProfilePresenter, type ProfileState } from '../profile';
 import type { ProfileClient } from '../adapters';
-import { Crest, Hero, SecondaryButton, Screen } from '../ui/kit';
+import { Crest, DangerButton, Hero, SecondaryButton, Screen } from '../ui/kit';
 import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 
 export interface PerfilScreenProps {
@@ -25,6 +33,8 @@ export interface PerfilScreenProps {
   readonly onAjustes?: () => void;
   /** Navega a la selección/cambio de club. */
   readonly onCambiarClub?: () => void;
+  /** Cierra la sesión del usuario (logout de Supabase) de forma directa. */
+  readonly onLogout?: () => void | Promise<void>;
 }
 
 /** Fila etiqueta/valor del perfil. */
@@ -46,6 +56,7 @@ export function PerfilScreen({
   presenter,
   onAjustes,
   onCambiarClub,
+  onLogout,
 }: PerfilScreenProps): React.ReactElement {
   const pres = useMemo(() => presenter ?? new ProfilePresenter(client), [presenter, client]);
   const [state, setState] = useState<ProfileState>(() => pres.getProfileState());
@@ -81,16 +92,23 @@ export function PerfilScreen({
             size={56}
           />
           <View style={styles.clubInfo}>
-            <Text style={styles.clubNombre}>{club?.nombre ?? 'Sin club seleccionado'}</Text>
+            <Text style={styles.clubNombre}>
+              {perfil?.usuario.nombre ?? club?.nombre ?? 'Tu perfil'}
+            </Text>
             <Text style={styles.clubSub}>
-              {perfil?.usuario.email ?? '—'}
+              {perfil?.usuario.alias
+                ? `@${perfil.usuario.alias}`
+                : perfil?.usuario.email ?? '—'}
             </Text>
           </View>
         </View>
 
         {/* Datos del usuario y temporada */}
         <View style={styles.card}>
+          <Fila label="Nombre" value={perfil?.usuario.nombre ?? '—'} />
+          <Fila label="Alias" value={perfil?.usuario.alias ?? '—'} />
           <Fila label="Correo" value={perfil?.usuario.email ?? '—'} />
+          <Fila label="Club" value={club?.nombre ?? 'Sin club seleccionado'} />
           <Fila label="Zona horaria" value={perfil?.usuario.zonaHoraria ?? '—'} />
           <Fila
             label="Temporada"
@@ -126,6 +144,24 @@ export function PerfilScreen({
           onPress={onAjustes}
           style={styles.accion}
         />
+        {onLogout ? (
+          <DangerButton
+            title="Cerrar sesión"
+            onPress={() => {
+              Alert.alert('Cerrar sesión', '¿Seguro que quieres cerrar sesión?', [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Cerrar sesión',
+                  style: 'destructive',
+                  onPress: () => {
+                    void onLogout();
+                  },
+                },
+              ]);
+            }}
+            style={styles.accion}
+          />
+        ) : null}
       </ScrollView>
     </Screen>
   );

@@ -16,6 +16,7 @@ import {
 import type {
   Perfil,
   PartidoLamina,
+  PerfilUsuario,
   ProfileClient,
   SyncTemporadaResult,
   Temporada,
@@ -31,7 +32,17 @@ const TEMPORADA: Temporada = {
 };
 
 const PERFIL: Perfil = {
-  usuario: { id: 'user-1', email: 'h@x.com', clubId: 'club-1', zonaHoraria: 'America/Bogota' },
+  usuario: {
+    id: 'user-1',
+    email: 'h@x.com',
+    clubId: 'club-1',
+    zonaHoraria: 'America/Bogota',
+    nombre: null,
+    alias: null,
+    fechaNacimiento: null,
+    sexo: null,
+    avatarUrl: null,
+  },
   club: {
     id: 'club-1',
     nombre: 'Atlético Kiro',
@@ -110,6 +121,14 @@ class FakeProfileClient implements ProfileClient {
 
   equiposDeLiga(): Promise<readonly never[]> {
     return Promise.resolve([]);
+  }
+
+  actualizarPerfil(): Promise<PerfilUsuario> {
+    return Promise.resolve(PERFIL.usuario);
+  }
+
+  getPartido(): Promise<never> {
+    return Promise.reject(new Error('no usado'));
   }
 }
 

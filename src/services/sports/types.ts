@@ -43,15 +43,40 @@ export interface RawEventoPartido {
   readonly descripcion?: string;
 }
 
+/** Formación (alineación con dibujo táctico) de un equipo en un partido. */
+export interface RawFormacionEquipo {
+  /** Nombre del equipo. */
+  readonly equipo: string;
+  /** Dibujo táctico reportado por la API (p. ej. "4-3-3"), si lo hay. */
+  readonly formacion?: string;
+  /** Jugadores del once inicial. */
+  readonly titulares: readonly RawJugadorAlineacion[];
+}
+
+/** Goleador de un partido (evento de gol enriquecido). */
+export interface RawGoleador {
+  /** Minuto del gol. */
+  readonly minuto: number;
+  /** Jugador que anotó. */
+  readonly jugador: string;
+  /** Equipo del goleador. */
+  readonly equipo: string;
+}
+
 /**
  * Ficha técnica cruda de un partido finalizado: resultado, alineación inicial y
- * eventos clave (Req 9.3).
+ * eventos clave (Req 9.3). Se enriquece con goleadores y formaciones por equipo
+ * para la vista de detalle del partido.
  */
 export interface RawFichaPartido {
   readonly partidoExternoId: string;
   readonly resultado: RawResultado;
   readonly alineacion: readonly RawJugadorAlineacion[];
   readonly eventos: readonly RawEventoPartido[];
+  /** Goleadores del partido (derivados de los eventos de gol). */
+  readonly goleadores?: readonly RawGoleador[];
+  /** Formaciones por equipo (dibujo táctico + titulares). */
+  readonly formaciones?: readonly RawFormacionEquipo[];
 }
 
 /** Equipo real de la API deportiva (búsqueda por nombre — onboarding). */

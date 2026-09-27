@@ -34,6 +34,26 @@ import type { HttpRequest, HttpResponse } from './http-client';
 export const PREMIUM_REQUIRED_MESSAGE = 'requiere Plan_Premium';
 
 /**
+ * Código de dominio (campo `error` del backend) que señala gating por
+ * Plan_Premium en un error de negocio HTTP 400 (docs/FRONTEND_INTEGRATION.md ·
+ * `POST /cards/:momentoId` → 400 `REQUIERE_PLAN_PREMIUM`).
+ */
+export const PREMIUM_REQUIRED_CODE = 'REQUIERE_PLAN_PREMIUM';
+
+/**
+ * Códigos de dominio (campo `error` del backend) que representan un conflicto de
+ * cambio de Club con Temporada ACTIVA. El backend deployado lo reporta como un
+ * error de negocio HTTP 400 (no 409); se listan varias grafías tolerantes para
+ * cubrir la variante exacta que emita el backend.
+ */
+const CLUB_CHANGE_CONFLICT_CODES: readonly string[] = [
+  'CAMBIO_CLUB_BLOQUEADO',
+  'CLUB_CHANGE_CONFLICT',
+  'TEMPORADA_ACTIVA',
+  'CAMBIO_CLUB_TEMPORADA_ACTIVA',
+];
+
+/**
  * Raíz de la jerarquía de errores del cliente de red. Permite a las capas
  * superiores distinguir un error de red/negocio ya clasificado de un error
  * inesperado del entorno.
@@ -140,6 +160,33 @@ export class TimeoutError extends NetworkError {
 }
 
 /**
+ * Funcionalidad todavía NO disponible en el backend deployado
+ * (docs/FRONTEND_INTEGRATION.md · §7 "Lo que aún NO está disponible"): IAP/
+ * suscripción, envío/pedido/tracking, push, cierre anticipado y edición de
+ * contexto/notas/votación del Momento (más allá de subir la foto y generar la
+ * Card). Los adaptadores de esos endpoints lanzan este error en lugar de
+ * llamar a rutas inexistentes; la UI de esas pantallas se oculta/deshabilita.
+ *
+ * NO es un error de red ni de API: es un contrato marcado explícitamente como
+ * no-producción (preferencia del usuario: los stubs sin implementación real se
+ * marcan como no-producción, nunca fingen éxito).
+ */
+export class NotAvailableError extends ClientNetworkError {
+  /** Identificador de la operación no disponible (para diagnóstico/logs). */
+  readonly feature: string;
+
+  constructor(feature: string) {
+    super(
+      `La función "${feature}" aún no está disponible en el backend ` +
+        '(ver docs/FRONTEND_INTEGRATION.md §7). No se realizó ninguna llamada.',
+    );
+    this.name = 'NotAvailableError';
+    this.feature = feature;
+    Object.setPrototypeOf(this, NotAvailableError.prototype);
+  }
+}
+
+/**
  * Extrae un mensaje legible del cuerpo de una respuesta de error. El backend
  * puede devolver `{ message }`, `{ error }` o texto plano; se cae con elegancia
  * a un valor por defecto.
@@ -159,30 +206,63 @@ function extractMessage(body: unknown, fallback: string): string {
 }
 
 /**
+ * Extrae el código de dominio del cuerpo de un error del backend. El formato
+ * uniforme del backend deployado es `{ error: "CODIGO", message: "..." }`
+ * (docs/FRONTEND_INTEGRATION.md · §3); también se tolera `{ code: "..." }`.
+ * Devuelve `null` si no hay un código legible.
+ */
+function extractErrorCode(body: unknown): string | null {
+  if (body && typeof body === 'object') {
+    const record = body as Record<string, unknown>;
+    const raw = record['error'] ?? record['code'];
+    if (typeof raw === 'string' && raw.trim() !== '') {
+      return raw.trim();
+    }
+  }
+  return null;
+}
+
+/**
  * Heurística de detección de gating de plan en el cuerpo de la respuesta.
- * El backend puede señalar el gating con un código (`code: 'PLAN_REQUIRED'`,
- * `PREMIUM_REQUIRED`, ...) o con un mensaje que menciona Plan_Premium. Se acepta
- * también 402 (Payment Required) como señal explícita de plan insuficiente.
+ *
+ * El backend deployado reporta el gating como error de NEGOCIO HTTP 400 con
+ * `error: "REQUIERE_PLAN_PREMIUM"` (docs/FRONTEND_INTEGRATION.md ·
+ * `POST /cards/:momentoId`). Se conserva además la tolerancia previa: 402
+ * (Payment Required), códigos `code`/`error` que mencionen premium/plan y
+ * mensajes que citen Plan_Premium.
  */
 function isPremiumGating(status: number, body: unknown): boolean {
   if (status === 402) {
     return true;
   }
-  if (body && typeof body === 'object') {
-    const record = body as Record<string, unknown>;
-    const code = record['code'];
+  const domainCode = extractErrorCode(body);
+  if (domainCode !== null) {
     if (
-      typeof code === 'string' &&
-      /premium|plan[_-]?required|entitlement/i.test(code)
+      domainCode === PREMIUM_REQUIRED_CODE ||
+      /premium|plan[_-]?required|entitlement/i.test(domainCode)
     ) {
       return true;
     }
   }
-  const text =
-    typeof body === 'string'
-      ? body
-      : extractMessage(body, '');
+  const text = typeof body === 'string' ? body : extractMessage(body, '');
   return /plan_premium|plan premium|premium/i.test(text);
+}
+
+/**
+ * ¿El cuerpo del error señala un conflicto de cambio de Club (Temporada ACTIVA)?
+ * En el backend deployado llega como error de negocio HTTP 400 con un `error`
+ * de dominio (docs/FRONTEND_INTEGRATION.md · `PUT /me/club`), no como 409.
+ */
+function isClubChangeConflict(body: unknown): boolean {
+  const domainCode = extractErrorCode(body);
+  if (domainCode === null) {
+    return false;
+  }
+  if (CLUB_CHANGE_CONFLICT_CODES.includes(domainCode)) {
+    return true;
+  }
+  // Tolerancia semántica: código que mencione club + (temporada activa/cambio).
+  return /club/i.test(domainCode) && /(activa|conflict|bloq|cambio)/i.test(domainCode);
 }
 
 /**
@@ -191,10 +271,18 @@ function isPremiumGating(status: number, body: unknown): boolean {
  * al refresh single-flight de Task 25.2; el llamador decide si el 401 llega aquí
  * ya como no recuperable).
  *
- * Mapeo (Req 27.2/27.3):
- *   - 409                    → {@link ClubChangeConflictError} (mensaje del backend)
- *   - gating de plan / 402   → {@link PremiumRequiredError} ("requiere Plan_Premium")
- *   - 403 sin gating explícito y otros 4xx/5xx → {@link ApiError}
+ * Mapeo (Req 27.2/27.3, alineado con docs/FRONTEND_INTEGRATION.md §3):
+ *   - 401                                  → refresh (null) o {@link ApiError}
+ *   - gating de plan (400 `REQUIERE_PLAN_PREMIUM`, 402, …) → {@link PremiumRequiredError}
+ *   - conflicto de cambio de Club (400 con código de dominio, o 409 legado)
+ *                                          → {@link ClubChangeConflictError}
+ *   - resto de 4xx/5xx (incl. otros errores de negocio 400) → {@link ApiError}
+ *     conservando el `error` de dominio en `message`.
+ *
+ * NOTA (backend deployado): los errores de NEGOCIO llegan como HTTP 400 con
+ * `{ error: "codigo", message: "..." }`. Por eso el gating y el conflicto de
+ * Club se detectan por el CÓDIGO de dominio del cuerpo, no por el estado 409.
+ * Se mantiene el mapeo de 409 por compatibilidad hacia atrás.
  *
  * El 401 se trata como `ApiError` SOLO si `treat401AsApiError` es `true`; por
  * defecto se ignora (devuelve `null`) porque su manejo canónico es el refresh.
@@ -215,13 +303,8 @@ export function classifyResponse(
       : null;
   }
 
-  if (status === 409) {
-    return new ClubChangeConflictError(
-      extractMessage(body, 'Conflicto de cambio de Club.'),
-      body,
-    );
-  }
-
+  // Gating por plan: el backend deployado lo emite como 400
+  // `REQUIERE_PLAN_PREMIUM`; también se cubren 402 y mensajes/códigos previos.
   if (isPremiumGating(status, body)) {
     return new PremiumRequiredError(
       extractMessage(body, PREMIUM_REQUIRED_MESSAGE),
@@ -230,6 +313,17 @@ export function classifyResponse(
     );
   }
 
+  // Conflicto de cambio de Club: 400 con código de dominio (deployado) o 409
+  // (compatibilidad con el contrato anterior).
+  if (status === 409 || isClubChangeConflict(body)) {
+    return new ClubChangeConflictError(
+      extractMessage(body, 'Conflicto de cambio de Club.'),
+      body,
+    );
+  }
+
+  // Resto de errores (incluidos otros errores de negocio 400): ApiError
+  // genérico que conserva el `error`/`message` de dominio para la UI.
   return new ApiError(status, extractMessage(body, `Error HTTP ${status}.`), body);
 }
 

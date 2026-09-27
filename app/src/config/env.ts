@@ -11,9 +11,14 @@
 // `Config` de `react-native-config` y llama a `resolveConfig(Config)` para
 // obtener el `appConfig` en tiempo de ejecución.
 //
-// TLS obligatorio (Req 28.1): `apiBaseUrl` DEBE viajar sobre `https://`; de lo
-// contrario `resolveConfig` lanza `ConfigError`, aplicando la misma idea de
-// rechazo de transporte no cifrado que el `HttpClient` (`net/http-client.ts`).
+// TLS obligatorio (Req 28.1): `apiBaseUrl` y `supabaseUrl` DEBEN viajar sobre
+// `https://`; de lo contrario `resolveConfig` lanza `ConfigError`, aplicando la
+// misma idea de rechazo de transporte no cifrado que el `HttpClient`
+// (`net/http-client.ts`).
+//
+// Auth vía Supabase (docs/FRONTEND_INTEGRATION.md): la app autentica DIRECTAMENTE
+// contra Supabase Auth (GoTrue) con `@supabase/supabase-js`; por eso la config
+// expone `supabaseUrl` y `supabaseAnonKey`. El backend solo consume el JWT.
 
 /**
  * Entornos de ejecución soportados. Determinan qué archivo `.env` carga
@@ -47,6 +52,18 @@ export interface AppConfig {
    * / OAuth client de iOS). Requerido solo en iOS; cadena vacía si no aplica.
    */
   readonly iosUrlScheme: string;
+  /**
+   * URL del proyecto Supabase (`https://<ref>.supabase.co`). La app autentica
+   * DIRECTAMENTE contra Supabase Auth con `@supabase/supabase-js` (ver
+   * docs/FRONTEND_INTEGRATION.md); el backend solo consume el JWT resultante.
+   * OBLIGATORIA y DEBE ser `https://` (TLS, Req 28.1). Sin barra final.
+   */
+  readonly supabaseUrl: string;
+  /**
+   * Clave pública `anon` de Supabase (JWT publicable, NUNCA la `service_role`).
+   * Va embebida en el cliente. OBLIGATORIA (no vacía).
+   */
+  readonly supabaseAnonKey: string;
 }
 
 /**
@@ -109,11 +126,14 @@ function resolveEnvironment(
  * Reglas:
  *   - `API_BASE_URL` es OBLIGATORIA y DEBE ser `https://` (TLS, Req 28.1); en
  *     otro caso lanza `ConfigError`. Se normaliza sin barra final.
+ *   - `SUPABASE_URL` es OBLIGATORIA y DEBE ser `https://` (TLS, Req 28.1); se
+ *     normaliza sin barra final. `SUPABASE_ANON_KEY` es OBLIGATORIA (no vacía).
  *   - `GOOGLE_WEB_CLIENT_ID` e `IOS_URL_SCHEME` son opcionales; por defecto ''.
  *   - `APP_ENV` opcional: 'development' | 'production' (default 'development').
  *
  * @param raw Variables de entorno crudas (`Config` de react-native-config).
- * @throws {ConfigError} si falta `API_BASE_URL` o no viaja sobre TLS.
+ * @throws {ConfigError} si falta `API_BASE_URL`/`SUPABASE_URL`/`SUPABASE_ANON_KEY`
+ *   o si `API_BASE_URL`/`SUPABASE_URL` no viajan sobre TLS.
  */
 export function resolveConfig(
   raw: Record<string, string | undefined>,
@@ -132,10 +152,35 @@ export function resolveConfig(
     );
   }
 
+  const supabaseUrlRaw = readOptional(raw, 'SUPABASE_URL');
+  if (!supabaseUrlRaw) {
+    throw new ConfigError(
+      'Falta la variable de entorno obligatoria SUPABASE_URL. ' +
+        'La app autentica directamente contra Supabase Auth (ver ' +
+        'docs/FRONTEND_INTEGRATION.md). Defínela en el archivo .env correspondiente.',
+    );
+  }
+  if (!isHttps(supabaseUrlRaw)) {
+    throw new ConfigError(
+      `SUPABASE_URL debe usar TLS (https://) pero se recibió "${supabaseUrlRaw}" ` +
+        '(Req 28.1: se rechazan transportes no cifrados).',
+    );
+  }
+
+  const supabaseAnonKey = readOptional(raw, 'SUPABASE_ANON_KEY');
+  if (!supabaseAnonKey) {
+    throw new ConfigError(
+      'Falta la variable de entorno obligatoria SUPABASE_ANON_KEY (clave ' +
+        'pública anon de Supabase). Defínela en el archivo .env correspondiente.',
+    );
+  }
+
   return {
     environment: resolveEnvironment(raw),
     apiBaseUrl: normalizeBaseUrl(apiBaseUrlRaw),
     googleWebClientId: readOptional(raw, 'GOOGLE_WEB_CLIENT_ID') ?? '',
     iosUrlScheme: readOptional(raw, 'IOS_URL_SCHEME') ?? '',
+    supabaseUrl: normalizeBaseUrl(supabaseUrlRaw),
+    supabaseAnonKey,
   };
 }

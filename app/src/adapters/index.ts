@@ -81,4 +81,11 @@ export {
   type SeleccionEquipoResult,
   type Pais,
   type LigaPais,
+  type Sexo,
+  type ActualizarPerfilInput,
+  type PartidoDetalle,
+  type Goleador,
+  type FormacionEquipo,
+  type JugadorFormacion,
+  type FotoMomento,
 } from './http-profile-client';

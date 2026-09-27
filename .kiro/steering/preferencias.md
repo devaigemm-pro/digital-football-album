@@ -58,3 +58,20 @@ Cuando este agente pida trabajo en nombre del usuario, debe:
 - [2026-09-24] Los adaptadores de puertos externos sin implementación real deben marcarse explícitamente como no-producción (stubs que registran o lanzan, nunca fingir éxito).
 - [2026-09-24] Verificación end-to-end real antes de dar algo por hecho: arrancar el proceso/servidor y probar contra la base/HTTP reales, no solo compilar.
 - [2026-09-24] Objetivo de despliegue completo del backend: config fail-fast, Docker, logging estructurado (JSON en prod), secretos fuera del repo y CI/CD.
+- [2026-09-24] Cliente móvil en React Native + TypeScript (no Flutter), para reutilizar los view-models TS de `src/app`; cliente delgado.
+- [2026-09-24] Separación estricta en el cliente: lógica testeable en `.ts` puros (typecheck) tras puertos inyectables; UI y adaptadores nativos/Supabase en `.tsx` (excluidos del typecheck).
+- [2026-09-24] Adaptadores nativos reales de producción (Firebase/FCM, IAP, permisos, share, image-picker, keychain), no stubs.
+- [2026-09-24] Autenticación del cliente móvil DIRECTA contra Supabase Auth con `@supabase/supabase-js` (email/password); el token de Supabase se envía al backend como `Bearer`; el backend no expone login/registro/refresh.
+- [2026-09-24] `docs/FRONTEND_INTEGRATION.md` es la fuente de verdad del contrato backend↔app; ante conflicto con lo cableado, se ajusta el cliente al doc.
+- [2026-09-24] Backend desplegado: negocio en Render (`https://album-backend-smr4.onrender.com`), auth en Supabase; API en camelCase, errores `{error,message}`, negocio en HTTP 400.
+- [2026-09-24] Config del cliente por entorno con `react-native-config`/`.env`; `API_BASE_URL` y `SUPABASE_URL` con TLS obligatorio; solo la anon key va en la app (NUNCA la `service_role`; si se expone, rotarla).
+- [2026-09-24] Ocultar en la UI las funciones que el backend aún no expone (suscripción/IAP, envío, push, cierre, edición de contexto) con placeholder "No disponible"; los métodos lanzan `NotAvailableError`.
+- [2026-09-24] Builds Android reales: JDK 17 + Android SDK instalados en `~` (sin sudo), keystore fuera del repo; generar APK debug/release y AAB con el script `app/build-release.sh`.
+- [2026-09-24] Metro configurado para monorepo: `watchFolders` a la raíz + resolver que mapea imports `.js` explícitos del backend a `.ts`.
+- [2026-09-24] Mantener este archivo automáticamente: al final de cada sesión, detectar preferencias/decisiones nuevas y añadirlas aquí SIN preguntar (hook `SessionEnd`/`Stop`).
+- [2026-09-24] Distribución de builds de prueba vía Firebase App Distribution (sin cable): firebase-tools local + `app/distribute.sh` (compila APK release y sube al grupo `testers`); alternativas de instalación: `adb install -r` por cable/WiFi o Google Play (canal interno) para lanzamiento real.
+- [2026-09-24] Firebase App Distribution operativo: proyecto `digital-football-album`, app Android `1:939665703335:android:85e7e843d7ba71a6dfb682`, CLI logueada como devaigemm@gmail.com; distribuir por email de tester con `TESTERS="..." ./distribute.sh` (los grupos requieren alias exacto en la consola).
+- [2026-09-24] UI del cliente con colores EXPLÍCITOS y contraste WCAG AA (>=4.5:1), sin depender del tema claro/oscuro del SO (evita texto ilegible en MIUI oscuro); fijar `color`, `backgroundColor` y `placeholderTextColor` en pantallas.
+- [2026-09-24] Entorno de pruebas Supabase: desactivar confirmación por email (Auth > Providers > Email > Confirm email OFF) para poder crear/usar usuarios de prueba de inmediato; usuario de prueba devaigemm@gmail.com.
+- [2026-09-24] Campos de login RN robustos: `autoCapitalize="none"` + `autoCorrect={false}` en email y contraseña, y normalizar email (`trim().toLowerCase()`) para evitar credenciales alteradas por el teclado (causa de falsos "invalid login credentials").
+- [2026-09-24] Al distribuir builds nuevas por App Distribution, subir `versionCode` (y `versionName`) en `app/android/app/build.gradle` para que App Tester reconozca la versión como nueva y fuerce la actualización.

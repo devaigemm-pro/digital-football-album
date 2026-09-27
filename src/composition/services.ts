@@ -33,6 +33,8 @@ import { NotificationService } from '../services/notifications/notification-serv
 import { ShippingService } from '../services/shipping/shipping-service.js';
 import { PrintEngineService } from '../services/print-engine/print-engine-service.js';
 import { ClubService } from '../services/club/club-service.js';
+import { UserProfileService } from '../services/profile/user-profile-service.js';
+import { MatchDetailService } from '../services/momentos/match-detail-service.js';
 import {
   ApiFootballSportsTransport,
   OnboardingService,
@@ -47,6 +49,15 @@ import {
   type UploadFotoInput,
   type UploadFotoResult,
 } from '../services/momentos/upload-foto.js';
+import {
+  updateMomento,
+  type UpdateMomentoPatch,
+} from '../services/momentos/update-momento.js';
+import {
+  setFotoPrincipal,
+  type SetFotoPrincipalResult,
+} from '../services/momentos/foto-principal.js';
+import type { Momento } from '../domain/types.js';
 import { SupabaseObjectStorage } from '../persistence/supabase/object-storage.js';
 import type { ObjectStorage as MomentosObjectStoragePort } from '../services/momentos/object-storage.js';
 import type { ObjectStorage as AuthObjectStoragePort } from '../services/auth/object-storage.js';
@@ -98,6 +109,10 @@ export interface AppServices {
   readonly shipping: ShippingService;
   readonly printEngine: PrintEngineService;
   readonly club: ClubService;
+  /** Actualización de los datos de perfil del usuario (nombre, alias, etc.). */
+  readonly userProfile: UserProfileService;
+  /** Detalle de un partido/lámina (resultado, goleadores, formaciones, momento). */
+  readonly matchDetail: MatchDetailService;
   /**
    * Sincronización de la Temporada del usuario desde la API deportiva
    * (fetch fixture → clasificar → derivar álbum). Si no hay API key configurada,
@@ -124,6 +139,19 @@ export interface AppServices {
    * Momento del partido.
    */
   readonly uploadFoto: (partidoId: UUID, input: UploadFotoInput) => Promise<UploadFotoResult>;
+  /**
+   * Actualiza un Momento (reseña/notas, contexto, jugador del partido), ya
+   * cableado con los repositorios. Aplica un parche parcial validado.
+   */
+  readonly updateMomento: (momentoId: UUID, patch: UpdateMomentoPatch) => Promise<Momento>;
+  /**
+   * Fija la Foto_Principal (foto de la lámina) de un Recuadro, ya cableado con
+   * los repositorios. Impone la guarda de edición por cierre (409 si cerró).
+   */
+  readonly setFotoPrincipal: (
+    recuadroId: UUID,
+    fotoId: UUID,
+  ) => Promise<SetFotoPrincipalResult>;
 }
 
 /** Opciones de ensamblado del composition root. */
@@ -266,6 +294,7 @@ export function createServices(options: CreateServicesOptions): AppServices {
   });
 
   const club = new ClubService(repos.usuarios, repos.temporadas, repos.clubes);
+  const userProfile = new UserProfileService(repos.usuarios);
 
   // Cliente de la API deportiva: transporte real (API-Football) si hay API key;
   // si no, un transporte stub que falla con "no disponible" (no finge éxito).
@@ -295,6 +324,15 @@ export function createServices(options: CreateServicesOptions): AppServices {
     plantillas: repos.plantillas,
     sportsClient,
   });
+  const matchDetail = new MatchDetailService({
+    partidos: repos.partidos,
+    albumes: repos.albumes,
+    recuadros: repos.recuadros,
+    momentos: repos.momentos,
+    fotos: repos.fotos,
+    sportsClient,
+    sportsEnabled: sportsCfg?.provider === 'api-football' && Boolean(sportsCfg.apiKey),
+  });
 
   // Carga de fotos cableada: función de dominio + repos + storage seleccionado.
   const uploadFotoWired = (partidoId: UUID, input: UploadFotoInput): Promise<UploadFotoResult> =>
@@ -303,6 +341,26 @@ export function createServices(options: CreateServicesOptions): AppServices {
       momentos: repos.momentos,
       fotos: repos.fotos,
       storage: momentosStorage,
+    });
+
+  // Actualización de Momento (reseña/contexto) cableada con los repos.
+  const updateMomentoWired = (momentoId: UUID, patch: UpdateMomentoPatch): Promise<Momento> =>
+    updateMomento(momentoId, patch, {
+      momentos: repos.momentos,
+      partidos: repos.partidos,
+    });
+
+  // Selección de Foto_Principal (foto de la lámina) cableada con los repos.
+  const setFotoPrincipalWired = (
+    recuadroId: UUID,
+    fotoId: UUID,
+  ): Promise<SetFotoPrincipalResult> =>
+    setFotoPrincipal(recuadroId, fotoId, {
+      recuadros: repos.recuadros,
+      partidos: repos.partidos,
+      momentos: repos.momentos,
+      fotos: repos.fotos,
+      temporadas: repos.temporadas,
     });
 
   return {
@@ -320,11 +378,15 @@ export function createServices(options: CreateServicesOptions): AppServices {
     shipping,
     printEngine,
     club,
+    userProfile,
+    matchDetail,
     seasonSync,
     onboarding,
     sportsConfigured: sportsCfg?.provider === 'api-football' && Boolean(sportsCfg.apiKey),
     momentosStorage,
     sportsNotifier,
     uploadFoto: uploadFotoWired,
+    updateMomento: updateMomentoWired,
+    setFotoPrincipal: setFotoPrincipalWired,
   };
 }

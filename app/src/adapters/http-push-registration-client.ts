@@ -1,15 +1,10 @@
 // Adaptador HTTP del `PushRegistrationClient` (Servicio_Notificaciones).
 //
-// Task 30.3 (wiring) — Requirements: 26.1, 26.4
-//
-// Implementa el contrato `PushRegistrationClient`
-// (app/src/notifications/push-registration-presenter.ts) sobre el Módulo de red:
-//   - `POST /notificaciones/token`                          body { token, platform }
-//   - `POST /notificaciones/recuadros/{recuadroId}/silenciar`
-//
-// El adaptador solo mapea la petición/respuesta; la cadencia y las reglas de
-// envío las decide el backend (Req 14). Errores de red/backend se propagan vía
-// el mapeo central para que el presentador los refleje sin lanzar a la UI.
+// Backend deployado (docs/FRONTEND_INTEGRATION.md · §7): las notificaciones push
+// (registro de Token_Push, silenciado de recordatorios) NO están disponibles
+// todavía. Se conservan los métodos del contrato `PushRegistrationClient` para
+// no romper la interfaz, pero lanzan `NotAvailableError` en lugar de llamar a
+// rutas inexistentes. La UI de Notificaciones se oculta.
 //
 // TypeScript PURO: no importa `react-native`.
 
@@ -17,38 +12,33 @@ import type {
   PushRegistrationClient,
   RegisterPushTokenInput,
 } from '../notifications';
-import { buildRequest, ensureOk, type SendFn } from './http-adapter-utils';
+import { NotAvailableError } from '../net/errors';
+import { type SendFn } from './http-adapter-utils';
 
 /**
- * Adaptador HTTP concreto del `PushRegistrationClient`. Autenticado.
+ * Adaptador HTTP concreto del `PushRegistrationClient`. NO operativo en el
+ * backend deployado: todos los métodos lanzan `NotAvailableError` (§7).
  */
 export class HttpPushRegistrationClient implements PushRegistrationClient {
-  constructor(private readonly send: SendFn) {}
+  // Acepta la `SendFn` por consistencia con los demás adaptadores (y para no
+  // cambiar el sitio de construcción), pero no la usa: no hay endpoints reales.
+  constructor(_send: SendFn) {}
 
   /**
-   * `POST /notificaciones/token` con `{ token, platform }` (Req 26.1). Registra
-   * el Token_Push del dispositivo en el Sistema.
+   * NO disponible: registro de Token_Push no expuesto (§7).
+   * @throws {NotAvailableError}
    */
-  async registerPushToken(input: RegisterPushTokenInput): Promise<void> {
-    const response = await this.send(
-      buildRequest('POST', '/notificaciones/token', {
-        body: { token: input.token, platform: input.platform },
-      }),
-    );
-    ensureOk(response);
+  async registerPushToken(_input: RegisterPushTokenInput): Promise<void> {
+    throw new NotAvailableError('registro de token push (POST /notificaciones/token)');
   }
 
   /**
-   * `POST /notificaciones/recuadros/{recuadroId}/silenciar` (Req 26.4). Comunica
-   * al Sistema la solicitud de silenciar los recordatorios de un Recuadro.
+   * NO disponible: silenciado de recordatorios no expuesto (§7).
+   * @throws {NotAvailableError}
    */
-  async muteRecuadroReminder(recuadroId: string): Promise<void> {
-    const response = await this.send(
-      buildRequest(
-        'POST',
-        `/notificaciones/recuadros/${encodeURIComponent(recuadroId)}/silenciar`,
-      ),
+  async muteRecuadroReminder(_recuadroId: string): Promise<void> {
+    throw new NotAvailableError(
+      'silenciar recordatorios (POST /notificaciones/recuadros/{id}/silenciar)',
     );
-    ensureOk(response);
   }
 }

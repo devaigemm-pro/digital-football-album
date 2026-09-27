@@ -1,16 +1,15 @@
 // Adaptador HTTP del `SubscriptionClient` (Servicio_Suscripción).
 //
-// Task 30.1 (wiring) — Requirements: 25.1, 25.2, 25.3, 25.4, 25.5
+// Backend deployado (docs/FRONTEND_INTEGRATION.md):
+//   - `GET /me/entitlements` → `{ digitalCardsInternacional, holograma }`.
 //
-// Implementa el contrato `SubscriptionClient`
-// (app/src/subscription/subscription-presenter.ts) sobre el Módulo de red:
-//   - `GET  /subscription`           → `SubscriptionView` (suscripción + catálogo)
-//   - `POST /subscription/purchase`  body `{ planId, receipt }` → `Suscripcion`
-//   - `POST /subscription/upgrade`   body `{ receipt }`         → `Suscripcion`
-//   - `GET  /entitlements`           → `Entitlements`
+// El resto de operaciones de suscripción/IAP (catálogo, compra, upgrade) NO
+// están disponibles todavía (docs · §7). Se conservan los métodos del contrato
+// `SubscriptionClient` para no romper la interfaz, pero lanzan `NotAvailableError`
+// en lugar de llamar a rutas inexistentes. La UI de suscripción se oculta.
 //
-// El cliente refleja el estado/derechos EXACTAMENTE como los devuelve el Sistema
-// (Req 25.5): el adaptador NO recalcula ni deriva nada, solo mapea la respuesta.
+// El cliente refleja los entitlements EXACTAMENTE como los devuelve el Sistema
+// (Req 25.5): no recalcula ni deriva nada.
 //
 // TypeScript PURO: no importa `react-native`.
 
@@ -22,51 +21,50 @@ import type {
   SubscriptionView,
   Suscripcion,
 } from '../subscription';
+import { NotAvailableError } from '../net/errors';
 import { buildRequest, readOkBody, type SendFn } from './http-adapter-utils';
 
 /**
  * Adaptador HTTP concreto del `SubscriptionClient`. Autenticado.
+ *
+ * Solo `getEntitlements` está soportado por el backend deployado; el resto de
+ * métodos lanzan `NotAvailableError` (IAP/suscripción no expuestos aún, §7).
  */
 export class HttpSubscriptionClient implements SubscriptionClient {
   constructor(private readonly send: SendFn) {}
 
-  /** `GET /subscription`: plan actual, estado y catálogo disponible (Req 25.1). */
+  /**
+   * NO disponible: no hay endpoint de catálogo/estado de suscripción (§7).
+   * @throws {NotAvailableError}
+   */
   async getSubscription(): Promise<SubscriptionView> {
-    const response = await this.send<SubscriptionView>(
-      buildRequest('GET', '/subscription'),
-    );
-    return readOkBody(response, 'GET /subscription');
+    throw new NotAvailableError('estado de suscripción (GET /subscription)');
   }
 
   /**
-   * `POST /subscription/purchase` con `{ planId, receipt }` (Req 25.2). Devuelve
-   * la `Suscripcion` resultante que el presentador refleja sin recalcular.
+   * NO disponible: la validación de compras IAP no está expuesta (§7).
+   * @throws {NotAvailableError}
    */
-  async purchase(planId: PlanId, receipt: IapReceipt): Promise<Suscripcion> {
-    const response = await this.send<Suscripcion>(
-      buildRequest('POST', '/subscription/purchase', {
-        body: { planId, receipt },
-      }),
-    );
-    return readOkBody(response, 'POST /subscription/purchase');
+  async purchase(_planId: PlanId, _receipt: IapReceipt): Promise<Suscripcion> {
+    throw new NotAvailableError('compra de suscripción (POST /subscription/purchase)');
   }
 
   /**
-   * `POST /subscription/upgrade` con `{ receipt }` (Req 25.3). Devuelve la
-   * `Suscripcion` actualizada a Plan_Premium.
+   * NO disponible: el upgrade a Premium vía IAP no está expuesto (§7).
+   * @throws {NotAvailableError}
    */
-  async upgrade(receipt: IapReceipt): Promise<Suscripcion> {
-    const response = await this.send<Suscripcion>(
-      buildRequest('POST', '/subscription/upgrade', { body: { receipt } }),
-    );
-    return readOkBody(response, 'POST /subscription/upgrade');
+  async upgrade(_receipt: IapReceipt): Promise<Suscripcion> {
+    throw new NotAvailableError('upgrade de suscripción (POST /subscription/upgrade)');
   }
 
-  /** `GET /entitlements`: derechos decididos por el Sistema (Req 25.4, 25.5). */
+  /**
+   * `GET /me/entitlements`: derechos decididos por el Sistema (Req 25.4, 25.5).
+   * ÚNICA operación de suscripción soportada por el backend deployado.
+   */
   async getEntitlements(): Promise<Entitlements> {
     const response = await this.send<Entitlements>(
-      buildRequest('GET', '/entitlements'),
+      buildRequest('GET', '/me/entitlements'),
     );
-    return readOkBody(response, 'GET /entitlements');
+    return readOkBody(response, 'GET /me/entitlements');
   }
 }

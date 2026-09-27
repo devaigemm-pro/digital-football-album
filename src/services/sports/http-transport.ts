@@ -27,6 +27,8 @@ import type {
   RawEquipo,
   RawFichaPartido,
   RawFixture,
+  RawFormacionEquipo,
+  RawGoleador,
   RawLigaEquipo,
   RawLigaPais,
   RawPais,
@@ -101,6 +103,21 @@ interface ApiFootballCountryItem {
   readonly name?: string;
   readonly code?: string | null;
   readonly flag?: string | null;
+}
+
+/** Item de `fixtures/events` de API-Football. */
+interface ApiFootballEventItem {
+  readonly type?: string;
+  readonly time?: { readonly elapsed?: number };
+  readonly team?: { readonly name?: string };
+  readonly player?: { readonly name?: string };
+}
+
+/** Item de `fixtures/lineups` de API-Football. */
+interface ApiFootballLineupItem {
+  readonly team?: { readonly name?: string };
+  readonly formation?: string;
+  readonly startXI?: readonly { readonly player?: { readonly id?: number; readonly name?: string } }[];
 }
 
 /** Mapea el estado corto de API-Football a nuestro `estado` crudo. */
@@ -300,7 +317,12 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
     return items.map((item) => this.mapFixture(item, teamIdNum));
   }
 
-  /** Descarga y mapea la ficha de un partido finalizado a `RawFichaPartido`. */
+  /**
+   * Descarga y mapea la ficha de un partido a `RawFichaPartido`, enriquecida con
+   * los goleadores (`fixtures/events`) y las formaciones (`fixtures/lineups`).
+   * Hace 3 llamadas al proveedor (fixture, events, lineups); las de events y
+   * lineups se toleran vacías (partido sin datos aún) sin fallar la ficha.
+   */
   private async fetchFicha(
     partidoExternoId: string,
     signal: AbortSignal,
@@ -311,15 +333,83 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
     if (item === undefined) {
       throw new SportsApiError(`Partido no encontrado en la API: ${partidoExternoId}`);
     }
+
+    const [goleadores, formaciones] = await Promise.all([
+      this.fetchGoleadores(partidoExternoId, signal),
+      this.fetchFormaciones(partidoExternoId, signal),
+    ]);
+
+    // Alineación plana (compat): titulares de ambos equipos.
+    const alineacion = formaciones.flatMap((f) => f.titulares);
+    // Eventos = goles (mínimo útil para la vista de detalle).
+    const eventos = goleadores.map((g) => ({
+      minuto: g.minuto,
+      tipo: 'gol',
+      descripcion: `${g.jugador} (${g.equipo})`,
+    }));
+
     return {
       partidoExternoId,
       resultado: {
         golesLocal: item.goals?.home ?? 0,
         golesVisita: item.goals?.away ?? 0,
       },
-      alineacion: [],
-      eventos: [],
+      alineacion,
+      eventos,
+      goleadores,
+      formaciones,
     };
+  }
+
+  /** Goleadores del partido desde `fixtures/events` (type Goal). */
+  private async fetchGoleadores(
+    partidoExternoId: string,
+    signal: AbortSignal,
+  ): Promise<readonly RawGoleador[]> {
+    const url = `${this.baseUrl}/fixtures/events?fixture=${encodeURIComponent(partidoExternoId)}`;
+    try {
+      const data = await this.request<ApiFootballResponse<ApiFootballEventItem>>(url, signal);
+      return (data.response ?? []).flatMap((e) => {
+        if (e.type !== 'Goal') return [];
+        const minuto = e.time?.elapsed;
+        const jugador = e.player?.name;
+        const equipo = e.team?.name;
+        if (minuto === undefined || jugador === undefined || equipo === undefined) return [];
+        const g: RawGoleador = { minuto, jugador, equipo };
+        return [g];
+      });
+    } catch {
+      return []; // sin eventos disponibles: no romper la ficha
+    }
+  }
+
+  /** Formaciones por equipo desde `fixtures/lineups`. */
+  private async fetchFormaciones(
+    partidoExternoId: string,
+    signal: AbortSignal,
+  ): Promise<readonly RawFormacionEquipo[]> {
+    const url = `${this.baseUrl}/fixtures/lineups?fixture=${encodeURIComponent(partidoExternoId)}`;
+    try {
+      const data = await this.request<ApiFootballResponse<ApiFootballLineupItem>>(url, signal);
+      return (data.response ?? []).flatMap((l) => {
+        const equipo = l.team?.name;
+        if (equipo === undefined) return [];
+        const titulares = (l.startXI ?? []).flatMap((s) => {
+          const id = s.player?.id;
+          const nombre = s.player?.name;
+          if (id === undefined || nombre === undefined) return [];
+          return [{ id: String(id), nombre }];
+        });
+        const f: RawFormacionEquipo = {
+          equipo,
+          ...(l.formation !== undefined ? { formacion: l.formation } : {}),
+          titulares,
+        };
+        return [f];
+      });
+    } catch {
+      return []; // sin lineups disponibles: no romper la ficha
+    }
   }
 
   /**

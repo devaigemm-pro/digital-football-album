@@ -96,9 +96,20 @@ export class OnboardingService {
     return this.deps.sportsClient.listCountries();
   }
 
-  /** Lista las ligas/divisiones de un país para una temporada. */
-  leaguesByCountry(country: string, season: number): Promise<readonly RawLigaPais[]> {
-    return this.deps.sportsClient.leaguesByCountry(country, season);
+  /**
+   * Lista las 2 DIVISIONES principales del país para una temporada.
+   *
+   * Se excluyen copas/torneos (`tipo === 'Cup'`): solo divisiones de liga
+   * (`tipo === 'League'`), y se limita a las 2 primeras que devuelve la API
+   * (ordenadas por importancia; p. ej. Primera División y Primera B). Así el
+   * usuario elige entre las divisiones principales, no entre todas las
+   * competiciones del país.
+   */
+  async leaguesByCountry(country: string, season: number): Promise<readonly RawLigaPais[]> {
+    const ligas = await this.deps.sportsClient.leaguesByCountry(country, season);
+    return ligas
+      .filter((l) => (l.tipo ?? '').toLocaleLowerCase() === 'league')
+      .slice(0, 2);
   }
 
   /** Lista los equipos (con logo) de una liga/temporada. */

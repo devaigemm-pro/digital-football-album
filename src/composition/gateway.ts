@@ -97,6 +97,21 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
     }
   });
 
+  // Detalle de un partido/lámina: GET /partidos/:partidoId
+  // Compone resultado + goleadores + formaciones (ficha en vivo) + recuadro y
+  // momento (número de lámina, reseña, foto principal) para la vista de detalle.
+  router.get('/partidos/:partidoId', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    const partidoId = pathSegment(context, 1);
+    if (!partidoId) return json(400, { error: 'bad_request' });
+    try {
+      const detalle = await services.matchDetail.getDetalle(partidoId);
+      return json(200, detalle);
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
   // Carga de una foto para un partido: POST /partidos/:partidoId/fotos
   // Body JSON: { binarioBase64: string, anchoPx: number, altoPx: number,
   //             fuente?: 'galeria' | 'camara' }
@@ -146,6 +161,78 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
         momentoCreado: result.momentoCreado,
       });
     } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
+  // Actualiza un Momento (reseña/notas, contexto, jugador): PATCH /momentos/:momentoId
+  // Body JSON (parche parcial): { notas?, contextoAsistencia?, subModalidad?,
+  //   geoVerificado?, jugadorDelPartido? }.
+  router.patch('/momentos/:momentoId', async (context) => {
+    const momentoId = pathSegment(context, 1);
+    if (!momentoId || !context.userId) return json(400, { error: 'bad_request' });
+    const body = context.request.body;
+    if (typeof body !== 'object' || body === null) {
+      return json(400, { error: 'bad_request', message: 'Cuerpo JSON requerido.' });
+    }
+    const b = body as Record<string, unknown>;
+    // Parche saneado: solo se pasan los campos con el tipo esperado.
+    const patch: {
+      contextoAsistencia?: 'EN_VIVO_LOCAL' | 'EN_VIVO_VISITA' | 'TRANSMISION';
+      subModalidad?: 'TELEVISION' | 'BAR' | 'STREAMING' | null;
+      geoVerificado?: boolean;
+      notas?: string;
+      jugadorDelPartido?: string | null;
+    } = {};
+    if (typeof b['contextoAsistencia'] === 'string') {
+      patch.contextoAsistencia = b['contextoAsistencia'] as
+        | 'EN_VIVO_LOCAL'
+        | 'EN_VIVO_VISITA'
+        | 'TRANSMISION';
+    }
+    if (b['subModalidad'] === null || typeof b['subModalidad'] === 'string') {
+      patch.subModalidad = b['subModalidad'] as 'TELEVISION' | 'BAR' | 'STREAMING' | null;
+    }
+    if (typeof b['geoVerificado'] === 'boolean') {
+      patch.geoVerificado = b['geoVerificado'];
+    }
+    if (typeof b['notas'] === 'string') {
+      patch.notas = b['notas'];
+    }
+    if (b['jugadorDelPartido'] === null || typeof b['jugadorDelPartido'] === 'string') {
+      patch.jugadorDelPartido = b['jugadorDelPartido'];
+    }
+    try {
+      const momento = await services.updateMomento(momentoId, patch);
+      return json(200, { momento });
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
+  // Fija la Foto_Principal (foto de la lámina) de un Recuadro:
+  // PUT /recuadros/:recuadroId/foto-principal  body { fotoId: string }
+  // La edición cerrada (Temporada no ACTIVA o tras Fecha_Límite) responde 409.
+  router.put('/recuadros/:recuadroId/foto-principal', async (context) => {
+    const recuadroId = pathSegment(context, 1);
+    if (!recuadroId || !context.userId) return json(400, { error: 'bad_request' });
+    const body = context.request.body;
+    const fotoId =
+      typeof body === 'object' && body !== null
+        ? (body as Record<string, unknown>)['fotoId']
+        : undefined;
+    if (typeof fotoId !== 'string') {
+      return json(400, { error: 'bad_request', message: 'fotoId (string) requerido.' });
+    }
+    try {
+      const result = await services.setFotoPrincipal(recuadroId, fotoId);
+      // Devuelve el Recuadro completo (para que el cliente actualice su estado).
+      return json(200, { recuadro: result.recuadro });
+    } catch (err) {
+      // La edición cerrada es un conflicto de estado (409), no un 400 genérico.
+      if (err instanceof Error && err.name === 'EdicionCerradaError') {
+        return json(409, { error: 'edicion_cerrada', message: err.message });
+      }
       return errorResponse(err);
     }
   });
@@ -228,9 +315,50 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
           email: usuario.email,
           clubId: usuario.clubId,
           zonaHoraria: usuario.zonaHoraria,
+          nombre: usuario.nombre ?? null,
+          alias: usuario.alias ?? null,
+          fechaNacimiento: usuario.fechaNacimiento ?? null,
+          sexo: usuario.sexo ?? null,
+          avatarUrl: usuario.avatarUrl ?? null,
         },
         club,
         temporadaActiva,
+      });
+    } catch (err) {
+      return errorResponse(err);
+    }
+  });
+
+  // Actualiza los datos de perfil del usuario: PATCH /me
+  // Body JSON (parche parcial): { nombre?, alias?, fechaNacimiento?, sexo?,
+  //   avatarUrl?, zonaHoraria? }. Devuelve el usuario actualizado.
+  router.patch('/me', async (context) => {
+    if (!context.userId) return json(400, { error: 'bad_request' });
+    const body = context.request.body;
+    if (typeof body !== 'object' || body === null) {
+      return json(400, { error: 'bad_request', message: 'Cuerpo JSON requerido.' });
+    }
+    const b = body as Record<string, unknown>;
+    const input: Record<string, unknown> = {};
+    for (const campo of ['nombre', 'alias', 'fechaNacimiento', 'sexo', 'avatarUrl', 'zonaHoraria']) {
+      if (typeof b[campo] === 'string') {
+        input[campo] = b[campo];
+      }
+    }
+    try {
+      const usuario = await services.userProfile.actualizar(context.userId, input);
+      return json(200, {
+        usuario: {
+          id: usuario.id,
+          email: usuario.email,
+          clubId: usuario.clubId,
+          zonaHoraria: usuario.zonaHoraria,
+          nombre: usuario.nombre ?? null,
+          alias: usuario.alias ?? null,
+          fechaNacimiento: usuario.fechaNacimiento ?? null,
+          sexo: usuario.sexo ?? null,
+          avatarUrl: usuario.avatarUrl ?? null,
+        },
       });
     } catch (err) {
       return errorResponse(err);

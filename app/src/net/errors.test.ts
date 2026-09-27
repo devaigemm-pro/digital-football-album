@@ -86,6 +86,42 @@ describe('classifyResponse — mapeo de estados (Req 27.2, 27.3)', () => {
     expect(error instanceof PremiumRequiredError).toBe(true);
   });
 
+  it('mapea un 400 REQUIERE_PLAN_PREMIUM (backend deployado) a PremiumRequiredError', () => {
+    const error = classifyResponse(
+      res(400, {
+        error: 'REQUIERE_PLAN_PREMIUM',
+        message: 'Las cards internacionales requieren Plan_Premium.',
+      }),
+    );
+    expect(error instanceof PremiumRequiredError).toBe(true);
+    expect((error as PremiumRequiredError).status).toBe(400);
+    expect((error as PremiumRequiredError).message).toBe(
+      'Las cards internacionales requieren Plan_Premium.',
+    );
+  });
+
+  it('mapea un 400 de conflicto de cambio de Club (código de dominio) a ClubChangeConflictError', () => {
+    const error = classifyResponse(
+      res(400, {
+        error: 'CAMBIO_CLUB_BLOQUEADO',
+        message: 'No puedes cambiar de Club con una Temporada activa.',
+      }),
+    );
+    expect(error instanceof ClubChangeConflictError).toBe(true);
+    expect((error as ClubChangeConflictError).message).toBe(
+      'No puedes cambiar de Club con una Temporada activa.',
+    );
+  });
+
+  it('mapea otros errores de negocio 400 a ApiError conservando el mensaje de dominio', () => {
+    const error = classifyResponse(
+      res(400, { error: 'ALBUM_NO_ENCONTRADO', message: 'Álbum no encontrado.' }),
+    );
+    expect(error instanceof ApiError).toBe(true);
+    expect((error as ApiError).status).toBe(400);
+    expect((error as ApiError).message).toBe('Álbum no encontrado.');
+  });
+
   it('mapea otros estados de error a ApiError genérico', () => {
     const error = classifyResponse(res(500, { message: 'Error interno' }));
     expect(error instanceof ApiError).toBe(true);

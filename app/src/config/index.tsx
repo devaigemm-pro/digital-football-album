@@ -12,6 +12,10 @@
 // react-native-config expone las claves declaradas en `.env` como propiedades
 // de su export por defecto (todas string | undefined). Ver README del paquete:
 //   https://github.com/lugg/react-native-config
+//
+// Claves esperadas en `.env` (ver `.env.example`): API_BASE_URL (backend Render),
+// SUPABASE_URL y SUPABASE_ANON_KEY (auth directa contra Supabase, docs §2),
+// APP_ENV, GOOGLE_WEB_CLIENT_ID, IOS_URL_SCHEME.
 
 import Config from 'react-native-config';
 
