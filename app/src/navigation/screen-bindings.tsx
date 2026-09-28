@@ -332,16 +332,17 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
       onElegirClub={() => props.navigation?.navigate('SeleccionClub')}
       // El "+" de la lámina abre la galería, sube la foto de perfil del hincha
       // (`POST /me/avatar`) y refresca el perfil para montarla en el carné.
-      onAgregarFotoPerfil={() =>
-        void (async () => {
-          const seleccion = await deps.captureNative.pickFromGallery();
-          if (!seleccion) {
-            return; // el usuario canceló el selector.
-          }
-          await deps.profileClient.subirAvatar(encodeBase64(seleccion.binario));
-          await profilePresenter.loadProfile();
-        })()
-      }
+      // DEVUELVE la promesa (sin `void`) para que el carné muestre el estado y
+      // capture el error real si la subida o el picker fallan.
+      onAgregarFotoPerfil={async () => {
+        const seleccion = await deps.captureNative.pickFromGallery();
+        if (!seleccion) {
+          return; // el usuario canceló el selector.
+        }
+        await deps.profileClient.subirAvatar(encodeBase64(seleccion.binario));
+        // Refresca el perfil para que la lámina muestre la foto nueva.
+        await profilePresenter.loadProfile();
+      }}
     />
   );
 

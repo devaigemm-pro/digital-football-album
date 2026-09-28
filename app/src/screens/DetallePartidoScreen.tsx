@@ -27,6 +27,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -94,6 +95,39 @@ function marcador(p: PartidoDetalle): string | null {
 }
 
 /**
+ * Abreviatura corta y legible del nombre de un equipo para la lista de
+ * goleadores (donde el espacio es escaso). Reglas:
+ *   - Quita prefijos comunes ("Club", "Deportes", "CD", "CSD").
+ *   - Si tras limpiar hay varias palabras significativas, usa sus iniciales
+ *     (p. ej. "Universidad de Chile" → "UDC", "Unión Española" → "UE").
+ *   - Si es una sola palabra, usa sus primeras 3 letras en mayúscula
+ *     (p. ej. "Cobresal" → "COB", "Palestino" → "PAL").
+ * Devuelve el nombre original si no se puede abreviar con sentido.
+ */
+function abreviarEquipo(nombre: string): string {
+  const limpio = nombre.trim();
+  if (limpio.length === 0) {
+    return nombre;
+  }
+  // Palabras "de relleno" que no aportan a la sigla.
+  const relleno = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'y', 'fc', 'cd', 'cf', 'club', 'csd', 'sd']);
+  const palabras = limpio
+    .split(/\s+/)
+    .filter((p) => !relleno.has(p.toLowerCase()));
+  if (palabras.length === 0) {
+    return limpio.slice(0, 3).toUpperCase();
+  }
+  if (palabras.length === 1) {
+    return palabras[0]!.slice(0, 3).toUpperCase();
+  }
+  // Iniciales de hasta 4 palabras significativas.
+  return palabras
+    .slice(0, 4)
+    .map((p) => p.charAt(0).toUpperCase())
+    .join('');
+}
+
+/**
  * URI renderizable de la Foto_Principal montada en la lámina, o null si vacía.
  * Prefiere la `url` firmada (renderizable por `<Image>`); el `objectKey` es una
  * clave interna del storage que NO se puede mostrar directamente.
@@ -127,6 +161,21 @@ export function DetallePartidoScreen({
   const [escudoPropio, setEscudoPropio] = useState<string | null>(null);
   // Monograma del club propio como respaldo si aún no hay escudo.
   const [monogramaPropio, setMonogramaPropio] = useState<string>('FC');
+  // Formaciones desplegables: conjunto de equipos cuya alineación está abierta.
+  const [formacionesAbiertas, setFormacionesAbiertas] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+  const toggleFormacion = useCallback((equipo: string) => {
+    setFormacionesAbiertas((prev) => {
+      const next = new Set(prev);
+      if (next.has(equipo)) {
+        next.delete(equipo);
+      } else {
+        next.add(equipo);
+      }
+      return next;
+    });
+  }, []);
 
   const recargar = useCallback(async () => {
     setCargando(true);
@@ -299,6 +348,12 @@ export function DetallePartidoScreen({
           live={detalle.estado === 'EN_CURSO'}
           style={styles.heroScore}
         />
+        {/* Estadio donde se jugó, bajo el marcador. */}
+        {detalle.estadio ? (
+          <Text style={styles.heroEstadio} numberOfLines={1}>
+            📍 {detalle.estadio}
+          </Text>
+        ) : null}
         <View style={styles.heroBadges}>
           {detalle.esClasico ? <Badge label="Clásico" tone="gold" style={styles.heroBadge} /> : null}
           {detalle.esInternacional ? (
@@ -348,9 +403,14 @@ export function DetallePartidoScreen({
               <Text style={styles.golJugador} numberOfLines={1}>
                 {g.jugador}
               </Text>
-              <Text style={styles.golEquipo} numberOfLines={1}>
-                {g.equipo}
-              </Text>
+              {/* Equipo del goleador, abreviado, como píldora (a qué equipo
+                  corresponde cada jugador). El nombre completo queda en
+                  accessibilityLabel para lectores de pantalla. */}
+              <View style={styles.golEquipoPill} accessibilityLabel={`Equipo: ${g.equipo}`}>
+                <Text style={styles.golEquipoText} numberOfLines={1}>
+                  {abreviarEquipo(g.equipo)}
+                </Text>
+              </View>
             </View>
           ))
         ) : (
@@ -361,22 +421,36 @@ export function DetallePartidoScreen({
           </Text>
         )}
 
-        {/* Formaciones */}
+        {/* Formaciones (desplegables): toca el equipo para ver/ocultar su once. */}
         <Text style={styles.titulo}>Formaciones</Text>
         {detalle.formaciones.length > 0 ? (
-          detalle.formaciones.map((f: FormacionEquipo) => (
-            <View key={f.equipo} style={styles.formacionEquipo}>
-              <Text style={styles.formacionNombre} numberOfLines={1}>
-                {f.equipo}
-                {f.formacion ? ` · ${f.formacion}` : ''}
-              </Text>
-              {f.titulares.map((j) => (
-                <Text key={j.id} style={styles.formacionJugador} numberOfLines={1}>
-                  • {j.nombre}
-                </Text>
-              ))}
-            </View>
-          ))
+          detalle.formaciones.map((f: FormacionEquipo) => {
+            const abierta = formacionesAbiertas.has(f.equipo);
+            return (
+              <View key={f.equipo} style={styles.formacionEquipo}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: abierta }}
+                  accessibilityLabel={`${abierta ? 'Ocultar' : 'Ver'} la formación de ${f.equipo}`}
+                  onPress={() => toggleFormacion(f.equipo)}
+                  style={styles.formacionHeader}
+                >
+                  <Text style={styles.formacionNombre} numberOfLines={1}>
+                    {f.equipo}
+                    {f.formacion ? ` · ${f.formacion}` : ''}
+                  </Text>
+                  <Text style={styles.formacionChevron}>{abierta ? '▾' : '▸'}</Text>
+                </Pressable>
+                {abierta
+                  ? f.titulares.map((j) => (
+                      <Text key={j.id} style={styles.formacionJugador} numberOfLines={1}>
+                        • {j.nombre}
+                      </Text>
+                    ))
+                  : null}
+              </View>
+            );
+          })
         ) : (
           <Text style={styles.mutedText}>
             Las formaciones aparecerán cuando estén disponibles.
@@ -424,6 +498,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   heroScore: { marginTop: spacing.sm },
+  heroEstadio: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
   heroBadges: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, alignSelf: 'center' },
   heroBadge: {},
 
@@ -478,11 +559,20 @@ const styles = StyleSheet.create({
     fontSize: fontSize.body,
     fontWeight: fontWeight.semibold,
   },
-  golEquipo: {
-    color: palette.textMutedOnDark,
+  golEquipoPill: {
+    backgroundColor: palette.glassFill,
+    borderWidth: 1,
+    borderColor: palette.glassBorder,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  golEquipoText: {
+    color: palette.textOnDark,
     fontFamily: fonts.body,
-    fontSize: fontSize.small,
-    maxWidth: '35%',
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
   },
 
   // Lámina del hincha destacada arriba del detalle del encuentro.
@@ -499,7 +589,26 @@ const styles = StyleSheet.create({
   laminaAcciones: { flexDirection: 'row', gap: spacing.sm, alignSelf: 'stretch' },
   laminaBtn: { flex: 1 },
 
-  formacionEquipo: { marginBottom: spacing.md },
+  formacionEquipo: {
+    marginBottom: spacing.sm,
+    backgroundColor: palette.glassFill,
+    borderWidth: 1,
+    borderColor: palette.glassBorder,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  formacionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  formacionChevron: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.body,
+    marginLeft: spacing.sm,
+  },
   formacionNombre: {
     color: palette.textOnDark,
     fontFamily: fonts.body,

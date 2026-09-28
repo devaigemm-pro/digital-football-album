@@ -57,9 +57,11 @@ export interface CarneScreenProps {
   readonly onElegirClub?: () => void;
   /**
    * Agrega/cambia la foto de perfil del hincha (la que se monta en la lámina
-   * del carné). Se dispara al tocar el "+" sobre la lámina del avatar.
+   * del carné). Se dispara al tocar el "+" sobre la lámina del avatar. Debe
+   * resolver cuando la subida terminó (o rechazar con el error) para que el
+   * carné muestre el estado y refresque la foto.
    */
-  readonly onAgregarFotoPerfil?: () => void;
+  readonly onAgregarFotoPerfil?: () => Promise<void>;
 }
 
 /** Progreso del álbum: montadas / total (recuadros con Foto_Principal). */
@@ -83,9 +85,19 @@ function derivarProgreso(partidos: PartidosState['partidos']): Progreso {
 function nombreVisible(perfil: ProfileState['perfil']): string {
   const u = perfil?.usuario;
   if (!u) {
-    return 'Hincha';
+    return 'Sin nombre';
   }
-  return u.nombre ?? u.alias ?? u.email ?? 'Hincha';
+  if (u.nombre && u.nombre.trim().length > 0) {
+    return u.nombre.trim();
+  }
+  if (u.alias && u.alias.trim().length > 0) {
+    return u.alias.trim();
+  }
+  // Parte local del correo (antes de la @) como identificador legible.
+  if (u.email && u.email.includes('@')) {
+    return u.email.split('@')[0] ?? u.email;
+  }
+  return u.email ?? 'Sin nombre';
 }
 
 /**
@@ -113,6 +125,9 @@ export function CarneScreen({
     pres.getPartidosState(),
   );
   const [sync, setSync] = useState<SyncState>(() => pres.getSyncState());
+  // Estado de la subida de la foto de perfil (para dar feedback y mostrar error).
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   // Se SUSCRIBE al presentador compartido; solo dispara la carga si aún está
   // `idle`. Es clave NO re-lanzar `loadProfile` si el perfil ya está cargado (o
@@ -172,6 +187,30 @@ export function CarneScreen({
   const cargandoPerfil =
     profile.status === 'loading' || profile.status === 'idle';
 
+  /**
+   * Cambia/agrega la foto de perfil con feedback visible: marca "subiendo",
+   * ejecuta la subida (galería → `POST /me/avatar` → refresco) y muestra el
+   * error real si falla, en vez de tragarlo silenciosamente.
+   */
+  const onCambiarFoto = React.useCallback(() => {
+    if (!onAgregarFotoPerfil) {
+      return;
+    }
+    setAvatarError(null);
+    setAvatarBusy(true);
+    void (async () => {
+      try {
+        await onAgregarFotoPerfil();
+      } catch (e) {
+        setAvatarError(
+          e instanceof Error ? e.message : 'No se pudo actualizar la foto.',
+        );
+      } finally {
+        setAvatarBusy(false);
+      }
+    })();
+  }, [onAgregarFotoPerfil]);
+
   // Temporada legible (nombre "externo" tal cual lo persiste el backend).
   const etiquetaTemporada = temporada ? temporada.temporadaExterna : null;
 
@@ -202,12 +241,14 @@ export function CarneScreen({
             <View style={styles.stickerWrap}>
               <Pressable
                 accessibilityRole="button"
+                accessibilityState={{ disabled: avatarBusy }}
                 accessibilityLabel={
                   perfil?.usuario.avatarUrl
                     ? 'Cambiar la foto de perfil de tu lámina'
                     : 'Agregar la foto de perfil a tu lámina'
                 }
-                onPress={() => onAgregarFotoPerfil?.()}
+                disabled={avatarBusy}
+                onPress={onCambiarFoto}
               >
                 <StickerSlot
                   numero={progreso.montadas > 0 ? progreso.montadas : '★'}
@@ -218,13 +259,19 @@ export function CarneScreen({
                   style={[styles.addFotoBadge, { backgroundColor: theme.palette.accent }]}
                   pointerEvents="none"
                 >
-                  <Text style={styles.addFotoPlus}>+</Text>
+                  {avatarBusy ? (
+                    <ActivityIndicator color={palette.onAccent} size="small" />
+                  ) : (
+                    <Text style={styles.addFotoPlus}>+</Text>
+                  )}
                 </View>
               </Pressable>
             </View>
 
             {/* Identidad */}
             <View style={styles.identidad}>
+              {/* Etiqueta fija "HINCHA" con el nombre del hincha DEBAJO. */}
+              <Text style={styles.hinchaLabel}>HINCHA</Text>
               <Text style={styles.nombre} numberOfLines={2}>
                 {nombre}
               </Text>
@@ -289,6 +336,11 @@ export function CarneScreen({
             )}
           </View>
         </View>
+
+        {/* Error de subida de la foto de perfil (visible, no silencioso). */}
+        {avatarError !== null ? (
+          <Text style={styles.syncError}>{avatarError}</Text>
+        ) : null}
 
         {/* Insignias/estado */}
         {temporada ? (
@@ -421,6 +473,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   identidad: { flex: 1, justifyContent: 'center' },
+  hinchaLabel: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.semibold,
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
   nombre: {
     color: palette.textOnDark,
     fontFamily: fonts.display,

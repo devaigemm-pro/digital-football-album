@@ -39,10 +39,20 @@ type PickedPhoto = {
  * bytes de forma portable, `mediaType: 'photo'` (solo fotos, Req 3.1/3.2) y una
  * sola imagen por invocación (`selectionLimit: 1`).
  */
+// `maxWidth`/`maxHeight`: redimensiona la imagen antes de devolverla. Es CLAVE:
+//   1) garantiza que el asset traiga `width`/`height` (el Photo Picker de
+//      Android 13+ a veces NO los devuelve para el original), evitando que la
+//      foto se descarte silenciosamente;
+//   2) reduce el peso del base64, evitando el 502 por cuerpo grande.
+// `quality: 0.85` recomprime lo justo para bajar tamaño sin perder calidad
+// visible. 2000 px de lado largo es más que suficiente para foto de perfil y
+// para imprenta a 300 DPI en el recuadro.
 const COMMON_OPTIONS = {
   mediaType: 'photo',
   includeBase64: true,
-  quality: 1,
+  quality: 0.85,
+  maxWidth: 2000,
+  maxHeight: 2000,
 } as const;
 
 const LIBRARY_OPTIONS: ImageLibraryOptions = {
@@ -55,24 +65,43 @@ const CAMERA_OPTIONS: CameraOptions = {
   saveToPhotos: false,
 };
 
+/** Error de selección de imagen (para distinguir cancelación de fallo real). */
+export class ImagePickerError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ImagePickerError';
+  }
+}
+
 /**
- * Traduce una `ImagePickerResponse` al `PickedPhoto` del contrato, o `null` si
- * el usuario canceló o no hay un asset con datos utilizables. Requiere que el
- * asset traiga `base64`, `width` y `height`; si faltan, se trata como cancelado
- * para no propagar datos incompletos a la subida.
+ * Traduce una `ImagePickerResponse` al `PickedPhoto` del contrato.
+ *   - Devuelve `null` SOLO si el usuario canceló (para no propagar nada).
+ *   - Si el picker reporta un error, o el asset no trae `base64`, LANZA
+ *     `ImagePickerError` (antes se tragaba como cancelado, lo que hacía que la
+ *     subida no ocurriera SIN AVISO — causa del "no se reemplaza la foto").
+ *   - `width`/`height` son opcionales: si faltan, se usa un cuadrado por defecto
+ *     (el binario es lo que importa; las dimensiones son metadato). Con
+ *     `maxWidth/maxHeight` normalmente vienen presentes.
  */
 function toPickedPhoto(response: ImagePickerResponse): PickedPhoto | null {
-  if (response.didCancel || response.errorCode) {
-    return null;
+  if (response.didCancel) {
+    return null; // el usuario canceló: no es un error.
+  }
+  if (response.errorCode) {
+    throw new ImagePickerError(
+      `No se pudo abrir la galería/cámara: ${response.errorMessage ?? response.errorCode}`,
+    );
   }
   const asset: Asset | undefined = response.assets?.[0];
-  if (!asset || !asset.base64 || asset.width == null || asset.height == null) {
-    return null;
+  if (!asset || !asset.base64) {
+    throw new ImagePickerError(
+      'La imagen seleccionada no se pudo leer (sin datos). Intenta con otra foto.',
+    );
   }
   return {
     binario: decodeBase64(asset.base64),
-    anchoPx: asset.width,
-    altoPx: asset.height,
+    anchoPx: asset.width ?? 1000,
+    altoPx: asset.height ?? 1000,
   };
 }
 
