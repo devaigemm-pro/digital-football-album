@@ -39,6 +39,7 @@ import { CapturePresenter, MomentoDetailPresenter } from '../capture';
 import type { CaptureNativeBridge } from '../screens/CapturaScreen';
 import type { PermissionGate } from '../permissions';
 import type { SubscriptionClient } from '../subscription';
+import { updateEmail } from '../auth';
 import { ProfilePresenter, type ProfileState } from '../profile';
 
 import { LoginScreen } from '../screens/LoginScreen';
@@ -438,13 +439,21 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
       onLogout={() => {
         void deps.authPresenter.logout().finally(() => deps.onRedirectToLogin?.());
       }}
+      // El correo es un dato de Supabase Auth (no del backend); el cambio se
+      // confirma desde el email que Supabase envía al usuario.
+      onCambiarCorreo={(email) => updateEmail(email)}
     />
   );
 
-  const Ajustes = (): React.ReactElement => (
+  const Ajustes = (props: {
+    navigation?: { navigate: (route: string, params?: Record<string, unknown>) => void };
+  }): React.ReactElement => (
     <AjustesScreen
       presenter={deps.authPresenter}
       onRedirectToLogin={deps.onRedirectToLogin}
+      onCuenta={() => props.navigation?.navigate('Perfil')}
+      permissionGate={deps.permissionGate}
+      getEntitlements={() => deps.subscriptionClient.getEntitlements()}
     />
   );
 

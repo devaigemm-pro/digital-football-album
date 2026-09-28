@@ -117,6 +117,25 @@ export async function signOut(): Promise<void> {
 }
 
 /**
+ * Cambia el correo de la cuenta en Supabase Auth (`supabase.auth.updateUser`).
+ *
+ * IMPORTANTE: el correo es un dato de autenticación gestionado por Supabase, NO
+ * por el backend (`PATCH /me` no acepta `email`). Según la configuración del
+ * proyecto, Supabase envía un email de confirmación al correo nuevo (y a veces
+ * al antiguo); el cambio NO surte efecto hasta que el usuario confirma desde ese
+ * enlace. Por eso la UI debe avisar "revisa tu correo para confirmar el cambio".
+ *
+ * @throws Error con el mensaje de Supabase si el correo es inválido o ya existe.
+ */
+export async function updateEmail(email: string): Promise<void> {
+  const normalizado = email.trim().toLowerCase();
+  const { error } = await supabase.auth.updateUser({ email: normalizado });
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+/**
  * Suscribe un callback a los cambios de estado de sesión de Supabase
  * (login/logout/refresh de token). Devuelve una función para desuscribirse.
  * El wiring de la app la usa para mantener sincronizado el holder de token en

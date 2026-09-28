@@ -11,6 +11,7 @@ export {
   signUpWithEmail,
   signInWithEmail,
   signOut,
+  updateEmail,
   subscribeToAuthState,
 } from './supabase-client';
 

@@ -12,11 +12,31 @@
 // flujo (álbum, partidos) necesita para no depender de datos hardcodeados.
 
 import type {
+  ActualizarPerfilInput,
   Perfil,
   PartidoLamina,
   ProfileClient,
   SyncTemporadaResult,
 } from '../adapters/http-profile-client';
+
+/**
+ * Extrae el año (4 dígitos) de un identificador de temporada externa. El backend
+ * usa varios formatos según cómo se creó la temporada:
+ *   - "2026"             → temporada directa por año.
+ *   - "265:2023:2315"    → "<leagueId>:<season>:<teamId>".
+ *   - "team:33:2023"     → "team:<teamId>:<season>".
+ * Devuelve el primer grupo de 4 dígitos que representa un año plausible
+ * (19xx–20xx). Si no encuentra ninguno, devuelve el string original recortado.
+ */
+export function añoDeTemporada(temporadaExterna: string): string {
+  const matches = temporadaExterna.match(/(?:19|20)\d{2}/g);
+  if (matches && matches.length > 0) {
+    // El año de la temporada es el mayor de los grupos plausibles (evita tomar
+    // un id numérico que por casualidad empiece por 19/20).
+    return matches.reduce((mayor, actual) => (actual > mayor ? actual : mayor));
+  }
+  return temporadaExterna.trim();
+}
 
 /** Fase de una carga no bloqueante. */
 export type LoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
@@ -37,6 +57,16 @@ export interface PartidosState {
   readonly error: string | null;
 }
 
+/** Fase de una edición de perfil (`PATCH /me`). */
+export type EditStatus = 'idle' | 'saving' | 'done' | 'error';
+
+/** Estado observable de la edición de datos del perfil. */
+export interface EditState {
+  readonly status: EditStatus;
+  /** Mensaje de error legible cuando `status === 'error'`, o `null`. */
+  readonly error: string | null;
+}
+
 /** Fase de la sincronización de temporada desde la API deportiva. */
 export type SyncStatus = 'idle' | 'syncing' | 'done' | 'error';
 
@@ -50,10 +80,12 @@ export interface SyncState {
 export type ProfileStateListener = (state: ProfileState) => void;
 export type PartidosStateListener = (state: PartidosState) => void;
 export type SyncStateListener = (state: SyncState) => void;
+export type EditStateListener = (state: EditState) => void;
 
 const INITIAL_PROFILE: ProfileState = { status: 'idle', perfil: null, error: null };
 const INITIAL_PARTIDOS: PartidosState = { status: 'idle', partidos: [], error: null };
 const INITIAL_SYNC: SyncState = { status: 'idle', result: null, error: null };
+const INITIAL_EDIT: EditState = { status: 'idle', error: null };
 
 /** Mensajes por defecto ante fallos de carga. */
 export const PROFILE_ERROR_MESSAGE =
@@ -62,6 +94,8 @@ export const PARTIDOS_ERROR_MESSAGE =
   'No se pudieron cargar los partidos. Intenta de nuevo.';
 export const SYNC_ERROR_MESSAGE =
   'No se pudo cargar la temporada. Intenta de nuevo.';
+export const EDIT_ERROR_MESSAGE =
+  'No se pudieron guardar los cambios. Intenta de nuevo.';
 
 function toErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error && err.message.trim().length > 0) {
@@ -83,9 +117,11 @@ export class ProfilePresenter {
   private profileState: ProfileState = INITIAL_PROFILE;
   private partidosState: PartidosState = INITIAL_PARTIDOS;
   private syncState: SyncState = INITIAL_SYNC;
+  private editState: EditState = INITIAL_EDIT;
   private readonly profileListeners = new Set<ProfileStateListener>();
   private readonly partidosListeners = new Set<PartidosStateListener>();
   private readonly syncListeners = new Set<SyncStateListener>();
+  private readonly editListeners = new Set<EditStateListener>();
   private profileToken = 0;
   private partidosToken = 0;
 
@@ -204,6 +240,62 @@ export class ProfilePresenter {
   private emitSync(state: SyncState): void {
     this.syncState = state;
     for (const listener of this.syncListeners) {
+      listener(state);
+    }
+  }
+
+  // --- Edición de perfil (PATCH /me) ----------------------------------------
+
+  getEditState(): EditState {
+    return this.editState;
+  }
+
+  subscribeEdit(listener: EditStateListener): () => void {
+    this.editListeners.add(listener);
+    listener(this.editState);
+    return () => {
+      this.editListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Actualiza los datos de perfil editables por el usuario (`nombre`, `alias`)
+   * vía `PATCH /me`. Al terminar con éxito refleja el usuario devuelto en el
+   * estado del perfil (sin recargar `GET /me` completo) y deja `edit` en `done`.
+   * Siempre resuelve `true`/`false` según el resultado; nunca lanza a la UI.
+   *
+   * Nota: el correo NO se actualiza aquí (lo gestiona Supabase Auth, con
+   * confirmación por email); esta vía es solo para los campos del backend.
+   */
+  async updateProfile(input: ActualizarPerfilInput): Promise<boolean> {
+    this.emitEdit({ status: 'saving', error: null });
+    try {
+      const usuario = await this.client.actualizarPerfil(input);
+      // Refleja el usuario actualizado en el perfil ya cargado (si lo hay).
+      const actual = this.profileState.perfil;
+      if (actual) {
+        this.emitProfile({
+          status: 'loaded',
+          perfil: { ...actual, usuario },
+          error: null,
+        });
+      }
+      this.emitEdit({ status: 'done', error: null });
+      return true;
+    } catch (err) {
+      this.emitEdit({ status: 'error', error: toErrorMessage(err, EDIT_ERROR_MESSAGE) });
+      return false;
+    }
+  }
+
+  /** Restablece el estado de edición a `idle` (p. ej. al cerrar el modal). */
+  resetEdit(): void {
+    this.emitEdit(INITIAL_EDIT);
+  }
+
+  private emitEdit(state: EditState): void {
+    this.editState = state;
+    for (const listener of this.editListeners) {
       listener(state);
     }
   }
