@@ -85,7 +85,8 @@ describe('ApiFootballSportsTransport — fixtures filtrados por equipo', () => {
     expect(urls[0]).not.toContain('league=');
     expect(urls[0]).toContain(`team=${TEAM_ID}`);
     expect(urls[0]).toContain('season=2023');
-    expect(urls[0]).toContain('page=1');
+    // La primera página NO lleva `page` (el endpoint fixtures no lo acepta).
+    expect(urls[0]).not.toContain('page=');
   });
 
   it('recorre TODAS las páginas (no pierde partidos de páginas siguientes, p. ej. Copa Chile)', async () => {
@@ -121,8 +122,9 @@ describe('ApiFootballSportsTransport — fixtures filtrados por equipo', () => {
     const client = new ResilientSportsApiClient({ transport, maxAttempts: 1 });
 
     const fixtures = await client.fetchFixtures(`team:${TEAM_ID}:2023`);
-    // Se pidieron 2 páginas y se unieron ambos partidos (incluida la Copa Chile).
-    expect(urls.some((u) => u.includes('page=1'))).toBe(true);
+    // Página 1 SIN `page`; página 2 con `page=2` (solo se pagina si total>1).
+    expect(urls.length).toBe(2);
+    expect(urls[0]).not.toContain('page=');
     expect(urls.some((u) => u.includes('page=2'))).toBe(true);
     expect(fixtures).toHaveLength(2);
     expect(fixtures.map((f) => f.competicion)).toContain('Copa Chile');

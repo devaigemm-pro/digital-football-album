@@ -385,8 +385,12 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
     let pagina = 1;
     let totalPaginas = 1;
     do {
+      // La primera página se pide SIN `page` (el endpoint `fixtures` de
+      // API-Football NO acepta ese parámetro y lo rechaza con "The Page field
+      // do not exist."). Solo se añade `page` a partir de la 2.ª y únicamente
+      // si el proveedor reportó múltiples páginas (`paging.total > 1`).
       const sep = baseUrl.includes('?') ? '&' : '?';
-      const url = `${baseUrl}${sep}page=${pagina}`;
+      const url = pagina === 1 ? baseUrl : `${baseUrl}${sep}page=${pagina}`;
       const data = await this.request<ApiFootballResponse<T>>(url, signal);
       if (tieneErroresApiFootball(data.errors)) {
         throw new SportsApiError(
