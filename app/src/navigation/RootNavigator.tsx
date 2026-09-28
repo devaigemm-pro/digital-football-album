@@ -51,10 +51,7 @@ export interface ScreenBundle {
   readonly HomeAlbum: BoundScreen;
   readonly Partidos: BoundScreen;
   readonly DetallePartido: BoundScreen;
-  readonly Captura: BoundScreen;
-  readonly DetalleCard: BoundScreen;
   readonly Suscripcion: BoundScreen;
-  readonly EnvioPedido: BoundScreen;
   readonly Perfil: BoundScreen;
   readonly Ajustes: BoundScreen;
   /**
@@ -101,10 +98,7 @@ const TAB_ICONS: Record<string, string> = {
   HomeAlbum: 'book',
   Partidos: 'football',
   DetallePartido: 'football',
-  Captura: 'camera',
-  DetalleCard: 'sparkles',
   Suscripcion: 'card',
-  EnvioPedido: 'cube',
   Perfil: 'person',
   Ajustes: 'settings',
 };
@@ -117,9 +111,14 @@ function tabScreenOptions({
 }): BottomTabNavigationOptions {
   const base = TAB_ICONS[route.name] ?? 'ellipse';
   return {
+    headerShown: false,
+    // TabBar oscuro "Stadium Night": barra casi negra, pestaña activa en acento.
     tabBarActiveTintColor: palette.accent,
-    tabBarInactiveTintColor: palette.textMutedOnLight,
-    tabBarStyle: { backgroundColor: palette.surface, borderTopColor: palette.borderOnLight },
+    tabBarInactiveTintColor: palette.textMutedOnDark,
+    tabBarStyle: {
+      backgroundColor: '#070A10',
+      borderTopColor: palette.borderOnDark,
+    },
     tabBarIcon: ({ color, size, focused }) => (
       <Icon name={focused ? base : `${base}-outline`} size={size} color={color} />
     ),
@@ -151,24 +150,9 @@ function MainNavigator({ screens }: { screens: ScreenBundle }): React.JSX.Elemen
         options={{ title: 'Detalle', tabBarButton: () => null, tabBarStyle: { display: 'none' } }}
       />
       <MainTabs.Screen
-        name="Captura"
-        component={screens.Captura}
-        options={{ title: 'Captura' }}
-      />
-      <MainTabs.Screen
-        name="DetalleCard"
-        component={screens.DetalleCard}
-        options={{ title: 'Detalle' }}
-      />
-      <MainTabs.Screen
         name="Suscripcion"
         component={screens.Suscripcion}
         options={{ title: 'Suscripción' }}
-      />
-      <MainTabs.Screen
-        name="EnvioPedido"
-        component={screens.EnvioPedido}
-        options={{ title: 'Envío' }}
       />
       <MainTabs.Screen
         name="Perfil"

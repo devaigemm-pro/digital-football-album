@@ -23,17 +23,14 @@ const EXPECTED_ROUTES: RouteName[] = [
   'HomeAlbum',
   'Partidos',
   'DetallePartido',
-  'Captura',
-  'DetalleCard',
   'Suscripcion',
-  'EnvioPedido',
   'Perfil',
   'Ajustes',
 ];
 
 describe('grafo de rutas (design.md · Navegación y pantallas)', () => {
-  it('contiene exactamente las 12 pantallas esperadas', () => {
-    expect(ALL_ROUTE_NAMES.length).toBe(12);
+  it('contiene exactamente las 9 pantallas esperadas', () => {
+    expect(ALL_ROUTE_NAMES.length).toBe(9);
     // Mismo conjunto, sin depender del orden.
     const sorted = [...ALL_ROUTE_NAMES].sort();
     const expectedSorted = [...EXPECTED_ROUTES].sort();
@@ -54,17 +51,14 @@ describe('partición stack de autenticación vs pestañas principales', () => {
     );
   });
 
-  it('las pestañas principales son las 10 pantallas restantes', () => {
+  it('las pestañas principales son las 7 pantallas restantes', () => {
     expect([...routesFor('mainTabs')].sort()).toEqual(
       [
         'Carne',
         'HomeAlbum',
         'Partidos',
         'DetallePartido',
-        'Captura',
-        'DetalleCard',
         'Suscripcion',
-        'EnvioPedido',
         'Perfil',
         'Ajustes',
       ].sort(),
@@ -97,10 +91,10 @@ describe('resolveNavigationTarget: validación de parámetros', () => {
   });
 
   it('resuelve rutas con todos los parámetros requeridos presentes', () => {
-    const target = resolveNavigationTarget('DetalleCard', {
-      recuadroId: 'r-1',
+    const target = resolveNavigationTarget('DetallePartido', {
+      partidoId: 'p-1',
     });
-    expect(target.name).toBe('DetalleCard');
+    expect(target.name).toBe('DetallePartido');
   });
 
   it('rechaza una ruta desconocida', () => {
@@ -109,9 +103,9 @@ describe('resolveNavigationTarget: validación de parámetros', () => {
 
   it('rechaza cuando faltan parámetros requeridos', () => {
     expect(() => resolveNavigationTarget('HomeAlbum')).toThrow();
-    expect(() => resolveNavigationTarget('Captura', {})).toThrow();
+    expect(() => resolveNavigationTarget('DetallePartido', {})).toThrow();
     expect(() =>
-      resolveNavigationTarget('EnvioPedido', { temporadaId: undefined }),
+      resolveNavigationTarget('Partidos', { temporadaId: undefined }),
     ).toThrow();
   });
 });

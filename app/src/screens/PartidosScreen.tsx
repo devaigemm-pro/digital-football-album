@@ -12,8 +12,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
+  SectionList,
   StyleSheet,
   Text,
   View,
@@ -53,6 +53,35 @@ function marcador(p: PartidoLamina): string {
   return p.estado === 'PROGRAMADO' ? 'Próximo' : p.estado;
 }
 
+/** Sección de la lista: una competición con sus partidos ordenados. */
+interface PartidosSection {
+  readonly title: string;
+  readonly data: readonly PartidoLamina[];
+}
+
+/**
+ * Agrupa los partidos por competición, preservando el orden de aparición de las
+ * competiciones y el orden interno de sus partidos. Los partidos sin
+ * competición conocida caen en "Otros".
+ */
+function agruparPorCompeticion(partidos: readonly PartidoLamina[]): PartidosSection[] {
+  const orden: string[] = [];
+  const grupos = new Map<string, PartidoLamina[]>();
+
+  for (const p of partidos) {
+    const clave = p.competicion?.trim() ? p.competicion : 'Otros';
+    let grupo = grupos.get(clave);
+    if (!grupo) {
+      grupo = [];
+      grupos.set(clave, grupo);
+      orden.push(clave);
+    }
+    grupo.push(p);
+  }
+
+  return orden.map((title) => ({ title, data: grupos.get(title) ?? [] }));
+}
+
 /**
  * Pantalla de lista de partidos/láminas. Carga los partidos de la temporada al
  * montar (no bloqueante) y permite tocar uno para tomar su foto.
@@ -71,6 +100,11 @@ export function PartidosScreen({
     void pres.loadPartidos(temporadaId);
     return unsubscribe;
   }, [pres, temporadaId]);
+
+  const sections = useMemo(
+    () => agruparPorCompeticion(state.partidos),
+    [state.partidos],
+  );
 
   const renderItem = ({ item }: ListRenderItemInfo<PartidoLamina>): React.ReactElement => (
     <Pressable
@@ -92,7 +126,7 @@ export function PartidosScreen({
           vs {item.rival}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {fechaCorta(item.fechaHora)} · {item.competicion} · {marcador(item)}
+          {fechaCorta(item.fechaHora)} · {marcador(item)}
         </Text>
       </View>
 
@@ -133,10 +167,17 @@ export function PartidosScreen({
           </View>
         ) : null}
 
-        <FlatList
-          data={state.partidos}
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item.partidoId}
           renderItem={renderItem}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              <Text style={styles.sectionCount}>{section.data.length}</Text>
+            </View>
+          )}
+          stickySectionHeadersEnabled={false}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             state.status === 'loaded' ? (
@@ -156,13 +197,35 @@ const styles = StyleSheet.create({
   heroSpinner: { alignSelf: 'flex-start', marginTop: spacing.sm },
   body: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   list: { paddingBottom: spacing.lg },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.xs,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  sectionTitle: {
+    color: palette.textOnDark,
+    fontFamily: fonts.display,
+    fontSize: fontSize.subtitle,
+    fontWeight: fontWeight.bold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionCount: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.semibold,
+  },
   fila: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: palette.surface,
+    backgroundColor: palette.glassFill,
     borderWidth: 1,
-    borderColor: palette.borderOnLight,
+    borderColor: palette.borderOnDark,
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.sm,
@@ -182,13 +245,13 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
   },
   info: { flex: 1 },
-  rival: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.bold },
-  meta: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginTop: 2 },
+  rival: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.bold },
+  meta: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.small, marginTop: 2 },
   errorBox: { marginBottom: spacing.md },
   errorText: { color: palette.danger, fontFamily: fonts.body, marginBottom: spacing.xs },
   retry: { color: palette.info, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
   vacio: {
-    color: palette.textMutedOnLight,
+    color: palette.textMutedOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.small,
     textAlign: 'center',

@@ -44,7 +44,6 @@ import { ProfilePresenter, type ProfileState } from '../profile';
 import { LoginScreen } from '../screens/LoginScreen';
 import { AjustesScreen } from '../screens/AjustesScreen';
 import { HomeAlbumScreen } from '../screens/HomeAlbumScreen';
-import { CapturaScreen } from '../screens/CapturaScreen';
 import { DigitalCardScreen } from '../screens/DigitalCardScreen';
 import { CompartirSheet } from '../screens/CompartirSheet';
 import { PerfilScreen } from '../screens/PerfilScreen';
@@ -420,57 +419,9 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
     );
   };
 
-  const Captura = (
-    props: { route?: { params?: { partidoId?: string } } },
-  ): React.ReactElement => {
-    const { partidoId } = useParams<{ partidoId: string }>(props);
-    if (!partidoId) {
-      // Sin partido seleccionado: se llega a Captura desde la pestaña Partidos.
-      return (
-        <Placeholder mensaje="Elige un partido en la pestaña Partidos para tomar su foto." />
-      );
-    }
-    return (
-      <CapturaScreen
-        partidoId={partidoId}
-        presenter={deps.capturePresenter}
-        gate={deps.permissionGate}
-        native={deps.captureNative}
-      />
-    );
-  };
-
-  // Detalle del Momento: la edición de contexto/notas/votación y la selección de
-  // Foto_Principal NO están disponibles (§7). En su lugar, esta ruta ofrece
-  // generar la Digital Card del Momento (funcionalidad SÍ disponible,
-  // `POST /cards/:momentoId`) si viene `momentoId`; si no, un placeholder.
-  const DetalleCard = (
-    props: { route?: { params?: { momentoId?: string } } },
-  ): React.ReactElement => {
-    const { momentoId } = useParams<{ momentoId: string }>(props);
-    const usuarioId = deps.usuarioId ?? null;
-    if (!momentoId) {
-      return (
-        <Placeholder mensaje="Abre un recuadro con foto para generar su Digital Card." />
-      );
-    }
-    return (
-      <DigitalCardScreen
-        usuarioId={usuarioId ?? ''}
-        momentoId={momentoId}
-        client={deps.cardsClient}
-      />
-    );
-  };
-
   // Suscripción/IAP no disponible (§7) → placeholder.
   const Suscripcion = (): React.ReactElement => (
     <NoDisponible titulo="Suscripción" />
-  );
-
-  // Envío/Pedido no disponible (§7) → placeholder.
-  const EnvioPedido = (): React.ReactElement => (
-    <NoDisponible titulo="Envío y pedido" />
   );
 
   // Perfil: club actual, temporada activa y datos del usuario (`GET /me`).
@@ -575,10 +526,7 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
     HomeAlbum,
     Partidos,
     DetallePartido,
-    Captura,
-    DetalleCard,
     Suscripcion,
-    EnvioPedido,
     Perfil,
     Ajustes,
     OnboardingGate,
