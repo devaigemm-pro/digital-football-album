@@ -191,23 +191,23 @@ export function NotificacionesScreen({
 
 const styles = StyleSheet.create({
   body: { flex: 1, padding: spacing.lg },
-  subtitulo: { color: palette.textOnLight, fontFamily: fonts.display, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, letterSpacing: 0.5, marginBottom: spacing.sm },
-  estado: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.body, marginBottom: spacing.md },
-  separador: { height: 1, backgroundColor: palette.borderOnLight, marginVertical: spacing.xl },
-  vacio: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small },
+  subtitulo: { color: palette.textOnDark, fontFamily: fonts.display, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, letterSpacing: 0.5, marginBottom: spacing.sm },
+  estado: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.body, marginBottom: spacing.md },
+  separador: { height: 1, backgroundColor: palette.borderOnDark, marginVertical: spacing.xl },
+  vacio: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.small },
   item: {
     borderWidth: 1,
-    borderColor: palette.borderOnLight,
+    borderColor: palette.borderOnDark,
     borderRadius: radius.md,
-    backgroundColor: palette.surface,
+    backgroundColor: palette.glassFill,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  itemTitulo: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.bold, marginBottom: spacing.xs },
-  itemCuerpo: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: spacing.sm },
+  itemTitulo: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.bold, marginBottom: spacing.xs },
+  itemCuerpo: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: spacing.sm },
   silenciar: { color: palette.info, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
   // #5B6472 sobre fondo claro cumple AA (≥ 4.5:1).
-  silenciado: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
+  silenciado: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
 });
 
 export default NotificacionesScreen;

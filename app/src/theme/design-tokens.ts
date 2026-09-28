@@ -3,9 +3,13 @@
 // Este módulo NO depende de React ni de React Native: es solo datos y funciones
 // puras, por lo que PARTICIPA del typecheck de `app/tsconfig.json` (a diferencia
 // de los `.tsx`, que están excluidos). Aquí vive la fuente de verdad del
-// lenguaje visual de la app —paleta, tipografía, espaciado, radios y sombras—
-// derivado del mockup `public/album.html` (look editorial de "álbum de
-// figuritas": fondo papel, acento rojo, títulos condensados, cromos y stickers).
+// lenguaje visual de la app —paleta, tipografía, espaciado, radios y sombras—.
+//
+// Lenguaje visual "Stadium Night" (rediseño 2026, ver public/mockups/): canvas
+// oscuro azul-medianoche, superficies glass translúcidas, marcadores tipo
+// transmisión, bento grids y gamificación, con acento rojo sobrescribible por
+// club. El look editorial de "álbum de figuritas" (papel, cromos) se conserva
+// para el KIT FÍSICO impreso (public/album.html), no para la UI de la app.
 //
 // Objetivos de diseño:
 //   - Colores EXPLÍCITOS, independientes del tema claro/oscuro del SO, con
@@ -25,24 +29,32 @@
  * ajustarlos sin renombrar en las pantallas. Derivada del mockup `album.html`.
  */
 export const palette = {
-  /** Fondo "papel" cálido de las superficies claras (páginas del álbum). */
-  paper: '#F7F1E2',
-  /** Fondo de la app en claro (papel algo más apagado). */
-  canvas: '#EFE9DB',
-  /** Superficie de tarjeta sobre `canvas` (blanco hueso). */
-  surface: '#FFFFFF',
-  /** Fondo oscuro tipo "carbón" para héroes y pantallas inmersivas. */
-  ink: '#15181F',
-  /** Variante de tinta un punto más clara (degradados de héroe). */
-  inkSoft: '#232833',
+  // -------------------------------------------------------------------------
+  // "Stadium Night": canvas oscuro azul-medianoche con superficies glass.
+  // La app dejó de ser "papel claro"; ese look editorial se conserva SOLO para
+  // el kit físico impreso (public/album.html). Las claves conservan su ROL para
+  // no renombrar en pantallas. Los valores de fondo/superficie ahora son
+  // oscuros; los pares texto/fondo mantienen contraste WCAG AA documentado.
+  // -------------------------------------------------------------------------
 
-  /** Texto principal sobre superficies claras. #15181F sobre #F7F1E2 ≈ 15:1. */
+  /** Fondo "papel" cálido — se mantiene para siluetas de recuadro y assets del kit impreso. */
+  paper: '#F7F1E2',
+  /** Fondo base de la app (Stadium Night · azul-medianoche). Texto claro ≈ 16:1. */
+  canvas: '#0B0E14',
+  /** Superficie de tarjeta glass sobre el canvas (grafito translúcido resuelto a sólido). */
+  surface: '#141A26',
+  /** Fondo oscuro tipo "carbón" para héroes y pantallas inmersivas. */
+  ink: '#0B0E14',
+  /** Variante de tinta un punto más clara (degradados de héroe / superficie elevada). */
+  inkSoft: '#141A26',
+
+  /** Texto principal sobre superficies claras (kit impreso). #15181F sobre #F7F1E2 ≈ 15:1. */
   textOnLight: '#15181F',
-  /** Texto secundario/apagado sobre claro. #5B6472 sobre #FFFFFF ≈ 5.7:1 (AA). */
+  /** Texto secundario sobre claro. #5B6472 sobre #FFFFFF ≈ 5.7:1 (AA). */
   textMutedOnLight: '#5B6472',
-  /** Texto principal sobre superficies oscuras. #F4F1E8 sobre #15181F ≈ 15:1. */
+  /** Texto principal sobre el canvas oscuro. #F4F1E8 sobre #0B0E14 ≈ 16:1. */
   textOnDark: '#F4F1E8',
-  /** Texto secundario sobre oscuro. #AEB6C4 sobre #15181F ≈ 8.3:1. */
+  /** Texto secundario sobre oscuro. #AEB6C4 sobre #0B0E14 ≈ 9:1 (AA). */
   textMutedOnDark: '#AEB6C4',
 
   /** Acento de marca (rojo del mockup). Base; se puede sobrescribir por Club. */
@@ -54,21 +66,34 @@ export const palette = {
 
   /** Dorado para acentos "premium"/holograma (uso decorativo, no para texto fino). */
   gold: '#E6C46A',
+  /** Verde "LIVE"/éxito luminoso sobre oscuro (píldoras EN VIVO, estados OK). */
+  live: '#38E08A',
 
-  /** Bordes sutiles sobre superficies claras. */
+  /** Bordes sutiles sobre superficies claras (kit impreso). */
   borderOnLight: '#D9D0B8',
   /** Bordes sutiles sobre superficies oscuras. */
   borderOnDark: '#FFFFFF24',
 
-  /** Semánticos con contraste AA sobre fondos claros. */
-  success: '#1B5E20', // sobre blanco ≈ 8.9:1
-  successBg: '#E8F5E9',
-  warning: '#8D6E00', // sobre blanco ≈ 5.2:1
-  warningBg: '#FFF8E1',
-  danger: '#B00020', // sobre blanco ≈ 7.4:1
-  dangerBg: '#FDECEC',
-  info: '#0B56B8', // sobre blanco ≈ 6.2:1
-  infoBg: '#EEF5FF',
+  // --- Tokens de glassmorphism / Stadium Night -----------------------------
+  /** Relleno translúcido de tarjeta glass (sobre canvas oscuro). */
+  glassFill: '#FFFFFF12',
+  /** Relleno glass más tenue (celdas secundarias / bento). */
+  glassFillSoft: '#FFFFFF08',
+  /** Borde translúcido de tarjeta glass. */
+  glassBorder: '#FFFFFF1F',
+  /** Extremos de degradado del héroe/tinta (para LinearGradient si se usa). */
+  inkGradientFrom: '#1A2336',
+  inkGradientTo: '#0B0E14',
+
+  /** Semánticos sobre fondos OSCUROS (texto claro sobre chip tintado). */
+  success: '#3FD07A', // texto claro sobre chip verde oscuro
+  successBg: '#0B3A24',
+  warning: '#F2C14E', // ámbar sobre chip cálido oscuro
+  warningBg: '#3A2A06',
+  danger: '#FF8A97', // rojo claro legible sobre chip oscuro
+  dangerBg: '#3A1116',
+  info: '#6AD0FF', // celeste sobre chip azul oscuro
+  infoBg: '#0B2A3A',
 } as const;
 
 /** Escala de espaciado (múltiplos de 4) para paddings/margins/gaps. */
@@ -86,9 +111,11 @@ export const radius = {
   sm: 6,
   md: 10,
   lg: 14,
+  xl: 18,
   pill: 999,
-  sticker: 5,
+  sticker: 8,
   card: 14,
+  glass: 16,
 } as const;
 
 /**
@@ -130,17 +157,25 @@ export const fontWeight = {
 export const shadow = {
   card: {
     shadowColor: '#000000',
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 6,
   },
   crest: {
     shadowColor: '#000000',
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  /** Glow del acento para CTAs primarios (se colorea en runtime con el club). */
+  glow: {
+    shadowColor: '#C8102E',
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
 } as const;
 

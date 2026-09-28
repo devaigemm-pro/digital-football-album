@@ -167,7 +167,8 @@ export function PrimaryButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.btn,
-        { backgroundColor: theme.palette.accent },
+        { backgroundColor: theme.palette.accent, shadowColor: theme.palette.accent },
+        styles.btnGlow,
         pressed ? styles.btnPressed : null,
         disabled ? styles.btnDisabled : null,
         style,
@@ -470,6 +471,171 @@ export function SectionTitle({
 }
 
 // ---------------------------------------------------------------------------
+// Stadium Night: glass, bento, marcador tipo transmisión y gamificación
+// ---------------------------------------------------------------------------
+
+/** Tarjeta glass genérica (relleno translúcido + borde sutil sobre oscuro). */
+export function GlassCard({
+  style,
+  soft = false,
+  children,
+}: {
+  readonly style?: StyleProp<ViewStyle>;
+  /** Variante más tenue (celdas secundarias). */
+  readonly soft?: boolean;
+  readonly children?: React.ReactNode;
+}): React.ReactElement {
+  return <View style={[styles.glass, soft ? styles.glassSoft : null, style]}>{children}</View>;
+}
+
+/** Contenedor bento: rejilla de celdas autónomas con gap uniforme. */
+export function Bento({
+  style,
+  children,
+}: {
+  readonly style?: StyleProp<ViewStyle>;
+  readonly children?: React.ReactNode;
+}): React.ReactElement {
+  return <View style={[styles.bento, style]}>{children}</View>;
+}
+
+/** Celda de un bento; `wide` ocupa el ancho completo de la fila. */
+export function BentoCell({
+  wide = false,
+  style,
+  children,
+}: {
+  readonly wide?: boolean;
+  readonly style?: StyleProp<ViewStyle>;
+  readonly children?: React.ReactNode;
+}): React.ReactElement {
+  return <View style={[styles.bentoCell, wide ? styles.bentoWide : null, style]}>{children}</View>;
+}
+
+/** Píldora de estado "EN VIVO"/"FINAL" con punto luminoso. */
+export function LivePill({
+  label = 'EN VIVO',
+  live = true,
+}: {
+  readonly label?: string;
+  readonly live?: boolean;
+}): React.ReactElement {
+  return (
+    <View style={[styles.livePill, live ? null : styles.livePillFinal]}>
+      <View style={[styles.liveDot, live ? null : styles.liveDotFinal]} />
+      <Text style={[styles.livePillText, live ? null : styles.livePillTextFinal]}>
+        {label.toUpperCase()}
+      </Text>
+    </View>
+  );
+}
+
+export interface ScoreboardProps {
+  readonly homeMonogram: string;
+  readonly awayMonogram: string;
+  readonly homeCrestUrl?: string | null;
+  readonly awayCrestUrl?: string | null;
+  /** Marcador ya formateado, p. ej. "2 – 1". Ausente => partido no jugado. */
+  readonly score?: string | null;
+  /** Estado bajo el marcador (p. ej. "FINAL", "SÁB 19:30"). */
+  readonly status?: string;
+  /** Marca el estado como en vivo (píldora verde pulsante). */
+  readonly live?: boolean;
+  readonly style?: StyleProp<ViewStyle>;
+}
+
+/** Marcador tipo transmisión: resultado gigante flanqueado por escudos. */
+export function Scoreboard({
+  homeMonogram,
+  awayMonogram,
+  homeCrestUrl,
+  awayCrestUrl,
+  score,
+  status,
+  live = false,
+  style,
+}: ScoreboardProps): React.ReactElement {
+  return (
+    <View style={[styles.scoreboard, style]}>
+      {status ? <LivePill label={status} live={live} /> : null}
+      <View style={styles.scoreRow}>
+        <Crest url={homeCrestUrl} monogram={homeMonogram} size={44} />
+        <Text style={styles.scoreText}>{score ?? 'VS'}</Text>
+        <Crest url={awayCrestUrl} monogram={awayMonogram} size={44} style={styles.crestAway} />
+      </View>
+    </View>
+  );
+}
+
+/** Anillo de progreso (porcentaje). Trazo con el acento del club. */
+export function ProgressRing({
+  percent,
+  size = 82,
+  caption,
+  center,
+}: {
+  readonly percent: number;
+  readonly size?: number;
+  readonly caption?: string;
+  /** Texto grande en el centro (por defecto, el porcentaje). */
+  readonly center?: string;
+}): React.ReactElement {
+  const theme = useAppTheme();
+  const p = Math.max(0, Math.min(100, percent));
+  const inner = size - 18;
+  // Aro base + arco de progreso simulado con dos semicírculos (sin SVG, RN puro).
+  return (
+    <View style={{ width: size, height: size }}>
+      <View
+        style={[
+          styles.ringTrack,
+          { width: size, height: size, borderRadius: size / 2 },
+        ]}
+      />
+      <View
+        style={[
+          styles.ringFill,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            borderColor: theme.palette.accent,
+            transform: [{ rotate: `${(p / 100) * 360}deg` }],
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.ringHole,
+          { width: inner, height: inner, borderRadius: inner / 2, top: 9, left: 9 },
+        ]}
+      >
+        <Text style={styles.ringCenter}>{center ?? `${Math.round(p)}%`}</Text>
+        {caption ? <Text style={styles.ringCaption}>{caption.toUpperCase()}</Text> : null}
+      </View>
+    </View>
+  );
+}
+
+/** Pequeña estadística: número condensado + etiqueta (para bento/perfil). */
+export function StatTile({
+  value,
+  label,
+  style,
+}: {
+  readonly value: string;
+  readonly label: string;
+  readonly style?: StyleProp<ViewStyle>;
+}): React.ReactElement {
+  return (
+    <View style={[styles.statTile, style]}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label.toUpperCase()}</Text>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Estilos (derivados de los tokens puros)
 // ---------------------------------------------------------------------------
 
@@ -480,11 +646,11 @@ const styles = StyleSheet.create({
   screenPadded: { padding: spacing.lg },
 
   hero: {
-    backgroundColor: palette.ink,
+    backgroundColor: palette.inkSoft,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.xxl,
     paddingBottom: spacing.lg,
-    borderBottomWidth: 4,
+    borderBottomWidth: 3,
   },
   heroEyebrow: {
     color: palette.textMutedOnDark,
@@ -503,16 +669,17 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: palette.surface,
-    borderRadius: radius.lg,
+    // Tarjeta glass sobre el canvas oscuro: relleno translúcido + borde sutil.
+    backgroundColor: palette.glassFill,
+    borderRadius: radius.glass,
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: palette.borderOnLight,
+    borderColor: palette.glassBorder,
     ...shadow.card,
   },
   cardTitle: {
-    color: palette.textOnLight,
+    color: palette.textOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.subtitle,
     fontWeight: fontWeight.bold,
@@ -520,7 +687,7 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    color: palette.textOnLight,
+    color: palette.textOnDark,
     fontFamily: fonts.display,
     fontSize: fontSize.title,
     fontWeight: fontWeight.bold,
@@ -536,6 +703,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnOutline: { backgroundColor: 'transparent', borderWidth: 1.5 },
+  btnGlow: { ...shadow.glow },
   btnPressed: { opacity: 0.85 },
   btnDisabled: { opacity: 0.45 },
   btnText: { fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.bold, letterSpacing: 0.3 },
@@ -560,13 +728,14 @@ const styles = StyleSheet.create({
 
   chip: {
     borderWidth: 1.5,
-    borderColor: palette.textOnLight,
+    borderColor: palette.glassBorder,
+    backgroundColor: palette.glassFill,
     borderRadius: radius.pill,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
   chipText: {
-    color: palette.textOnLight,
+    color: palette.textOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.small,
     fontWeight: fontWeight.semibold,
@@ -602,10 +771,9 @@ const styles = StyleSheet.create({
   slotEmpty: {
     borderWidth: 2,
     borderStyle: 'dashed',
-    // #8A8168 sobre papel claro ≈ 3.9:1 para borde/decorativo; el texto usa un
-    // gris más oscuro (abajo) para cumplir AA en contenido.
-    borderColor: '#8A8168',
-    backgroundColor: 'transparent',
+    // Silueta vacía sobre canvas oscuro: borde translúcido claro.
+    borderColor: '#FFFFFF3A',
+    backgroundColor: '#FFFFFF08',
   },
   slotImg: { ...StyleSheet.absoluteFillObject, resizeMode: 'cover' },
   slotNum: {
@@ -637,24 +805,143 @@ const styles = StyleSheet.create({
     fontSize: fontSize.caption,
     fontWeight: fontWeight.semibold,
   },
-  // #5F5A45 sobre papel claro alcanza ≈ 6.4:1 (AA) para el contenido del vacío.
+  // Sobre canvas oscuro, gris claro translúcido (decorativo, no texto crítico).
   slotEmptyNum: {
-    color: '#5F5A45',
+    color: '#FFFFFF88',
     fontFamily: fonts.display,
     fontSize: fontSize.title,
     fontWeight: fontWeight.bold,
   },
   slotEmptyLabel: {
-    color: '#5F5A45',
+    color: '#FFFFFF77',
     fontFamily: fonts.body,
     fontSize: fontSize.caption,
     marginTop: spacing.xs,
   },
 
+  // --- Glass / bento ---
+  glass: {
+    backgroundColor: palette.glassFill,
+    borderWidth: 1,
+    borderColor: palette.glassBorder,
+    borderRadius: radius.glass,
+    padding: spacing.md,
+  },
+  glassSoft: { backgroundColor: palette.glassFillSoft },
+  bento: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  bentoCell: {
+    flexGrow: 1,
+    flexBasis: '46%',
+    backgroundColor: palette.glassFill,
+    borderWidth: 1,
+    borderColor: palette.glassBorder,
+    borderRadius: radius.glass,
+    padding: spacing.md,
+    overflow: 'hidden',
+  },
+  bentoWide: { flexBasis: '100%' },
+
+  // --- Marcador tipo transmisión ---
+  scoreboard: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
+  scoreRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  scoreText: {
+    color: palette.textOnDark,
+    fontFamily: fonts.display,
+    fontSize: 52,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 3,
+    minWidth: 96,
+    textAlign: 'center',
+  },
+  crestAway: {}, // gancho para overrides por partido
+
+  // --- Píldora LIVE / FINAL ---
+  livePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    alignSelf: 'center',
+    backgroundColor: palette.successBg,
+    borderColor: '#38E08A55',
+    borderWidth: 1,
+    borderRadius: radius.pill,
+    paddingVertical: 3,
+    paddingHorizontal: spacing.md,
+  },
+  livePillFinal: { backgroundColor: '#FFFFFF12', borderColor: palette.glassBorder },
+  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: palette.live },
+  liveDotFinal: { backgroundColor: palette.textMutedOnDark },
+  livePillText: {
+    color: palette.live,
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.extrabold,
+    letterSpacing: 1,
+  },
+  livePillTextFinal: { color: palette.textMutedOnDark },
+
+  // --- Anillo de progreso ---
+  ringTrack: {
+    position: 'absolute',
+    borderWidth: 9,
+    borderColor: '#FFFFFF1A',
+  },
+  ringFill: {
+    position: 'absolute',
+    borderWidth: 9,
+    borderColor: palette.accent,
+    borderRightColor: 'transparent',
+    borderBottomColor: 'transparent',
+  },
+  ringHole: {
+    position: 'absolute',
+    backgroundColor: palette.inkSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ringCenter: {
+    color: palette.textOnDark,
+    fontFamily: fonts.display,
+    fontSize: fontSize.title,
+    fontWeight: fontWeight.bold,
+  },
+  ringCaption: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: 8,
+    fontWeight: fontWeight.semibold,
+    letterSpacing: 1,
+  },
+
+  // --- Stat tile ---
+  statTile: {
+    flexGrow: 1,
+    flexBasis: '22%',
+    backgroundColor: palette.glassFill,
+    borderWidth: 1,
+    borderColor: palette.glassBorder,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  statValue: {
+    color: palette.textOnDark,
+    fontFamily: fonts.display,
+    fontSize: fontSize.display,
+    fontWeight: fontWeight.bold,
+  },
+  statLabel: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: 9,
+    fontWeight: fontWeight.semibold,
+    letterSpacing: 0.5,
+  },
+
   tabBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: palette.ink,
+    backgroundColor: '#070A10',
     borderTopWidth: 1,
     borderTopColor: palette.borderOnDark,
     paddingVertical: spacing.md,
@@ -681,5 +968,12 @@ export default {
   Badge,
   StickerSlot,
   TabBar,
+  GlassCard,
+  Bento,
+  BentoCell,
+  LivePill,
+  Scoreboard,
+  ProgressRing,
+  StatTile,
   useAppTheme,
 };

@@ -38,7 +38,7 @@ import {
   type AlbumPreviewState,
 } from '../album';
 import { Hero, Screen, StickerSlot } from '../ui/kit';
-import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
+import { fonts, fontWeight, palette, spacing } from '../theme/design-tokens';
 
 export interface HomeAlbumScreenProps {
   /** Temporada cuyo álbum se previsualiza. */
@@ -94,7 +94,7 @@ export function HomeAlbumScreen({
   }, [pres, temporadaId]);
 
   return (
-    <Screen tone="light" flush>
+    <Screen tone="dark" flush>
       <Hero eyebrow="Temporada 2026" title="Mi álbum">
         {state.status === 'loading' ? (
           // Indicador no bloqueante: la lista sigue visible y operable (Req 4.5).
@@ -107,14 +107,9 @@ export function HomeAlbumScreen({
       </Hero>
 
       <View style={styles.body}>
-        {/* Indicador de faltantes: Recuadros sin Foto_Principal (Req 4.3). */}
-        {state.faltantesCount > 0 ? (
-          <View style={styles.faltantesBox}>
-            <Text style={styles.faltantes} accessibilityRole="text">
-              Te faltan {state.faltantesCount} recuadros: {state.faltantes.join(', ')}
-            </Text>
-          </View>
-        ) : null}
+        {/* Los recuadros sin Foto_Principal ya se comunican con su silueta
+            punteada en la propia rejilla (Req 4.2); no se muestra un aviso
+            aparte de "faltantes" (decisión de diseño 2026-09-27). */}
 
         {/* Estado de error no bloqueante con opción de reintento (Req 4.5). */}
         {state.status === 'error' && state.error !== null ? (
@@ -150,15 +145,6 @@ export function HomeAlbumScreen({
 const styles = StyleSheet.create({
   heroSpinner: { alignSelf: 'flex-start', marginTop: spacing.sm },
   body: { flex: 1, paddingHorizontal: spacing.md, paddingTop: spacing.md },
-  faltantesBox: {
-    backgroundColor: palette.warningBg,
-    borderRadius: radius.md,
-    borderLeftWidth: 4,
-    borderLeftColor: palette.accent,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  faltantes: { color: palette.warning, fontFamily: fonts.body, fontSize: fontSize.small, fontWeight: fontWeight.semibold },
   errorBox: { marginBottom: spacing.sm },
   errorText: { color: palette.danger, fontFamily: fonts.body, marginBottom: spacing.xs },
   retry: { color: palette.info, fontFamily: fonts.body, fontWeight: fontWeight.semibold },

@@ -173,7 +173,7 @@ export function LoginScreen({
           value={email}
           onChangeText={setEmail}
           editable={!busy}
-          placeholderTextColor={palette.textMutedOnLight}
+          placeholderTextColor={palette.textMutedOnDark}
           accessibilityLabel="Correo electrónico"
         />
         <TextInput
@@ -187,7 +187,7 @@ export function LoginScreen({
           value={password}
           onChangeText={setPassword}
           editable={!busy}
-          placeholderTextColor={palette.textMutedOnLight}
+          placeholderTextColor={palette.textMutedOnDark}
           accessibilityLabel="Contraseña"
         />
 
@@ -223,16 +223,16 @@ const styles = StyleSheet.create({
   body: { flex: 1, padding: spacing.xl, justifyContent: 'center' },
   input: {
     borderWidth: 1,
-    borderColor: palette.borderOnLight,
+    borderColor: palette.borderOnDark,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
-    color: palette.textOnLight, // texto que escribe el usuario, legible sobre blanco
-    backgroundColor: palette.surface,
+    color: palette.textOnDark, // texto que escribe el usuario, legible sobre blanco
+    backgroundColor: palette.glassFill,
     fontFamily: fonts.body,
     fontSize: fontSize.body,
   },
-  divider: { height: 1, backgroundColor: palette.borderOnLight, marginVertical: spacing.xl },
+  divider: { height: 1, backgroundColor: palette.borderOnDark, marginVertical: spacing.xl },
   spacer: { marginTop: spacing.md },
   switchMode: { marginTop: spacing.lg, alignItems: 'center' },
   switchModeText: {

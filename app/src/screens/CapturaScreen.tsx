@@ -135,7 +135,7 @@ export function CapturaScreen({
 
 const styles = StyleSheet.create({
   body: { flex: 1, padding: spacing.lg },
-  motivo: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: spacing.md },
+  motivo: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: spacing.md },
   acciones: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
   accion: { flex: 1 },
   row: { gap: spacing.sm, marginBottom: spacing.sm },
@@ -144,9 +144,9 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: radius.sm,
     borderWidth: 2,
-    borderColor: palette.surface,
+    borderColor: palette.borderOnDark,
   },
-  vacio: { color: palette.textMutedOnLight, fontFamily: fonts.body },
+  vacio: { color: palette.textMutedOnDark, fontFamily: fonts.body },
 });
 
 export default CapturaScreen;

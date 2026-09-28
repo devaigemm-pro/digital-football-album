@@ -112,7 +112,7 @@ export function CompartirSheet({
 const styles = StyleSheet.create({
   container: {
     padding: spacing.lg,
-    backgroundColor: palette.surface,
+    backgroundColor: palette.glassFill,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
   },
@@ -121,11 +121,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: radius.pill,
-    backgroundColor: palette.borderOnLight,
+    backgroundColor: palette.borderOnDark,
     marginBottom: spacing.md,
   },
   title: {
-    color: palette.textOnLight,
+    color: palette.textOnDark,
     fontFamily: fonts.display,
     fontSize: fontSize.title,
     fontWeight: fontWeight.bold,
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   },
   acciones: { gap: spacing.sm },
   estado: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
-  estadoTexto: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginTop: spacing.md },
+  estadoTexto: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.small, marginTop: spacing.md },
   exito: { color: palette.success },
   error: { color: palette.danger },
 });

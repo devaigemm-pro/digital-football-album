@@ -22,7 +22,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
-  Button,
   FlatList,
   Image,
   StyleSheet,
@@ -33,6 +32,8 @@ import {
   View,
 } from 'react-native';
 
+import { PrimaryButton, Screen } from '../ui/kit';
+import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 import { MomentoBusinessError, MomentoDetailPresenter } from '../capture';
 import type {
   ContextoAsistencia,
@@ -163,7 +164,7 @@ export function DetalleCardScreen({
   const jugadores = useMemo(() => alineacion, [alineacion]);
 
   return (
-    <View style={styles.container}>
+    <Screen tone="dark">
       <Text style={styles.titulo}>Foto principal</Text>
       <FlatList
         horizontal
@@ -206,7 +207,9 @@ export function DetalleCardScreen({
             style={[styles.radio, contexto === c.valor && styles.radioSel]}
             onPress={() => setContexto(c.valor)}
           >
-            <Text>{c.etiqueta}</Text>
+            <Text style={[styles.radioText, contexto === c.valor && styles.radioTextSel]}>
+              {c.etiqueta}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -224,7 +227,9 @@ export function DetalleCardScreen({
                 style={[styles.radio, subModalidad === s.valor && styles.radioSel]}
                 onPress={() => setSubModalidad(s.valor)}
               >
-                <Text>{s.etiqueta}</Text>
+                <Text style={[styles.radioText, subModalidad === s.valor && styles.radioTextSel]}>
+                  {s.etiqueta}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -233,7 +238,7 @@ export function DetalleCardScreen({
 
       {esEnVivo && (
         <View style={styles.fila}>
-          <Text>Verificar por geolocalización</Text>
+          <Text style={styles.filaText}>Verificar por geolocalización</Text>
           <Switch
             value={geoVerificado}
             onValueChange={setGeoVerificado}
@@ -263,34 +268,82 @@ export function DetalleCardScreen({
             style={[styles.radio, jugador === j.id && styles.radioSel]}
             onPress={() => setJugador(j.id)}
           >
-            <Text>{j.nombre}</Text>
+            <Text style={[styles.radioText, jugador === j.id && styles.radioTextSel]}>
+              {j.nombre}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <Button title="Guardar contexto" onPress={() => void guardarContexto()} disabled={ocupado} />
-    </View>
+      <PrimaryButton
+        title="Guardar contexto"
+        onPress={() => void guardarContexto()}
+        disabled={ocupado}
+        style={styles.guardar}
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 8 },
-  titulo: { fontSize: 18, fontWeight: '600', marginTop: 12 },
-  subtitulo: { fontSize: 14, fontWeight: '500', marginTop: 8 },
-  grupo: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  radio: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+  titulo: {
+    color: palette.textOnDark,
+    fontFamily: fonts.display,
+    fontSize: fontSize.title,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 1,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
-  radioSel: { borderColor: '#1e88e5', backgroundColor: '#e3f2fd' },
-  miniatura: { width: 96, height: 96, borderRadius: 8, marginRight: 8 },
-  miniaturaSel: { borderWidth: 3, borderColor: '#1e88e5' },
-  fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, minHeight: 64, padding: 8 },
-  vacio: { opacity: 0.6 },
+  subtitulo: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.semibold,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  grupo: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  radio: {
+    borderWidth: 1.5,
+    borderColor: palette.glassBorder,
+    backgroundColor: palette.glassFill,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  radioSel: { borderColor: palette.accent, backgroundColor: '#FFFFFF22' },
+  radioText: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.small },
+  radioTextSel: { fontWeight: fontWeight.bold },
+  miniatura: {
+    width: 96,
+    height: 96,
+    borderRadius: radius.md,
+    marginRight: spacing.sm,
+    borderWidth: 1,
+    borderColor: palette.glassBorder,
+  },
+  miniaturaSel: { borderWidth: 3, borderColor: palette.accent },
+  fila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.sm,
+  },
+  filaText: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.body },
+  input: {
+    borderWidth: 1,
+    borderColor: palette.glassBorder,
+    backgroundColor: palette.glassFill,
+    color: palette.textOnDark,
+    borderRadius: radius.md,
+    minHeight: 64,
+    padding: spacing.md,
+  },
+  vacio: { color: palette.textMutedOnDark },
+  guardar: { marginTop: spacing.lg },
 });
 
 export default DetalleCardScreen;

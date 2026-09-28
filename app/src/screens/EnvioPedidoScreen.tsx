@@ -103,7 +103,7 @@ function Campo({
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
-        placeholderTextColor={palette.textMutedOnLight}
+        placeholderTextColor={palette.textMutedOnDark}
         accessibilityLabel={label}
       />
     </View>
@@ -242,13 +242,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: palette.canvas },
   content: { padding: spacing.lg },
   campo: { marginBottom: spacing.md },
-  label: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: spacing.xs },
+  label: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: spacing.xs },
   input: {
     borderWidth: 1,
-    borderColor: palette.borderOnLight,
+    borderColor: palette.borderOnDark,
     borderRadius: radius.sm,
-    backgroundColor: palette.surface,
-    color: palette.textOnLight,
+    backgroundColor: palette.glassFill,
+    color: palette.textOnDark,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontFamily: fonts.body,
@@ -258,10 +258,10 @@ const styles = StyleSheet.create({
   confirmacion: { color: palette.success, fontFamily: fonts.body, marginTop: spacing.xs },
   error: { color: palette.danger, fontFamily: fonts.body, marginTop: spacing.xs, marginBottom: spacing.xs },
   retry: { color: palette.info, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
-  separador: { height: 1, backgroundColor: palette.borderOnLight, marginVertical: spacing.xl },
-  estado: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.body, marginBottom: spacing.sm },
-  tracking: { color: palette.textOnLight, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
-  sinTracking: { color: palette.textMutedOnLight, fontFamily: fonts.body, fontSize: fontSize.small },
+  separador: { height: 1, backgroundColor: palette.borderOnDark, marginVertical: spacing.xl },
+  estado: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.body, marginBottom: spacing.sm },
+  tracking: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.semibold },
+  sinTracking: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.small },
 });
 
 export default EnvioPedidoScreen;

@@ -111,7 +111,7 @@ export function AjustesScreen({
 
 const styles = StyleSheet.create({
   body: { flex: 1, padding: spacing.xl },
-  divider: { height: 1, backgroundColor: palette.borderOnLight, marginVertical: spacing.xl },
+  divider: { height: 1, backgroundColor: palette.borderOnDark, marginVertical: spacing.xl },
   dangerLabel: {
     color: palette.danger,
     fontFamily: fonts.body,
