@@ -13,6 +13,12 @@ export interface BackendConfig {
   readonly nodeEnv: NodeEnv;
   readonly port: number;
   readonly host: string;
+  /**
+   * Tamaño máximo del cuerpo HTTP en bytes. Debe acomodar las fotos subidas en
+   * base64 (una foto de cámara puede pesar varios MB; base64 infla ~33%). Por
+   * defecto 15 MiB. Configurable con `MAX_BODY_BYTES`.
+   */
+  readonly maxBodyBytes: number;
   /** Relaja TLS en el borde (solo permitido fuera de producción). */
   readonly allowInsecure: boolean;
   /** Orígenes CORS permitidos: '*' | lista | undefined (sin CORS). */
@@ -96,6 +102,9 @@ export function loadConfig(env: Env = process.env): BackendConfig {
 
   const port = readInt(env, 'PORT', 3000, problemas);
   const host = env.HOST ?? '0.0.0.0';
+  // 15 MiB por defecto: cubre fotos de cámara en base64 (varios MB + ~33% de
+  // inflado). Antes el tope era 1 MiB, lo que provocaba 502 al subir fotos.
+  const maxBodyBytes = readInt(env, 'MAX_BODY_BYTES', 15 * 1024 * 1024, problemas);
   const allowInsecure = env.ALLOW_INSECURE === 'true';
 
   // CORS: 'CORS_ORIGINS' = "*" o lista separada por comas. Vacío => sin CORS.
@@ -205,6 +214,7 @@ export function loadConfig(env: Env = process.env): BackendConfig {
     nodeEnv,
     port,
     host,
+    maxBodyBytes,
     allowInsecure,
     ...(corsOrigins !== undefined ? { corsOrigins } : {}),
     auth: {

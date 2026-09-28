@@ -63,8 +63,12 @@ function main(): void {
     ...(config.corsOrigins !== undefined ? { corsOrigins: config.corsOrigins } : {}),
   });
 
-  // 3. Levantar el servidor HTTP (con logging de peticiones).
-  const server = createHttpServer(gateway, { logger });
+  // 3. Levantar el servidor HTTP (con logging de peticiones). El tope de cuerpo
+  //    debe acomodar las fotos subidas en base64 (evita 502 al adjuntar foto).
+  const server = createHttpServer(gateway, {
+    logger,
+    maxBodyBytes: config.maxBodyBytes,
+  });
 
   server.listen(config.port, config.host, () => {
     logger.info('Backend escuchando', {
