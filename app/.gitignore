@@ -14,6 +14,8 @@ ios/**/xcuserdata/
 ios/.xcode.env.local
 android/.gradle/
 android/app/build/
+# El build de gradle a nivel de proyecto tambien es regenerable (autolinking, etc.)
+android/build/
 *.log
 .DS_Store
 
