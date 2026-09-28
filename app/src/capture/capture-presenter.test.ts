@@ -74,26 +74,26 @@ const fotoGaleria: Omit<Parameters<CapturePresenter['capturePhoto']>[0], 'partid
 };
 
 describe('permisoParaFuente (Req 24.2)', () => {
-  it('galeria → ALMACENAMIENTO, camara → CAMARA', () => {
-    expect(permisoParaFuente('galeria')).toBe(Permiso.ALMACENAMIENTO);
+  it('galeria → null (no requiere permiso), camara → CAMARA', () => {
+    // La galería usa el Photo Picker del sistema: no exige permiso (Req 24.2).
+    expect(permisoParaFuente('galeria')).toBeNull();
     expect(permisoParaFuente('camara')).toBe(Permiso.CAMARA);
   });
 });
 
 describe('CapturePresenter.capturePhoto — permiso por fuente (Req 24.2)', () => {
-  it('galeria: asegura ALMACENAMIENTO y sube la foto', async () => {
+  it('galeria: NO pide permiso (Photo Picker del sistema) y sube la foto', async () => {
     const client = new FakeCaptureClient();
     const store = new InMemoryPermissionStore();
     const pedidos: Permiso[] = [];
-    const gate = new PermissionGate(
-      store,
-      fakePrompt({ [Permiso.ALMACENAMIENTO]: true }, pedidos),
-    );
+    // Aunque el prompt concedería cualquier permiso, la galería NO debe pedir
+    // ninguno: se sube directo sin gatear (corrige el bug de ALMACENAMIENTO).
+    const gate = new PermissionGate(store, fakePrompt({}, pedidos));
     const presenter = new CapturePresenter(client, gate);
 
     const foto = await presenter.capturePhoto({ ...fotoGaleria, partidoId: PARTIDO_ID });
 
-    expect(pedidos).toEqual([Permiso.ALMACENAMIENTO]);
+    expect(pedidos).toEqual([]); // no se solicitó ningún permiso para galería.
     expect(client.uploads).toHaveLength(1);
     expect(client.uploads[0]?.partidoId).toBe(PARTIDO_ID);
     expect(client.uploads[0]?.input.fuente).toBe('galeria');

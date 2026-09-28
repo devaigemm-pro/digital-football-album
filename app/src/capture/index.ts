@@ -10,9 +10,10 @@
 //   - `CaptureViewModel` (reutilizado de `src/app`), que llama al backend
 //     `POST /momentos/{partidoId}/fotos` para subir cada foto (Req 3.1–3.3).
 //   - `PermissionGate` (`app/src/permissions`), que asegura el permiso del
-//     dispositivo ANTES de usar el recurso (Req 24.2): cámara para 'camara',
-//     almacenamiento para 'galeria'. Si el permiso se deniega, la subida se
-//     cancela sin llamar al backend.
+//     dispositivo ANTES de usar el recurso (Req 24.2): cámara para 'camara'. La
+//     'galeria' NO se gatea porque usa el selector de fotos del sistema (Photo
+//     Picker), que no requiere permiso de almacenamiento. Si el permiso de
+//     cámara se deniega, la subida se cancela sin llamar al backend.
 //
 // La pantalla RN (`CapturaScreen.tsx`, excluida del typecheck) consume este
 // presentador; toda la lógica verificable vive aquí en `.ts`.
@@ -39,10 +40,17 @@ export interface CapturePhotoInput {
 /**
  * Permiso del dispositivo requerido según el origen de la foto (Req 24.2):
  *   - 'camara'  → Permiso.CAMARA (tomar la foto).
- *   - 'galeria' → Permiso.ALMACENAMIENTO (leer de la galería).
+ *   - 'galeria' → `null` (NO requiere permiso).
+ *
+ * La galería usa el selector de fotos del sistema (Android Photo Picker en
+ * API 33+, y el picker de iOS), que devuelve solo la imagen elegida por el
+ * usuario SIN necesidad de conceder acceso a toda la fototeca. Exigir
+ * ALMACENAMIENTO como pre-requisito era incorrecto y bloqueaba la carga cuando
+ * el permiso no estaba declarado/concedido. El gate se mantiene solo para la
+ * cámara, que sí requiere permiso explícito.
  */
-export function permisoParaFuente(fuente: FuenteFoto): Permiso {
-  return fuente === 'camara' ? Permiso.CAMARA : Permiso.ALMACENAMIENTO;
+export function permisoParaFuente(fuente: FuenteFoto): Permiso | null {
+  return fuente === 'camara' ? Permiso.CAMARA : null;
 }
 
 /**
@@ -77,20 +85,24 @@ export class CapturePresenter {
   }
 
   /**
-   * Captura/carga UNA foto para un partido (Req 3.1, 3.2). Primero asegura el
-   * permiso correspondiente a la fuente (Req 24.2): si el usuario no lo concede,
-   * lanza `PermisoNoConcedidoError` y NO sube la foto. Con el permiso concedido,
-   * sube la foto vía `POST /momentos/{partidoId}/fotos`.
+   * Captura/carga UNA foto para un partido (Req 3.1, 3.2). Para 'camara' asegura
+   * el permiso (Req 24.2): si no se concede, lanza `PermisoNoConcedidoError` y NO
+   * sube la foto. Para 'galeria' no se requiere permiso (Photo Picker del
+   * sistema). Con la vía despejada, sube vía `POST /momentos/{partidoId}/fotos`.
    */
   async capturePhoto(input: CapturePhotoInput): Promise<Foto> {
     const permiso = permisoParaFuente(input.fuente);
-    // Req 24.2: asegurar-antes-de-usar; la subida es la acción sobre el recurso.
-    return this.gate.runWithPermission(permiso, () =>
+    const subir = (): Promise<Foto> =>
       this.viewModel.uploadFoto(
         input.partidoId,
         CapturePresenter.toUploadInput(input),
-      ),
-    );
+      );
+    // Sin permiso requerido (galería con Photo Picker del sistema): sube directo.
+    if (permiso === null) {
+      return subir();
+    }
+    // Req 24.2: asegurar-antes-de-usar; la subida es la acción sobre el recurso.
+    return this.gate.runWithPermission(permiso, subir);
   }
 
   /**

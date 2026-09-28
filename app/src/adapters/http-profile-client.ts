@@ -154,6 +154,8 @@ export interface PartidoDetalle {
   readonly rival: string;
   /** URL del escudo del rival (para su insignia en el marcador), o null. */
   readonly escudoRivalUrl?: string | null;
+  /** Estadio donde se jugó (para mostrar bajo el marcador), o null. */
+  readonly estadio?: string | null;
   readonly competicion: string;
   readonly fechaHora: string;
   readonly estado: EstadoPartido;
