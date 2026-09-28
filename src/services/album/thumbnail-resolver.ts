@@ -56,3 +56,25 @@ export class PrefixThumbnailResolver implements ThumbnailResolver {
     return `${this.prefijo}${objectKey}`;
   }
 }
+
+/** Puerto mínimo de firma de URLs (lo cumple `SupabaseObjectStorage`). */
+export interface SignedUrlPort {
+  getSignedUrl(objectKey: string, expiresInSec?: number): Promise<string | null>;
+}
+
+/**
+ * Resolutor de miniaturas para PRODUCCIÓN: convierte la `objectKey` del binario
+ * en una URL http(s) FIRMADA que el cliente puede renderizar directamente en la
+ * previsualización del álbum (`<Image source={{ uri }}>`). El bucket es privado,
+ * así que la clave cruda no es accesible; por eso se firma. Si la firma falla,
+ * cae a la `objectKey` (el cliente mostrará el placeholder), sin romper la
+ * previsualización.
+ */
+export class SignedUrlThumbnailResolver implements ThumbnailResolver {
+  constructor(private readonly storage: SignedUrlPort) {}
+
+  async resolveThumbnail(objectKey: string): Promise<string> {
+    const url = await this.storage.getSignedUrl(objectKey);
+    return url ?? objectKey;
+  }
+}

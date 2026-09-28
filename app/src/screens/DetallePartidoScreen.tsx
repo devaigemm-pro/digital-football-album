@@ -293,6 +293,7 @@ export function DetallePartidoScreen({
           homeMonogram={monogramaPropio}
           homeCrestUrl={escudoPropio}
           awayMonogram={detalle.rival.slice(0, 3).toUpperCase()}
+          awayCrestUrl={detalle.escudoRivalUrl ?? null}
           score={marcador(detalle)}
           status={detalle.estado === 'FINALIZADO' ? 'FINAL' : fechaLegible(detalle.fechaHora)}
           live={detalle.estado === 'EN_CURSO'}

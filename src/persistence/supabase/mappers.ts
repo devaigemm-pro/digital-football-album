@@ -269,6 +269,7 @@ export const partidoMapper: EntityMapper<PartidoOficial, 'partidos_oficiales'> =
     competicion: r.competicion,
     tipoCompeticion: r.tipo_competicion,
     rival: r.rival,
+    escudoRivalUrl: r.escudo_rival_url,
     fechaHora: r.fecha_hora,
     estado: r.estado,
     esClasico: r.es_clasico,
@@ -285,6 +286,7 @@ export const partidoMapper: EntityMapper<PartidoOficial, 'partidos_oficiales'> =
     set(out, 'competicion', p.competicion);
     set(out, 'tipo_competicion', p.tipoCompeticion);
     set(out, 'rival', p.rival);
+    set(out, 'escudo_rival_url', p.escudoRivalUrl);
     set(out, 'fecha_hora', p.fechaHora);
     set(out, 'estado', p.estado);
     set(out, 'es_clasico', p.esClasico);

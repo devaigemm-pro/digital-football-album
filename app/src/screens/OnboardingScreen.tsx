@@ -38,8 +38,13 @@ export interface OnboardingScreenProps {
 
 type Paso = 'bienvenida' | 'perfil' | 'pais' | 'division' | 'equipo' | 'cargando' | 'listo';
 
-/** Temporada por defecto con cobertura amplia en el plan free. */
-const SEASON_DEFECTO = 2023;
+/**
+ * Temporada deportiva ACTUAL (año calendario). Las ligas de año calendario
+ * (p. ej. Chile) se identifican por el año en curso en API-Football. Se deriva
+ * de la fecha del dispositivo para no quedar clavada en un año pasado; el
+ * usuario podrá cambiar de temporada cuando exista esa función.
+ */
+const SEASON_ACTUAL = new Date().getFullYear();
 
 /** Opciones de sexo para el perfil. */
 const OPCIONES_SEXO: ReadonlyArray<{ valor: Sexo; etiqueta: string }> = [
@@ -116,7 +121,7 @@ export function OnboardingScreen({
       setCargando(true);
       setError(null);
       try {
-        const ligas = await profileClient.ligasDePais(p.nombre, SEASON_DEFECTO);
+        const ligas = await profileClient.ligasDePais(p.nombre, SEASON_ACTUAL);
         setDivisiones(ligas.filter(esLigaReal));
         setPaso('division');
       } catch {
@@ -133,7 +138,7 @@ export function OnboardingScreen({
       setCargando(true);
       setError(null);
       try {
-        setEquipos(await profileClient.equiposDeLiga(l.ligaId, SEASON_DEFECTO));
+        setEquipos(await profileClient.equiposDeLiga(l.ligaId, SEASON_ACTUAL));
         setPaso('equipo');
       } catch {
         setError('No se pudieron cargar los equipos. Inténtalo de nuevo.');
@@ -153,7 +158,7 @@ export function OnboardingScreen({
         // partidos del equipo en TODAS las competiciones (liga + Copa Chile +
         // internacional), no solo una liga (Req 4.2).
         const res = await profileClient.syncTemporada(
-          `team:${e.id}:${SEASON_DEFECTO}`,
+          `team:${e.id}:${SEASON_ACTUAL}`,
         );
         setResultadoRecuadros(res.recuadros);
         await pres.loadProfile();
@@ -366,7 +371,7 @@ export function OnboardingScreen({
       <Screen tone="light" flush>
         <Hero eyebrow="Paso 3 de 4" title="Elige tu división" />
         <ScrollView contentContainerStyle={styles.body}>
-          <Text style={styles.help}>Competiciones de {pais?.nombre ?? 'tu país'} · {SEASON_DEFECTO}</Text>
+          <Text style={styles.help}>Competiciones de {pais?.nombre ?? 'tu país'} · {SEASON_ACTUAL}</Text>
           {cargando ? <ActivityIndicator color={palette.accent} style={styles.spinner} /> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {divisiones.map((l) => (

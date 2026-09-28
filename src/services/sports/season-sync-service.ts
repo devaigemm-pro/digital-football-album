@@ -135,6 +135,7 @@ export class SeasonSyncService {
       competicion: f.competicion,
       tipoCompeticion: inferTipoCompeticion(f.competicion),
       rival: f.rival,
+      ...(f.escudoRivalUrl ? { escudoRivalUrl: f.escudoRivalUrl } : {}),
       fechaHora: f.fechaHora,
       estado: f.estado,
       esAmistoso: false,

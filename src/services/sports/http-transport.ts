@@ -66,8 +66,8 @@ interface ApiFootballFixtureItem {
   };
   readonly league?: { readonly name?: string };
   readonly teams?: {
-    readonly home?: { readonly id?: number; readonly name?: string };
-    readonly away?: { readonly id?: number; readonly name?: string };
+    readonly home?: { readonly id?: number; readonly name?: string; readonly logo?: string };
+    readonly away?: { readonly id?: number; readonly name?: string; readonly logo?: string };
   };
   readonly goals?: { readonly home?: number | null; readonly away?: number | null };
 }
@@ -509,6 +509,7 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
       partidoExternoId?: string;
       competicion?: string;
       rival?: string;
+      escudoRivalUrl?: string;
       fechaHora?: string;
       estado?: string;
     } = { estado: mapEstado(item.fixture?.status?.short) };
@@ -516,16 +517,22 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
     if (id !== undefined) raw.partidoExternoId = String(id);
     if (item.league?.name !== undefined) raw.competicion = item.league.name;
 
-    // Rival = el equipo contrario al del usuario.
+    // Rival = el equipo contrario al del usuario; su escudo se toma del mismo
+    // lado (home/away) para poder mostrar las insignias de ambos equipos.
     const home = item.teams?.home;
     const away = item.teams?.away;
     let rival: string | undefined;
+    let escudoRival: string | undefined;
     if (teamIdNum !== undefined && home?.id !== undefined && away?.id !== undefined) {
-      rival = home.id === teamIdNum ? away.name : home.name;
+      const usuarioEsLocal = home.id === teamIdNum;
+      rival = usuarioEsLocal ? away.name : home.name;
+      escudoRival = usuarioEsLocal ? away.logo : home.logo;
     } else {
       rival = away?.name; // sin equipo conocido: aproximación al visitante
+      escudoRival = away?.logo;
     }
     if (rival !== undefined) raw.rival = rival;
+    if (escudoRival !== undefined) raw.escudoRivalUrl = escudoRival;
 
     if (item.fixture?.date !== undefined) raw.fechaHora = item.fixture.date;
     return raw;

@@ -55,6 +55,8 @@ export interface UrlResolver {
 export interface MatchDetail {
   readonly partidoId: UUID;
   readonly rival: string;
+  /** URL del escudo del rival (para su insignia en el marcador), si se conoce. */
+  readonly escudoRivalUrl: string | null;
   readonly competicion: string;
   readonly fechaHora: string;
   readonly estado: string;
@@ -169,6 +171,7 @@ export class MatchDetailService {
     return {
       partidoId: partido.id,
       rival: partido.rival,
+      escudoRivalUrl: partido.escudoRivalUrl ?? null,
       competicion: partido.competicion,
       fechaHora: partido.fechaHora,
       estado: partido.estado,

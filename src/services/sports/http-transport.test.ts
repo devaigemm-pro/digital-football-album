@@ -22,8 +22,8 @@ function fakeFixturesResponse() {
         fixture: { id: 1, date: '2023-08-10T20:00:00Z', status: { short: 'FT' } },
         league: { name: 'Primera División' },
         teams: {
-          home: { id: TEAM_ID, name: 'Colo Colo' },
-          away: { id: 999, name: 'Rival Visita' },
+          home: { id: TEAM_ID, name: 'Colo Colo', logo: 'https://logos/cc.png' },
+          away: { id: 999, name: 'Rival Visita', logo: 'https://logos/rival-visita.png' },
         },
         goals: { home: 2, away: 1 },
       },
@@ -31,8 +31,8 @@ function fakeFixturesResponse() {
         fixture: { id: 2, date: '2023-08-17T20:00:00Z', status: { short: 'NS' } },
         league: { name: 'Primera División' },
         teams: {
-          home: { id: 888, name: 'Rival Local' },
-          away: { id: TEAM_ID, name: 'Colo Colo' },
+          home: { id: 888, name: 'Rival Local', logo: 'https://logos/rival-local.png' },
+          away: { id: TEAM_ID, name: 'Colo Colo', logo: 'https://logos/cc.png' },
         },
         goals: { home: null, away: null },
       },
@@ -159,5 +159,14 @@ describe('ApiFootballSportsTransport — fixtures filtrados por equipo', () => {
     expect(fixtures[0]?.rival).toBe('Rival Visita');
     // Partido 2: el usuario es VISITANTE -> rival = local.
     expect(fixtures[1]?.rival).toBe('Rival Local');
+  });
+
+  it('toma el escudo del rival (equipo contrario) para mostrar su insignia', async () => {
+    const { client } = makeClient();
+    const fixtures = await client.fetchFixtures(`265:2023:${TEAM_ID}`);
+    // Partido 1: usuario local -> escudo del rival = del visitante.
+    expect(fixtures[0]?.escudoRivalUrl).toBe('https://logos/rival-visita.png');
+    // Partido 2: usuario visitante -> escudo del rival = del local.
+    expect(fixtures[1]?.escudoRivalUrl).toBe('https://logos/rival-local.png');
   });
 });

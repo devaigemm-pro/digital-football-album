@@ -25,7 +25,11 @@ import { SubscriptionService } from '../services/subscription/subscription-servi
 import { EntitlementsService } from '../services/subscription/entitlements.js';
 import { ClassifierService } from '../services/classifier/classifier-service.js';
 import { AlbumPreviewService } from '../services/album/preview-service.js';
-import { PrefixThumbnailResolver } from '../services/album/thumbnail-resolver.js';
+import {
+  PrefixThumbnailResolver,
+  SignedUrlThumbnailResolver,
+  type ThumbnailResolver,
+} from '../services/album/thumbnail-resolver.js';
 import { CardsService } from '../services/cards/cards-service.js';
 import { ConfigAdminService } from '../services/admin/config-admin-service.js';
 import { TemporadaClosingService } from '../services/closing/temporada-closing-service.js';
@@ -186,7 +190,6 @@ export function createServices(options: CreateServicesOptions): AppServices {
   const pdfRenderer = new DevPdfRenderer();
   const tempStorage = new DevTempStorage();
   const operatorNotifier = new DevOperatorNotifier();
-  const thumbnails = new PrefixThumbnailResolver();
   const clock = { now: () => Date.now() };
 
   // Object storage: con driver Supabase se usa el bucket real (una sola
@@ -203,6 +206,18 @@ export function createServices(options: CreateServicesOptions): AppServices {
     momentosStorage = new MomentosObjectStorage();
     authStorage = new AuthObjectStorage();
   }
+
+  // Miniaturas de la previsualización del álbum: si el storage sabe firmar URLs
+  // (Supabase, bucket privado), se devuelve una URL firmada renderizable por el
+  // cliente; si no (in-memory), se cae al resolver por prefijo.
+  const thumbnails: ThumbnailResolver =
+    typeof (momentosStorage as { getSignedUrl?: unknown }).getSignedUrl === 'function'
+      ? new SignedUrlThumbnailResolver(
+          momentosStorage as unknown as {
+            getSignedUrl(objectKey: string, expiresInSec?: number): Promise<string | null>;
+          },
+        )
+      : new PrefixThumbnailResolver();
 
   // --- Servicios ---
   const auth = new AuthService({

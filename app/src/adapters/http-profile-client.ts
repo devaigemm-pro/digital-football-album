@@ -152,6 +152,8 @@ export interface FotoMomento {
 export interface PartidoDetalle {
   readonly partidoId: string;
   readonly rival: string;
+  /** URL del escudo del rival (para su insignia en el marcador), o null. */
+  readonly escudoRivalUrl?: string | null;
   readonly competicion: string;
   readonly fechaHora: string;
   readonly estado: EstadoPartido;

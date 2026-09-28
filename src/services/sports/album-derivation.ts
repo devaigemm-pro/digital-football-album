@@ -50,6 +50,8 @@ export interface FixtureEntry {
   readonly tipoCompeticion: TipoCompeticion;
   /** Rival reportado por la API. */
   readonly rival: string;
+  /** URL del escudo del rival (para mostrar su insignia), si se conoce. */
+  readonly escudoRivalUrl?: string;
   /** Fecha/hora ISO 8601 del partido; ordena la numeración de Recuadros. */
   readonly fechaHora: ISODateTime;
   /** Estado del partido. */
@@ -251,6 +253,7 @@ export async function deriveAlbum(
         competicion: entry.competicion,
         tipoCompeticion: entry.tipoCompeticion,
         rival: entry.rival,
+        escudoRivalUrl: entry.escudoRivalUrl ?? null,
         fechaHora: entry.fechaHora,
         estado: entry.estado,
         esClasico: false,
@@ -284,6 +287,7 @@ export async function deriveAlbum(
       competicion: entry.competicion,
       tipoCompeticion: entry.tipoCompeticion,
       rival: entry.rival,
+      escudoRivalUrl: entry.escudoRivalUrl ?? null,
       fechaHora: entry.fechaHora,
       estado: entry.estado,
     });

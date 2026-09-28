@@ -247,6 +247,8 @@ export interface PartidoOficial {
   competicion: string;
   tipoCompeticion: TipoCompeticion;
   rival: string;
+  /** URL del escudo/insignia del equipo rival (de la API deportiva), si se conoce. */
+  escudoRivalUrl?: string | null;
   fechaHora: ISODateTime;
   estado: EstadoPartido;
   esClasico: boolean;
