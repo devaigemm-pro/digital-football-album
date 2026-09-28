@@ -32,6 +32,7 @@ import {
   ProfilePresenter,
   type PartidosState,
   type ProfileState,
+  type SyncState,
 } from '../profile';
 import type { ProfileClient } from '../adapters';
 import { Badge, Crest, Screen, StickerSlot, useAppTheme } from '../ui/kit';
@@ -111,6 +112,7 @@ export function CarneScreen({
   const [partidos, setPartidos] = useState<PartidosState>(() =>
     pres.getPartidosState(),
   );
+  const [sync, setSync] = useState<SyncState>(() => pres.getSyncState());
 
   // Se SUSCRIBE al presentador compartido; solo dispara la carga si aún está
   // `idle`. Es clave NO re-lanzar `loadProfile` si el perfil ya está cargado (o
@@ -120,16 +122,38 @@ export function CarneScreen({
   useEffect(() => {
     const offProfile = pres.subscribeProfile(setProfile);
     const offPartidos = pres.subscribePartidos(setPartidos);
+    const offSync = pres.subscribeSync(setSync);
     if (pres.getProfileState().status === 'idle') {
       void pres.loadProfile();
     }
     return () => {
       offProfile();
       offPartidos();
+      offSync();
     };
   }, [pres]);
 
   const temporadaId = profile.perfil?.temporadaActiva?.id ?? null;
+
+  /**
+   * Re-sincroniza la temporada activa desde la API deportiva (`POST /me/temporada`
+   * con la `temporadaExterna` ya existente). Sirve para refrescar los datos de
+   * los partidos (resultado, escudo del rival, etc.) sin rehacer el onboarding.
+   * Al terminar, recarga los partidos para reflejar los cambios en el carné.
+   */
+  const onActualizarTemporada = React.useCallback(() => {
+    const externa = profile.perfil?.temporadaActiva?.temporadaExterna;
+    const tId = profile.perfil?.temporadaActiva?.id ?? null;
+    if (!externa) {
+      return;
+    }
+    void (async () => {
+      await pres.syncTemporada(externa);
+      if (tId) {
+        await pres.loadPartidos(tId);
+      }
+    })();
+  }, [pres, profile.perfil?.temporadaActiva?.temporadaExterna, profile.perfil?.temporadaActiva?.id]);
   useEffect(() => {
     // Carga los partidos una sola vez por temporada (evita recargas en bucle).
     if (temporadaId && pres.getPartidosState().status === 'idle') {
@@ -291,6 +315,24 @@ export function CarneScreen({
             <Text style={styles.ctaHint}>
               Elige un partido para montar su foto en la lámina.
             </Text>
+            {/* Re-sincroniza los datos de la temporada (resultados, escudos). */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Actualizar los datos de mi temporada"
+              disabled={sync.status === 'syncing'}
+              onPress={onActualizarTemporada}
+              style={[styles.cta, styles.ctaSecundario]}
+            >
+              <Text style={styles.ctaSecundarioText}>
+                {sync.status === 'syncing' ? 'Actualizando…' : 'Actualizar temporada'}
+              </Text>
+            </Pressable>
+            {sync.status === 'error' && sync.error !== null ? (
+              <Text style={styles.syncError}>{sync.error}</Text>
+            ) : null}
+            {sync.status === 'done' ? (
+              <Text style={styles.ctaHint}>Temporada actualizada.</Text>
+            ) : null}
           </>
         ) : (
           <Pressable
@@ -460,6 +502,26 @@ const styles = StyleSheet.create({
   },
   ctaHint: {
     color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  ctaSecundario: {
+    marginTop: spacing.md,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: palette.borderOnDark,
+  },
+  ctaSecundarioText: {
+    color: palette.textOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.3,
+  },
+  syncError: {
+    color: palette.danger,
     fontFamily: fonts.body,
     fontSize: fontSize.caption,
     textAlign: 'center',
