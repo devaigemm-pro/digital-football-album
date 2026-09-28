@@ -31,8 +31,24 @@ export class PartidoDetalleNoEncontradoError extends Error {
 /** Foto asociada al momento (para mostrar/elegir la de la lámina). */
 export interface FotoMomento {
   readonly id: UUID;
+  /** Clave interna del objeto en el storage (no renderizable por sí sola). */
   readonly objectKey: string;
+  /**
+   * URL http(s) FIRMADA y temporal para mostrar la foto en el cliente
+   * (`<Image source={{ uri }}>`). Es la que debe usar la app; `objectKey` se
+   * conserva para operaciones internas. `null` si no se pudo firmar.
+   */
+  readonly url: string | null;
   readonly esPrincipal: boolean;
+}
+
+/**
+ * Puerto para convertir una clave interna del object storage en una URL
+ * renderizable (firmada/pública). Se inyecta para no acoplar el servicio a
+ * Supabase y poder testear con un doble. `null` si la clave no se puede firmar.
+ */
+export interface UrlResolver {
+  getSignedUrl(objectKey: string, expiresInSec?: number): Promise<string | null>;
 }
 
 /** Detalle completo del partido/lámina. */
@@ -64,6 +80,13 @@ export interface MatchDetailDeps {
   readonly momentos: MomentoRepository;
   readonly fotos: FotoRepository;
   readonly sportsClient: SportsApiClient;
+  /**
+   * Resuelve las claves de las fotos a URLs firmadas para que el cliente pueda
+   * mostrarlas. Opcional: si no se inyecta, las fotos salen con `url: null` y
+   * `objectKey` crudo (comportamiento previo). En producción se inyecta el
+   * `SupabaseObjectStorage`.
+   */
+  readonly urlResolver?: UrlResolver;
   /**
    * Si es `false`, se OMITE la llamada a la ficha en vivo (goleadores/
    * formaciones): sin proveedor deportivo configurado no tiene sentido intentar
@@ -105,9 +128,16 @@ export class MatchDetailService {
     if (momento !== null) {
       const lista = await fotos.findByMomentoId(momento.id);
       for (const f of lista) {
+        // Resuelve la clave interna a una URL firmada renderizable por el
+        // cliente. Si no hay resolver o falla la firma, `url` queda en null y
+        // el cliente cae al placeholder (no se rompe el detalle).
+        const url = this.deps.urlResolver
+          ? await this.deps.urlResolver.getSignedUrl(f.objectKey)
+          : null;
         fotosMomento.push({
           id: f.id,
           objectKey: f.objectKey,
+          url,
           esPrincipal: recuadro?.fotoPrincipalId === f.id,
         });
       }
@@ -117,15 +147,24 @@ export class MatchDetailService {
     // proveedor no está configurado, para no incurrir en el backoff de reintentos.
     let goleadores: readonly RawGoleador[] = [];
     let formaciones: readonly RawFormacionEquipo[] = [];
+    // Resultado de la ficha en vivo: sirve de respaldo si el partido persistido
+    // aún no tiene `resultado` (p. ej. no pasó por el backfill de finalizados).
+    let resultadoEnVivo: { golesLocal: number; golesVisita: number } | null = null;
     if (this.deps.sportsEnabled !== false) {
       try {
         const ficha = await sportsClient.fetchFichaPartido(partido.partidoExternoId);
         goleadores = ficha.goleadores ?? [];
         formaciones = ficha.formaciones ?? [];
+        resultadoEnVivo = ficha.resultado ?? null;
       } catch {
         // La ficha en vivo no está disponible: se devuelve el detalle sin ella.
       }
     }
+
+    // Marcador: prioriza lo persistido; si falta y el partido está FINALIZADO,
+    // usa el de la ficha en vivo (evita "– / –" cuando el backfill no corrió).
+    const resultado =
+      partido.resultado ?? (partido.estado === 'FINALIZADO' ? resultadoEnVivo : null);
 
     return {
       partidoId: partido.id,
@@ -135,7 +174,7 @@ export class MatchDetailService {
       estado: partido.estado,
       esClasico: partido.esClasico,
       esInternacional: partido.esInternacional,
-      resultado: partido.resultado,
+      resultado,
       numeroRecuadro: recuadro?.numero ?? null,
       recuadroId: recuadro?.id ?? null,
       momentoId: momento?.id ?? null,

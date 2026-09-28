@@ -150,7 +150,16 @@ export interface AppServices {
    * Sube la FOTO DE PERFIL del hincha (avatar): sube el binario al object
    * storage y persiste su `avatarUrl` en el Usuario. La usa `POST /me/avatar`.
    */
-  readonly uploadAvatar: (usuarioId: UUID, binario: Uint8Array) => Promise<{ avatarUrl: string }>;
+  readonly uploadAvatar: (
+    usuarioId: UUID,
+    binario: Uint8Array,
+  ) => Promise<{ avatarUrl: string | null }>;
+  /**
+   * Resuelve una clave interna del object storage a una URL firmada renderizable
+   * (o `null`). La usan los endpoints que devuelven imágenes (p. ej. el avatar
+   * en `GET /me`).
+   */
+  readonly resolveObjectUrl: (objectKey: string | null) => Promise<string | null>;
 }
 
 /** Opciones de ensamblado del composition root. */
@@ -331,6 +340,16 @@ export function createServices(options: CreateServicesOptions): AppServices {
     fotos: repos.fotos,
     sportsClient,
     sportsEnabled: sportsCfg?.provider === 'api-football' && Boolean(sportsCfg.apiKey),
+    // Resuelve las claves de foto a URLs firmadas para que el cliente las
+    // muestre. Solo el storage de Supabase expone `getSignedUrl`; con el doble
+    // en memoria no se inyecta (las fotos salen con `url: null`).
+    ...(typeof (momentosStorage as { getSignedUrl?: unknown }).getSignedUrl === 'function'
+      ? {
+          urlResolver: momentosStorage as unknown as {
+            getSignedUrl(objectKey: string, expiresInSec?: number): Promise<string | null>;
+          },
+        }
+      : {}),
   });
 
   // Carga de fotos cableada: función de dominio + repos + storage seleccionado.
@@ -359,17 +378,29 @@ export function createServices(options: CreateServicesOptions): AppServices {
       temporadas: repos.temporadas,
     });
 
+  // Resuelve una clave interna del object storage a una URL firmada renderizable
+  // por el cliente. Devuelve `null` si no hay clave, no hay resolver (in-memory)
+  // o la firma falla. Se usa para el avatar del usuario y otras imágenes.
+  const resolveObjectUrl = async (objectKey: string | null): Promise<string | null> => {
+    if (!objectKey) return null;
+    const storage = momentosStorage as {
+      getSignedUrl?: (k: string, ttl?: number) => Promise<string | null>;
+    };
+    if (typeof storage.getSignedUrl !== 'function') return null;
+    return storage.getSignedUrl(objectKey);
+  };
+
   // Subida de la FOTO DE PERFIL del hincha: sube el binario al object storage
-  // (mismo bucket cifrado que las fotos) y persiste su `avatarUrl` en el
-  // Usuario (`PATCH` interno vía UserProfileService). Devuelve el usuario
-  // actualizado. Es el binario que el "+" del carné monta como avatar.
+  // (mismo bucket cifrado que las fotos) y persiste su `avatarUrl` (la clave) en
+  // el Usuario. Devuelve una URL FIRMADA lista para mostrar en el carné.
   const uploadAvatarWired = async (
     usuarioId: UUID,
     binario: Uint8Array,
-  ): Promise<{ avatarUrl: string }> => {
+  ): Promise<{ avatarUrl: string | null }> => {
     const objectKey = await momentosStorage.upload(binario);
-    const usuario = await userProfile.actualizar(usuarioId, { avatarUrl: objectKey });
-    return { avatarUrl: usuario.avatarUrl ?? objectKey };
+    await userProfile.actualizar(usuarioId, { avatarUrl: objectKey });
+    // Devuelve la URL firmada (renderizable), no la clave interna.
+    return { avatarUrl: (await resolveObjectUrl(objectKey)) ?? objectKey };
   };
 
   return {
@@ -398,5 +429,6 @@ export function createServices(options: CreateServicesOptions): AppServices {
     updateMomento: updateMomentoWired,
     setFotoPrincipal: setFotoPrincipalWired,
     uploadAvatar: uploadAvatarWired,
+    resolveObjectUrl,
   };
 }

@@ -42,7 +42,7 @@ import type {
   PartidoDetalle,
   ProfileClient,
 } from '../adapters';
-import { Badge, Hero, PrimaryButton, Screen, SecondaryButton, StickerSlot } from '../ui/kit';
+import { Badge, Hero, PrimaryButton, Scoreboard, Screen, SecondaryButton, StickerSlot } from '../ui/kit';
 import {
   fonts,
   fontSize,
@@ -79,21 +79,31 @@ function fechaLegible(iso: string): string {
   return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
 }
 
-/** Marcador si el partido está finalizado, o el estado en otro caso. */
-function marcador(p: PartidoDetalle): string {
+/**
+ * Texto del marcador para el `Scoreboard`, o `null` si no hay marcador que
+ * mostrar (entonces el Scoreboard pinta "VS").
+ *   - Con `resultado`: "2 - 1".
+ *   - FINALIZADO sin resultado (la API deportiva aún no lo trae): "– / –".
+ *   - PROGRAMADO / EN_CURSO sin resultado: null → "VS".
+ */
+function marcador(p: PartidoDetalle): string | null {
   if (p.resultado) {
     return `${p.resultado.golesLocal} - ${p.resultado.golesVisita}`;
   }
-  return p.estado === 'PROGRAMADO' ? 'Próximo' : p.estado;
+  return p.estado === 'FINALIZADO' ? '– / –' : null;
 }
 
-/** URI de la Foto_Principal montada en la lámina, o null si está vacía. */
+/**
+ * URI renderizable de la Foto_Principal montada en la lámina, o null si vacía.
+ * Prefiere la `url` firmada (renderizable por `<Image>`); el `objectKey` es una
+ * clave interna del storage que NO se puede mostrar directamente.
+ */
 function fotoPrincipalUri(p: PartidoDetalle): string | null {
   if (p.fotoPrincipalId == null) {
     return null;
   }
   const foto = p.fotos.find((f) => f.id === p.fotoPrincipalId);
-  return foto?.objectKey ?? null;
+  return foto?.url ?? null;
 }
 
 /**
@@ -111,9 +121,12 @@ export function DetallePartidoScreen({
   const [detalle, setDetalle] = useState<PartidoDetalle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
-  const [mostrarDetalles, setMostrarDetalles] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [resena, setResena] = useState('');
+  // Escudo del club PROPIO (equipo local del marcador). Viene de `GET /me`.
+  const [escudoPropio, setEscudoPropio] = useState<string | null>(null);
+  // Monograma del club propio como respaldo si aún no hay escudo.
+  const [monogramaPropio, setMonogramaPropio] = useState<string>('FC');
 
   const recargar = useCallback(async () => {
     setCargando(true);
@@ -128,6 +141,28 @@ export function DetallePartidoScreen({
       setCargando(false);
     }
   }, [client, partidoId]);
+
+  // Carga el escudo/monograma del club propio (una vez) para el marcador.
+  useEffect(() => {
+    let cancelado = false;
+    void client
+      .getPerfil()
+      .then((perfil) => {
+        if (cancelado) {
+          return;
+        }
+        setEscudoPropio(perfil.club?.escudoUrl ?? null);
+        if (perfil.club?.nombre) {
+          setMonogramaPropio(perfil.club.nombre.slice(0, 3).toUpperCase());
+        }
+      })
+      .catch(() => {
+        // No bloquea el detalle: sin escudo se cae al monograma por defecto.
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [client]);
 
   useEffect(() => {
     void recargar();
@@ -224,7 +259,7 @@ export function DetallePartidoScreen({
 
   if (cargando && !detalle) {
     return (
-      <Screen tone="light" style={styles.centered}>
+      <Screen tone="dark" style={styles.centered}>
         <ActivityIndicator
           color={palette.accent}
           accessibilityLabel="Cargando el detalle del partido"
@@ -235,26 +270,34 @@ export function DetallePartidoScreen({
 
   if (error && !detalle) {
     return (
-      <Screen tone="light" style={styles.centered}>
+      <Screen tone="dark" style={styles.centered}>
         <Text style={styles.errorText}>{error}</Text>
-        <SecondaryButton title="Reintentar" tone="light" onPress={() => void recargar()} />
+        <SecondaryButton title="Reintentar" tone="dark" onPress={() => void recargar()} />
       </Screen>
     );
   }
 
   if (!detalle) {
     return (
-      <Screen tone="light" style={styles.centered}>
+      <Screen tone="dark" style={styles.centered}>
         <Text style={styles.mutedText}>Partido no encontrado.</Text>
       </Screen>
     );
   }
 
   return (
-    <Screen tone="light" flush>
+    <Screen tone="dark" flush>
       <Hero eyebrow={detalle.competicion} title={`vs ${detalle.rival}`}>
-        <Text style={styles.heroMarcador}>{marcador(detalle)}</Text>
-        <Text style={styles.heroFecha}>{fechaLegible(detalle.fechaHora)}</Text>
+        {/* Marcador tipo transmisión: resultado gigante flanqueado por escudos. */}
+        <Scoreboard
+          homeMonogram={monogramaPropio}
+          homeCrestUrl={escudoPropio}
+          awayMonogram={detalle.rival.slice(0, 3).toUpperCase()}
+          score={marcador(detalle)}
+          status={detalle.estado === 'FINALIZADO' ? 'FINAL' : fechaLegible(detalle.fechaHora)}
+          live={detalle.estado === 'EN_CURSO'}
+          style={styles.heroScore}
+        />
         <View style={styles.heroBadges}>
           {detalle.esClasico ? <Badge label="Clásico" tone="gold" style={styles.heroBadge} /> : null}
           {detalle.esInternacional ? (
@@ -264,7 +307,38 @@ export function DetallePartidoScreen({
       </Hero>
 
       <ScrollView contentContainerStyle={styles.body}>
-        {/* Goleadores */}
+        {/* LÁMINA DEL HINCHA (arriba): cada recuadro es ESTE partido (Req 4.1).
+            La foto principal es la que se monta e imprime. Adjuntar foto sube
+            al Momento del partido y la fija como Foto_Principal del recuadro;
+            el backend valida biunivocidad y ventana de edición. */}
+        <View style={styles.laminaHero}>
+          <Text style={styles.subtitulo}>Tu lámina</Text>
+          <StickerSlot
+            numero={detalle.numeroRecuadro ?? '—'}
+            imageUri={uriPrincipal}
+            label={`vs ${detalle.rival}`}
+            style={styles.lamina}
+          />
+          <View style={styles.laminaAcciones}>
+            <SecondaryButton
+              title={uriPrincipal ? 'Cambiar foto' : 'Añadir de galería'}
+              tone="dark"
+              onPress={() => void adjuntarFoto('galeria')}
+              disabled={ocupado}
+              style={styles.laminaBtn}
+            />
+            <SecondaryButton
+              title="Cámara"
+              tone="dark"
+              onPress={() => void adjuntarFoto('camara')}
+              disabled={ocupado}
+              style={styles.laminaBtn}
+            />
+          </View>
+        </View>
+
+        {/* INFORMACIÓN DEL ENCUENTRO (abajo): resultado, goleadores,
+            formaciones y tu reseña. Siempre visible (sin toggle). */}
         <Text style={styles.titulo}>Goleadores</Text>
         {detalle.goleadores.length > 0 ? (
           detalle.goleadores.map((g: Goleador, i) => (
@@ -286,89 +360,46 @@ export function DetallePartidoScreen({
           </Text>
         )}
 
-        {/* Botón Detalles */}
-        <PrimaryButton
-          title={mostrarDetalles ? 'Ocultar detalles' : 'Detalles'}
-          onPress={() => setMostrarDetalles((v) => !v)}
-          style={styles.detallesBtn}
-        />
-
-        {mostrarDetalles ? (
-          <View style={styles.detallesPanel}>
-            {/* Formaciones junto a la lámina */}
-            <View style={styles.detallesRow}>
-              {/* Lámina: adjuntar la foto del partido */}
-              <View style={styles.laminaCol}>
-                <Text style={styles.subtitulo}>Tu lámina</Text>
-                <StickerSlot
-                  numero={detalle.numeroRecuadro ?? '—'}
-                  imageUri={uriPrincipal}
-                  label={`vs ${detalle.rival}`}
-                  style={styles.lamina}
-                />
-                <View style={styles.laminaAcciones}>
-                  <SecondaryButton
-                    title="Galería"
-                    tone="light"
-                    onPress={() => void adjuntarFoto('galeria')}
-                    disabled={ocupado}
-                    style={styles.laminaBtn}
-                  />
-                  <SecondaryButton
-                    title="Cámara"
-                    tone="light"
-                    onPress={() => void adjuntarFoto('camara')}
-                    disabled={ocupado}
-                    style={styles.laminaBtn}
-                  />
-                </View>
-              </View>
-
-              {/* Formaciones */}
-              <View style={styles.formacionesCol}>
-                <Text style={styles.subtitulo}>Formaciones</Text>
-                {detalle.formaciones.length > 0 ? (
-                  detalle.formaciones.map((f: FormacionEquipo) => (
-                    <View key={f.equipo} style={styles.formacionEquipo}>
-                      <Text style={styles.formacionNombre} numberOfLines={1}>
-                        {f.equipo}
-                        {f.formacion ? ` · ${f.formacion}` : ''}
-                      </Text>
-                      {f.titulares.map((j) => (
-                        <Text key={j.id} style={styles.formacionJugador} numberOfLines={1}>
-                          • {j.nombre}
-                        </Text>
-                      ))}
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.mutedText}>
-                    Las formaciones aparecerán cuando estén disponibles.
-                  </Text>
-                )}
-              </View>
+        {/* Formaciones */}
+        <Text style={styles.titulo}>Formaciones</Text>
+        {detalle.formaciones.length > 0 ? (
+          detalle.formaciones.map((f: FormacionEquipo) => (
+            <View key={f.equipo} style={styles.formacionEquipo}>
+              <Text style={styles.formacionNombre} numberOfLines={1}>
+                {f.equipo}
+                {f.formacion ? ` · ${f.formacion}` : ''}
+              </Text>
+              {f.titulares.map((j) => (
+                <Text key={j.id} style={styles.formacionJugador} numberOfLines={1}>
+                  • {j.nombre}
+                </Text>
+              ))}
             </View>
+          ))
+        ) : (
+          <Text style={styles.mutedText}>
+            Las formaciones aparecerán cuando estén disponibles.
+          </Text>
+        )}
 
-            {/* Reseña */}
-            <Text style={styles.subtitulo}>Tu reseña</Text>
-            <TextInput
-              style={styles.resenaInput}
-              multiline
-              editable={!ocupado}
-              value={resena}
-              onChangeText={setResena}
-              placeholder="¿Cómo viviste el partido?"
-              placeholderTextColor={palette.textMutedOnLight}
-              accessibilityLabel="Reseña del partido"
-            />
-            <PrimaryButton
-              title="Guardar reseña"
-              onPress={() => void guardarResena()}
-              disabled={ocupado}
-              style={styles.resenaBtn}
-            />
-          </View>
-        ) : null}
+        {/* Reseña */}
+        <Text style={styles.titulo}>Tu reseña</Text>
+        <TextInput
+          style={styles.resenaInput}
+          multiline
+          editable={!ocupado}
+          value={resena}
+          onChangeText={setResena}
+          placeholder="¿Cómo viviste el partido?"
+          placeholderTextColor={palette.textMutedOnDark}
+          accessibilityLabel="Reseña del partido"
+        />
+        <PrimaryButton
+          title="Guardar reseña"
+          onPress={() => void guardarResena()}
+          disabled={ocupado}
+          style={styles.resenaBtn}
+        />
       </ScrollView>
     </Screen>
   );
@@ -391,11 +422,12 @@ const styles = StyleSheet.create({
     fontSize: fontSize.small,
     marginTop: spacing.xs,
   },
-  heroBadges: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  heroScore: { marginTop: spacing.sm },
+  heroBadges: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, alignSelf: 'center' },
   heroBadge: {},
 
   titulo: {
-    color: palette.textOnLight,
+    color: palette.textOnDark,
     fontFamily: fonts.display,
     fontSize: fontSize.title,
     fontWeight: fontWeight.bold,
@@ -403,7 +435,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   subtitulo: {
-    color: palette.textOnLight,
+    color: palette.textOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.subtitle,
     fontWeight: fontWeight.bold,
@@ -411,7 +443,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   mutedText: {
-    color: palette.textMutedOnLight,
+    color: palette.textMutedOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.small,
     lineHeight: 20,
@@ -429,7 +461,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingVertical: spacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: palette.borderOnLight,
+    borderBottomColor: palette.borderOnDark,
   },
   golMinuto: {
     color: palette.accent,
@@ -440,37 +472,42 @@ const styles = StyleSheet.create({
   },
   golJugador: {
     flex: 1,
-    color: palette.textOnLight,
+    color: palette.textOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.body,
     fontWeight: fontWeight.semibold,
   },
   golEquipo: {
-    color: palette.textMutedOnLight,
+    color: palette.textMutedOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.small,
     maxWidth: '35%',
   },
 
-  detallesBtn: { marginTop: spacing.lg },
-  detallesPanel: { marginTop: spacing.md, gap: spacing.sm },
-  detallesRow: { flexDirection: 'row', gap: spacing.md },
-  laminaCol: { flex: 1 },
-  formacionesCol: { flex: 1 },
-  lamina: { marginBottom: spacing.sm },
-  laminaAcciones: { flexDirection: 'row', gap: spacing.sm },
+  // Lámina del hincha destacada arriba del detalle del encuentro.
+  laminaHero: {
+    alignItems: 'center',
+    backgroundColor: palette.glassFill,
+    borderWidth: 1,
+    borderColor: palette.glassBorder,
+    borderRadius: radius.glass,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  lamina: { width: 168, marginTop: spacing.sm, marginBottom: spacing.md },
+  laminaAcciones: { flexDirection: 'row', gap: spacing.sm, alignSelf: 'stretch' },
   laminaBtn: { flex: 1 },
 
   formacionEquipo: { marginBottom: spacing.md },
   formacionNombre: {
-    color: palette.textOnLight,
+    color: palette.textOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.small,
     fontWeight: fontWeight.bold,
     marginBottom: spacing.xs,
   },
   formacionJugador: {
-    color: palette.textMutedOnLight,
+    color: palette.textMutedOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.small,
     lineHeight: 20,
@@ -478,12 +515,12 @@ const styles = StyleSheet.create({
 
   resenaInput: {
     borderWidth: 1,
-    borderColor: palette.borderOnLight,
+    borderColor: palette.borderOnDark,
     borderRadius: radius.lg,
     minHeight: 96,
     padding: spacing.md,
-    color: palette.textOnLight,
-    backgroundColor: palette.surface,
+    color: palette.textOnDark,
+    backgroundColor: palette.glassFill,
     fontFamily: fonts.body,
     fontSize: fontSize.body,
     textAlignVertical: 'top',

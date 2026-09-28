@@ -141,7 +141,10 @@ export interface FormacionEquipo {
 /** Foto asociada al momento del partido. */
 export interface FotoMomento {
   readonly id: string;
+  /** Clave interna del objeto en el storage (no renderizable por sí sola). */
   readonly objectKey: string;
+  /** URL http(s) firmada para mostrar la foto (`<Image source={{ uri }}>`), o null. */
+  readonly url?: string | null;
   readonly esPrincipal: boolean;
 }
 

@@ -306,6 +306,9 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
       // hubiera varias, se toma la primera; el ciclo de vida garantiza una activa.
       const activas = await repos.temporadas.findActivasByUsuarioId(context.userId);
       const temporadaActiva = activas.length > 0 ? activas[0] : null;
+      // El avatar se persiste como clave interna del storage; se firma para que
+      // el cliente pueda mostrarlo (`<Image>` necesita una URL http(s)).
+      const avatarUrl = await services.resolveObjectUrl(usuario.avatarUrl ?? null);
       return json(200, {
         usuario: {
           id: usuario.id,
@@ -316,7 +319,7 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
           alias: usuario.alias ?? null,
           fechaNacimiento: usuario.fechaNacimiento ?? null,
           sexo: usuario.sexo ?? null,
-          avatarUrl: usuario.avatarUrl ?? null,
+          avatarUrl: avatarUrl ?? usuario.avatarUrl ?? null,
         },
         club,
         temporadaActiva,

@@ -72,6 +72,27 @@ export class SupabaseObjectStorage {
   }
 
   /**
+   * Devuelve una URL FIRMADA y temporal para leer el objeto `objectKey`. El
+   * bucket es privado (RLS por carpeta), por lo que la clave interna no es
+   * accesible por sí sola: el cliente necesita una URL http(s) firmada para
+   * mostrar la imagen (`<Image source={{ uri }}>`). Si la firma falla (clave
+   * inexistente/expirada), devuelve `null` en vez de lanzar, para no romper la
+   * respuesta que la contiene (una foto ilegible no debe tumbar el detalle).
+   *
+   * @param objectKey Clave interna del objeto (la que devolvió `upload`).
+   * @param expiresInSec Validez de la URL en segundos (por defecto 1 h).
+   */
+  async getSignedUrl(objectKey: string, expiresInSec = 3600): Promise<string | null> {
+    const { data, error } = await this.client.storage
+      .from(this.bucket)
+      .createSignedUrl(objectKey, expiresInSec);
+    if (error || !data?.signedUrl) {
+      return null;
+    }
+    return data.signedUrl;
+  }
+
+  /**
    * Elimina el objeto identificado por `objectKey`. Idempotente: borrar una
    * clave inexistente no es error. Devuelve `true` si se eliminó algo.
    */
