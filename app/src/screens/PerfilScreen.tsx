@@ -34,7 +34,7 @@ import {
   type ProfileState,
 } from '../profile';
 import type { ProfileClient } from '../adapters';
-import { Crest, DangerButton, Hero, PrimaryButton, SecondaryButton, Screen } from '../ui/kit';
+import { Crest, Hero, PrimaryButton, SecondaryButton, Screen } from '../ui/kit';
 import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 
 export interface PerfilScreenProps {
@@ -42,10 +42,6 @@ export interface PerfilScreenProps {
   readonly client: ProfileClient;
   /** Presentador ya construido (opcional, útil en tests/Storybook). */
   readonly presenter?: ProfilePresenter;
-  /** Navega a Ajustes (privacidad, cerrar sesión, borrar cuenta). */
-  readonly onAjustes?: () => void;
-  /** Navega a la selección/cambio de club. */
-  readonly onCambiarClub?: () => void;
   /** Cierra la sesión del usuario (logout de Supabase) de forma directa. */
   readonly onLogout?: () => void | Promise<void>;
   /**
@@ -74,8 +70,6 @@ function Fila({ label, value }: { label: string; value: string }): React.ReactEl
 export function PerfilScreen({
   client,
   presenter,
-  onAjustes,
-  onCambiarClub,
   onLogout,
   onCambiarCorreo,
 }: PerfilScreenProps): React.ReactElement {
@@ -174,20 +168,8 @@ export function PerfilScreen({
           style={styles.accion}
         />
 
-        <SecondaryButton
-          title="Cambiar de club"
-          tone="dark"
-          onPress={onCambiarClub}
-          style={styles.accion}
-        />
-        <SecondaryButton
-          title="Ajustes y privacidad"
-          tone="dark"
-          onPress={onAjustes}
-          style={styles.accion}
-        />
         {onLogout ? (
-          <DangerButton
+          <PrimaryButton
             title="Cerrar sesión"
             onPress={() => {
               Alert.alert('Cerrar sesión', '¿Seguro que quieres cerrar sesión?', [

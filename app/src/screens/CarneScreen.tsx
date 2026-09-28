@@ -34,6 +34,11 @@ import {
   type ProfileState,
   type SyncState,
 } from '../profile';
+import {
+  derivarProgresoTemporada,
+  etiquetaProgreso,
+  type ProgresoTemporada,
+} from '../album';
 import type { ProfileClient } from '../adapters';
 import { Badge, Crest, Screen, StickerSlot, useAppTheme } from '../ui/kit';
 import {
@@ -65,22 +70,6 @@ export interface CarneScreenProps {
 }
 
 /** Progreso del álbum: montadas / total (recuadros con Foto_Principal). */
-interface Progreso {
-  readonly montadas: number;
-  readonly total: number;
-}
-
-/** Deriva el progreso de la lista de partidos: cuántas láminas tienen foto. */
-function derivarProgreso(partidos: PartidosState['partidos']): Progreso {
-  let montadas = 0;
-  for (const p of partidos) {
-    if (p.tieneFotoPrincipal) {
-      montadas += 1;
-    }
-  }
-  return { montadas, total: partidos.length };
-}
-
 /** Nombre visible del usuario: nombre → alias → correo → genérico. */
 function nombreVisible(perfil: ProfileState['perfil']): string {
   const u = perfil?.usuario;
@@ -179,9 +168,9 @@ export function CarneScreen({
   const perfil = profile.perfil;
   const club = perfil?.club ?? null;
   const temporada = perfil?.temporadaActiva ?? null;
-  const nombre = nombreVisible(profile);
-  const progreso = useMemo(
-    () => derivarProgreso(partidos.partidos),
+  const nombre = nombreVisible(profile.perfil);
+  const progreso: ProgresoTemporada = useMemo(
+    () => derivarProgresoTemporada(partidos.partidos),
     [partidos.partidos],
   );
   const cargandoPerfil =
@@ -308,21 +297,21 @@ export function CarneScreen({
                   <Text style={styles.datoDe}> / {progreso.total}</Text>
                 </Text>
                 <Text style={styles.datoLabel}>
-                  láminas montadas{etiquetaTemporada ? ` · temporada ${etiquetaTemporada}` : ''}
+                  {etiquetaProgreso(progreso, etiquetaTemporada)}
                 </Text>
 
                 {/* Barra de progreso (decorativa; el texto ya comunica el dato). */}
-                <View style={styles.barra} accessibilityRole="progressbar">
+                <View
+                  style={styles.barra}
+                  accessibilityRole="progressbar"
+                  accessibilityValue={{ min: 0, max: 100, now: progreso.porcentaje }}
+                >
                   <View
                     style={[
                       styles.barraFill,
                       {
                         backgroundColor: theme.palette.accent,
-                        width: `${
-                          progreso.total > 0
-                            ? Math.round((progreso.montadas / progreso.total) * 100)
-                            : 0
-                        }%`,
+                        width: `${progreso.porcentaje}%`,
                       },
                     ]}
                   />

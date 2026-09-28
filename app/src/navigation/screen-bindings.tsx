@@ -426,16 +426,12 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
   );
 
   // Perfil: club actual, temporada activa y datos del usuario (`GET /me`).
-  // Reutiliza el mismo presentador de perfil compartido; navega a Ajustes y a la
-  // selección de club.
-  const Perfil = (props: {
-    navigation?: { navigate: (route: string, params?: Record<string, unknown>) => void };
-  }): React.ReactElement => (
+  // Reutiliza el mismo presentador de perfil compartido. Solo permite editar
+  // datos y cerrar sesión; Ajustes es una pestaña propia (no se navega desde aquí).
+  const Perfil = (): React.ReactElement => (
     <PerfilScreen
       client={deps.profileClient}
       presenter={profilePresenter}
-      onAjustes={() => props.navigation?.navigate('Ajustes')}
-      onCambiarClub={() => props.navigation?.navigate('SeleccionClub')}
       onLogout={() => {
         void deps.authPresenter.logout().finally(() => deps.onRedirectToLogin?.());
       }}

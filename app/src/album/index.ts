@@ -18,3 +18,21 @@ export type {
   AlbumPreviewStatus,
   MiniaturaKey,
 } from './album-preview-presenter';
+
+// Lógica pura de láminas: realce Clásico/Internacional (Feature 5), progreso
+// real de temporada (Feature 1) y estantería agrupada por competición
+// (Feature 4). Todo derivado de datos del backend, sin reimplementar reglas.
+export {
+  agruparLaminasPorCompeticion,
+  derivarProgresoTemporada,
+  etiquetaProgreso,
+  etiquetaRealce,
+  realceLamina,
+  tieneRealceEspecial,
+} from './laminas';
+export type {
+  ClasificacionPartido,
+  GrupoCompeticion,
+  ProgresoTemporada,
+  RealceLamina,
+} from './laminas';

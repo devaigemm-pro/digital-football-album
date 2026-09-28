@@ -53,20 +53,53 @@ function marcador(p: PartidoLamina): string {
   return p.estado === 'PROGRAMADO' ? 'Próximo' : p.estado;
 }
 
-/** Sección de la lista: una competición con sus partidos ordenados. */
+/** Sección de la lista: una competición con sus partidos ordenados por fecha. */
 interface PartidosSection {
   readonly title: string;
+  /** Tipo de competición del grupo (para elegir el ícono del encabezado). */
+  readonly tipo: PartidoLamina['tipoCompeticion'] | null;
   readonly data: readonly PartidoLamina[];
 }
 
 /**
- * Agrupa los partidos por competición, preservando el orden de aparición de las
- * competiciones y el orden interno de sus partidos. Los partidos sin
- * competición conocida caen en "Otros".
+ * Ícono representativo de la competición. El backend no expone el logo de la
+ * competición, así que usamos un emblema por tipo (honesto, sin inventar un
+ * logo). Liga 🏆, Copa nacional 🏅, Internacional 🌎.
+ */
+function iconoCompeticion(tipo: PartidoLamina['tipoCompeticion'] | null): string {
+  switch (tipo) {
+    case 'LIGA':
+      return '🏆';
+    case 'COPA_NACIONAL':
+      return '🏅';
+    case 'INTERNACIONAL':
+      return '🌎';
+    default:
+      return '⚽';
+  }
+}
+
+/** Orden de aparición de las competiciones: Liga → Copa nacional → Internacional. */
+const ORDEN_TIPO: Record<PartidoLamina['tipoCompeticion'], number> = {
+  LIGA: 0,
+  COPA_NACIONAL: 1,
+  INTERNACIONAL: 2,
+};
+
+/** Compara dos partidos por fecha ascendente (jornada 1 → x). */
+function porFechaAsc(a: PartidoLamina, b: PartidoLamina): number {
+  return new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime();
+}
+
+/**
+ * Agrupa los partidos por competición, ordena las competiciones (Liga, Copa
+ * nacional, Internacional y luego el resto) y, dentro de cada una, ordena los
+ * partidos por fecha ascendente (de la primera jornada a la última). Los
+ * partidos sin competición conocida caen en "Otros".
  */
 function agruparPorCompeticion(partidos: readonly PartidoLamina[]): PartidosSection[] {
-  const orden: string[] = [];
   const grupos = new Map<string, PartidoLamina[]>();
+  const tipoPorClave = new Map<string, PartidoLamina['tipoCompeticion'] | null>();
 
   for (const p of partidos) {
     const clave = p.competicion?.trim() ? p.competicion : 'Otros';
@@ -74,12 +107,25 @@ function agruparPorCompeticion(partidos: readonly PartidoLamina[]): PartidosSect
     if (!grupo) {
       grupo = [];
       grupos.set(clave, grupo);
-      orden.push(clave);
+      tipoPorClave.set(clave, p.tipoCompeticion ?? null);
     }
     grupo.push(p);
   }
 
-  return orden.map((title) => ({ title, data: grupos.get(title) ?? [] }));
+  return [...grupos.entries()]
+    .map(([title, data]) => ({
+      title,
+      tipo: tipoPorClave.get(title) ?? null,
+      data: [...data].sort(porFechaAsc),
+    }))
+    .sort((a, b) => {
+      const ra = a.tipo ? ORDEN_TIPO[a.tipo] : 99;
+      const rb = b.tipo ? ORDEN_TIPO[b.tipo] : 99;
+      if (ra !== rb) {
+        return ra - rb;
+      }
+      return a.title.localeCompare(b.title);
+    });
 }
 
 /**
@@ -173,7 +219,10 @@ export function PartidosScreen({
           renderItem={renderItem}
           renderSectionHeader={({ section }) => (
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
+              <Text style={styles.sectionIcon}>{iconoCompeticion(section.tipo)}</Text>
+              <Text style={styles.sectionTitle} numberOfLines={1}>
+                {section.title}
+              </Text>
               <Text style={styles.sectionCount}>{section.data.length}</Text>
             </View>
           )}
@@ -200,12 +249,14 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: spacing.sm,
     paddingVertical: spacing.xs,
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
+  sectionIcon: { fontSize: 18 },
   sectionTitle: {
+    flex: 1,
     color: palette.textOnDark,
     fontFamily: fonts.display,
     fontSize: fontSize.subtitle,
