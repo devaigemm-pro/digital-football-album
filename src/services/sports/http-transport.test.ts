@@ -169,4 +169,13 @@ describe('ApiFootballSportsTransport — fixtures filtrados por equipo', () => {
     // Partido 2: usuario visitante -> escudo del rival = del local.
     expect(fixtures[1]?.escudoRivalUrl).toBe('https://logos/rival-local.png');
   });
+
+  it('captura el resultado del fixture FINALIZADO (marcador desde la lista, sin ficha)', async () => {
+    const { client } = makeClient();
+    const fixtures = await client.fetchFixtures(`265:2023:${TEAM_ID}`);
+    // Partido 1 (FT) con goles 2-1 -> resultado presente.
+    expect(fixtures[0]?.resultado).toEqual({ golesLocal: 2, golesVisita: 1 });
+    // Partido 2 (NS, no jugado, goles null) -> sin resultado.
+    expect(fixtures[1]?.resultado).toBeUndefined();
+  });
 });

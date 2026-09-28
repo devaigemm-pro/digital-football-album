@@ -37,6 +37,8 @@ export interface FixtureSaneado {
   readonly rival: string;
   /** URL del escudo del rival (si la API lo reporta). */
   readonly escudoRivalUrl?: string;
+  /** Resultado del partido si el fixture ya lo trae (partido jugado). */
+  readonly resultado?: { readonly golesLocal: number; readonly golesVisita: number };
   /** Fecha/hora ISO 8601 normalizada del partido (obligatoria, ya validada). */
   readonly fechaHora: ISODateTime;
   /** Estado del partido; por defecto `PROGRAMADO` si la API no lo reporta o es desconocido. */
@@ -146,6 +148,7 @@ function mapearFixtureValido(raw: RawFixture): FixtureSaneado {
     competicion: raw.competicion?.trim() ?? '',
     rival: raw.rival?.trim() ?? '',
     ...(raw.escudoRivalUrl ? { escudoRivalUrl: raw.escudoRivalUrl } : {}),
+    ...(raw.resultado ? { resultado: raw.resultado } : {}),
     fechaHora,
     estado: normalizarEstado(raw.estado),
   };

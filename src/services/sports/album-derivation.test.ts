@@ -249,4 +249,64 @@ describe('deriveAlbum', () => {
       deriveAlbum(TEMPORADA_ID, CLUB_ID, [entry({ partidoExternoId: 'p1' })], deps),
     ).rejects.toThrow(/Plantilla_Album/);
   });
+
+  it('al re-derivar, actualiza resultado y escudo del rival del partido que persiste', async () => {
+    const { deps, partidos } = makeDeps();
+
+    // Alta inicial: partido sin resultado ni escudo (aún no jugado / sin datos).
+    await deriveAlbum(
+      TEMPORADA_ID,
+      CLUB_ID,
+      [entry({ partidoExternoId: 'p1', estado: 'PROGRAMADO' })],
+      deps,
+    );
+
+    // Re-derivación con el fixture ya jugado: trae resultado y escudo del rival.
+    await deriveAlbum(
+      TEMPORADA_ID,
+      CLUB_ID,
+      [
+        entry({
+          partidoExternoId: 'p1',
+          estado: 'FINALIZADO',
+          resultado: { golesLocal: 2, golesVisita: 1 },
+          escudoRivalUrl: 'https://logos/rival.png',
+        }),
+      ],
+      deps,
+    );
+
+    const todos = await partidos.findByTemporadaId(TEMPORADA_ID);
+    expect(todos).toHaveLength(1);
+    expect(todos[0]?.estado).toBe('FINALIZADO');
+    expect(todos[0]?.resultado).toEqual({ golesLocal: 2, golesVisita: 1 });
+    expect(todos[0]?.escudoRivalUrl).toBe('https://logos/rival.png');
+  });
+
+  it('al re-derivar sin resultado en el fixture, NO borra el resultado ya persistido', async () => {
+    const { deps, partidos } = makeDeps();
+
+    await deriveAlbum(
+      TEMPORADA_ID,
+      CLUB_ID,
+      [
+        entry({
+          partidoExternoId: 'p1',
+          estado: 'FINALIZADO',
+          resultado: { golesLocal: 3, golesVisita: 0 },
+        }),
+      ],
+      deps,
+    );
+    // Re-sync posterior sin resultado (p. ej. la API no lo trae esta vez).
+    await deriveAlbum(
+      TEMPORADA_ID,
+      CLUB_ID,
+      [entry({ partidoExternoId: 'p1', estado: 'FINALIZADO' })],
+      deps,
+    );
+
+    const todos = await partidos.findByTemporadaId(TEMPORADA_ID);
+    expect(todos[0]?.resultado).toEqual({ golesLocal: 3, golesVisita: 0 });
+  });
 });

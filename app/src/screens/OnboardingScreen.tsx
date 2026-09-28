@@ -39,12 +39,14 @@ export interface OnboardingScreenProps {
 type Paso = 'bienvenida' | 'perfil' | 'pais' | 'division' | 'equipo' | 'cargando' | 'listo';
 
 /**
- * Temporada deportiva ACTUAL (año calendario). Las ligas de año calendario
- * (p. ej. Chile) se identifican por el año en curso en API-Football. Se deriva
- * de la fecha del dispositivo para no quedar clavada en un año pasado; el
- * usuario podrá cambiar de temporada cuando exista esa función.
+ * Temporada deportiva de trabajo. IMPORTANTE: la `SPORTS_API_KEY` es de plan
+ * FREE de API-Football, que solo cubre ~2021-2023; la temporada en curso NO
+ * está disponible en free. Por eso se usa 2023 como "temporada demo" con datos
+ * reales y completos (fixtures, resultados, escudos, Copa Chile). Cuando se
+ * suba a un plan de pago, cambiar por `new Date().getFullYear()` (o detectar la
+ * última temporada disponible del equipo). Ver preferencias 2026-09-27.
  */
-const SEASON_ACTUAL = new Date().getFullYear();
+const SEASON_DEMO = 2023;
 
 /** Opciones de sexo para el perfil. */
 const OPCIONES_SEXO: ReadonlyArray<{ valor: Sexo; etiqueta: string }> = [
@@ -121,7 +123,7 @@ export function OnboardingScreen({
       setCargando(true);
       setError(null);
       try {
-        const ligas = await profileClient.ligasDePais(p.nombre, SEASON_ACTUAL);
+        const ligas = await profileClient.ligasDePais(p.nombre, SEASON_DEMO);
         setDivisiones(ligas.filter(esLigaReal));
         setPaso('division');
       } catch {
@@ -138,7 +140,7 @@ export function OnboardingScreen({
       setCargando(true);
       setError(null);
       try {
-        setEquipos(await profileClient.equiposDeLiga(l.ligaId, SEASON_ACTUAL));
+        setEquipos(await profileClient.equiposDeLiga(l.ligaId, SEASON_DEMO));
         setPaso('equipo');
       } catch {
         setError('No se pudieron cargar los equipos. Inténtalo de nuevo.');
@@ -158,7 +160,7 @@ export function OnboardingScreen({
         // partidos del equipo en TODAS las competiciones (liga + Copa Chile +
         // internacional), no solo una liga (Req 4.2).
         const res = await profileClient.syncTemporada(
-          `team:${e.id}:${SEASON_ACTUAL}`,
+          `team:${e.id}:${SEASON_DEMO}`,
         );
         setResultadoRecuadros(res.recuadros);
         await pres.loadProfile();
@@ -371,7 +373,7 @@ export function OnboardingScreen({
       <Screen tone="light" flush>
         <Hero eyebrow="Paso 3 de 4" title="Elige tu división" />
         <ScrollView contentContainerStyle={styles.body}>
-          <Text style={styles.help}>Competiciones de {pais?.nombre ?? 'tu país'} · {SEASON_ACTUAL}</Text>
+          <Text style={styles.help}>Competiciones de {pais?.nombre ?? 'tu país'} · {SEASON_DEMO}</Text>
           {cargando ? <ActivityIndicator color={palette.accent} style={styles.spinner} /> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {divisiones.map((l) => (

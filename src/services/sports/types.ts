@@ -24,6 +24,12 @@ export interface RawFixture {
   readonly fechaHora?: string;
   /** Estado del partido reportado por la API. */
   readonly estado?: string;
+  /**
+   * Resultado del partido si el fixture ya trae `goals` (partido jugado). El
+   * endpoint `fixtures` de API-Football incluye el marcador, así que se captura
+   * aquí para no depender de una llamada de ficha por partido.
+   */
+  readonly resultado?: RawResultado;
 }
 
 /** Resultado final crudo de un partido finalizado. */

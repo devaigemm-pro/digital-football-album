@@ -505,6 +505,7 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
   private mapFixture(item: ApiFootballFixtureItem, teamIdNum?: number): RawFixture {
     // `exactOptionalPropertyTypes`: solo se incluyen las claves cuyo valor está
     // definido; las ausentes quedan fuera del objeto (no como `undefined`).
+    const estado = mapEstado(item.fixture?.status?.short);
     const raw: {
       partidoExternoId?: string;
       competicion?: string;
@@ -512,10 +513,24 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
       escudoRivalUrl?: string;
       fechaHora?: string;
       estado?: string;
-    } = { estado: mapEstado(item.fixture?.status?.short) };
+      resultado?: { golesLocal: number; golesVisita: number };
+    } = { estado };
     const id = item.fixture?.id;
     if (id !== undefined) raw.partidoExternoId = String(id);
     if (item.league?.name !== undefined) raw.competicion = item.league.name;
+
+    // Resultado: solo si el partido está FINALIZADO y la API trae goles (evita
+    // registrar 0-0 en partidos no jugados). El marcador del fixture es el del
+    // equipo LOCAL vs VISITANTE tal como lo reporta la API.
+    const golesLocal = item.goals?.home;
+    const golesVisita = item.goals?.away;
+    if (
+      estado === 'FINALIZADO' &&
+      typeof golesLocal === 'number' &&
+      typeof golesVisita === 'number'
+    ) {
+      raw.resultado = { golesLocal, golesVisita };
+    }
 
     // Rival = el equipo contrario al del usuario; su escudo se toma del mismo
     // lado (home/away) para poder mostrar las insignias de ambos equipos.
