@@ -20,6 +20,8 @@ export interface RawFixture {
   readonly rival?: string;
   /** URL del escudo/logo del equipo RIVAL (para el marcador/insignias). */
   readonly escudoRivalUrl?: string;
+  /** Estadio donde se jugó el partido (para mostrar bajo el marcador). */
+  readonly estadio?: string;
   /** Fecha/hora ISO 8601 del partido. Puede faltar/ser inválida. */
   readonly fechaHora?: string;
   /** Estado del partido reportado por la API. */

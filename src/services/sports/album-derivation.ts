@@ -52,6 +52,8 @@ export interface FixtureEntry {
   readonly rival: string;
   /** URL del escudo del rival (para mostrar su insignia), si se conoce. */
   readonly escudoRivalUrl?: string;
+  /** Estadio donde se jugó el partido, si se conoce. */
+  readonly estadio?: string;
   /** Resultado del partido si el fixture ya lo trae (partido jugado). */
   readonly resultado?: { readonly golesLocal: number; readonly golesVisita: number };
   /** Fecha/hora ISO 8601 del partido; ordena la numeración de Recuadros. */
@@ -256,6 +258,7 @@ export async function deriveAlbum(
         tipoCompeticion: entry.tipoCompeticion,
         rival: entry.rival,
         escudoRivalUrl: entry.escudoRivalUrl ?? null,
+        estadio: entry.estadio ?? null,
         fechaHora: entry.fechaHora,
         estado: entry.estado,
         esClasico: false,
@@ -290,6 +293,7 @@ export async function deriveAlbum(
       tipoCompeticion: entry.tipoCompeticion,
       rival: entry.rival,
       escudoRivalUrl: entry.escudoRivalUrl ?? null,
+      estadio: entry.estadio ?? null,
       fechaHora: entry.fechaHora,
       estado: entry.estado,
       // Solo se actualiza el resultado si el fixture trae uno (partido jugado);

@@ -63,6 +63,7 @@ interface ApiFootballFixtureItem {
     readonly id?: number;
     readonly date?: string;
     readonly status?: { readonly short?: string };
+    readonly venue?: { readonly name?: string | null; readonly city?: string | null };
   };
   readonly league?: { readonly name?: string };
   readonly teams?: {
@@ -515,6 +516,7 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
       competicion?: string;
       rival?: string;
       escudoRivalUrl?: string;
+      estadio?: string;
       fechaHora?: string;
       estado?: string;
       resultado?: { golesLocal: number; golesVisita: number };
@@ -522,6 +524,11 @@ export class ApiFootballSportsTransport implements SportsApiTransport {
     const id = item.fixture?.id;
     if (id !== undefined) raw.partidoExternoId = String(id);
     if (item.league?.name !== undefined) raw.competicion = item.league.name;
+    // Estadio donde se jugó (para mostrar bajo el marcador).
+    const venue = item.fixture?.venue?.name;
+    if (typeof venue === 'string' && venue.trim().length > 0) {
+      raw.estadio = venue.trim();
+    }
 
     // Resultado: solo si el partido está FINALIZADO y la API trae goles (evita
     // registrar 0-0 en partidos no jugados). El marcador del fixture es el del

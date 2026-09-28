@@ -57,6 +57,8 @@ export interface MatchDetail {
   readonly rival: string;
   /** URL del escudo del rival (para su insignia en el marcador), si se conoce. */
   readonly escudoRivalUrl: string | null;
+  /** Estadio donde se jugó (para mostrar bajo el marcador), si se conoce. */
+  readonly estadio: string | null;
   readonly competicion: string;
   readonly fechaHora: string;
   readonly estado: string;
@@ -172,6 +174,7 @@ export class MatchDetailService {
       partidoId: partido.id,
       rival: partido.rival,
       escudoRivalUrl: partido.escudoRivalUrl ?? null,
+      estadio: partido.estadio ?? null,
       competicion: partido.competicion,
       fechaHora: partido.fechaHora,
       estado: partido.estado,

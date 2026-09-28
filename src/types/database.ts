@@ -242,6 +242,7 @@ export type Database = {
           resultado: Json | null;
           rival: string;
           escudo_rival_url: string | null;
+          estadio: string | null;
           temporada_id: string;
           tipo_competicion: Database['public']['Enums']['tipo_competicion'];
         };
@@ -259,6 +260,7 @@ export type Database = {
           resultado?: Json | null;
           rival: string;
           escudo_rival_url?: string | null;
+          estadio?: string | null;
           temporada_id: string;
           tipo_competicion: Database['public']['Enums']['tipo_competicion'];
         };
@@ -276,6 +278,7 @@ export type Database = {
           resultado?: Json | null;
           rival?: string;
           escudo_rival_url?: string | null;
+          estadio?: string | null;
           temporada_id?: string;
           tipo_competicion?: Database['public']['Enums']['tipo_competicion'];
         };
