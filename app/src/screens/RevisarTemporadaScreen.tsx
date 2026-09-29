@@ -1,29 +1,34 @@
 // RevisarTemporadaScreen — presentación premium de la temporada en formato
 // carrusel de láminas (cromos) montadas, en secuencia.
 //
-// Es un "pase" elegante de los recuerdos ya coleccionados: cada lámina con su
-// Foto_Principal se muestra como un cromo a pantalla, y al deslizar, la lámina
-// central se agranda y las laterales se atenúan/encogen (efecto de profundidad).
+// Es un "pase" elegante de los recuerdos ya coleccionados:
+//   - AUTO-AVANCE: el carrusel avanza solo cada pocos segundos y hace loop al
+//     llegar al final. Se puede PAUSAR/reanudar con un botón, y se pausa solo
+//     mientras el usuario arrastra.
+//   - Cada lámina con su Foto_Principal se muestra como un cromo; la central se
+//     agranda y las laterales se atenúan/encogen (profundidad).
+//   - MARCO HOLOGRÁFICO/FOIL: el marco lleva un brillo (shimmer) animado que lo
+//     cruza en diagonal + tintes de color, más intenso en Clásicos/Internac.
 //
-// IMPLEMENTACIÓN: carrusel horizontal con `Animated.FlatList` + `pagingEnabled`
-// e interpolación del desplazamiento (`scrollX`) para escala/opacidad por tarjeta.
-// Es la API `Animated` NATIVA de React Native (sin dependencias nuevas: nada de
-// reanimated/skia, que exigirían rebuild nativo). Patrón estándar de carrusel con
-// FlatList e interpolación de scrollX.
+// IMPLEMENTACIÓN: `Animated.FlatList` horizontal + interpolación del scroll para
+// escala/opacidad, `scrollToOffset` temporizado para el auto-avance, y capas
+// `Animated.View` para el foil. Todo con la API `Animated` NATIVA de React Native
+// (SIN dependencias nuevas: nada de reanimated/skia/expo-linear-gradient, que
+// exigirían rebuild nativo). El holograma es un efecto por CAPAS (no un shader
+// gyroscópico): brillo diagonal en bucle + tintes, el patrón sin-librería.
 //
 // DATOS REALES: las láminas montadas salen de la lista de partidos
-// (`laminasMontadasEnSecuencia`); la miniatura de cada una, del preview del álbum
-// (`GET /album/:id/preview`, por número de recuadro). No se inventa nada; si no
-// hay láminas montadas aún, se guía al usuario.
+// (`laminasMontadasEnSecuencia`); la miniatura, del preview del álbum. No se
+// inventa nada; si no hay láminas montadas, se guía al usuario.
 //
-// `.tsx` EXCLUIDO del typecheck (`app/tsconfig.json`): usa React Native. La
-// lógica de selección/orden vive en `laminas.ts` (TS puro, testeado).
+// `.tsx` EXCLUIDO del typecheck (`app/tsconfig.json`): usa React Native.
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Easing,
   Image,
   Pressable,
   StyleSheet,
@@ -37,6 +42,7 @@ import {
   laminasMontadasEnSecuencia,
   marcadorTexto,
   etiquetaRealce,
+  tieneRealceEspecial,
   type AlbumPreviewClient,
   type AlbumPreviewState,
 } from '../album';
@@ -59,8 +65,10 @@ export interface RevisarTemporadaScreenProps {
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_W = Math.min(320, SCREEN_W * 0.78);
+const CARD_H = CARD_W * (4 / 3) + 64; // foto 3:4 + pie
 const CARD_SPACING = spacing.md;
 const SNAP = CARD_W + CARD_SPACING;
+const AUTO_MS = 3500; // intervalo del auto-avance
 
 /** Lámina lista para el carrusel: partido + miniatura resuelta. */
 interface LaminaVista {
@@ -69,9 +77,51 @@ interface LaminaVista {
 }
 
 /**
- * Presentación en carrusel de las láminas montadas de la temporada. Cada tarjeta
- * es un cromo con la foto, el número, el rival, el marcador y el realce; la
- * central se destaca con una animación de escala/opacidad al desplazar.
+ * Marco holográfico animado (foil) para el cromo. Superpone un brillo diagonal
+ * que cruza la tarjeta en bucle y unos tintes de color. `intenso` sube la
+ * opacidad para Clásicos/Internacionales. Efecto por capas en RN puro.
+ */
+function HoloOverlay({ intenso }: { readonly intenso: boolean }): React.ReactElement {
+  const shimmer = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.timing(shimmer, {
+        toValue: 1,
+        duration: intenso ? 2600 : 3800,
+        easing: Easing.inOut(Easing.sin),
+        useNativeDriver: true,
+      }),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [shimmer, intenso]);
+
+  const translateX = shimmer.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-CARD_W, CARD_W],
+  });
+  const tintOpacity = intenso ? 0.28 : 0.16;
+
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      {/* Tintes de color (arcoíris tenue) para el reflejo foil. */}
+      <View style={[styles.holoTint, { backgroundColor: '#7A5CFF', opacity: tintOpacity }]} />
+      <View style={[styles.holoTintB, { backgroundColor: '#38E0C8', opacity: tintOpacity }]} />
+      <View style={[styles.holoTintC, { backgroundColor: palette.goldStrong, opacity: tintOpacity }]} />
+      {/* Banda de brillo diagonal que cruza en bucle. */}
+      <Animated.View
+        style={[
+          styles.shimmer,
+          { opacity: intenso ? 0.5 : 0.32, transform: [{ translateX }, { rotate: '18deg' }] },
+        ]}
+      />
+    </View>
+  );
+}
+
+/**
+ * Presentación en carrusel de las láminas montadas de la temporada, con
+ * auto-avance pausable y marco holográfico animado.
  */
 export function RevisarTemporadaScreen({
   temporadaId,
@@ -80,10 +130,7 @@ export function RevisarTemporadaScreen({
   profileClient,
   onAbrirPartido,
 }: RevisarTemporadaScreenProps): React.ReactElement {
-  const albumPres = useMemo(
-    () => new AlbumPreviewPresenter(albumClient),
-    [albumClient],
-  );
+  const albumPres = useMemo(() => new AlbumPreviewPresenter(albumClient), [albumClient]);
   const perfilPres = useMemo(
     () => profilePresenter ?? (profileClient ? new ProfilePresenter(profileClient) : null),
     [profilePresenter, profileClient],
@@ -95,7 +142,10 @@ export function RevisarTemporadaScreen({
   );
 
   const scrollX = useRef(new Animated.Value(0)).current;
+  const listRef = useRef<Animated.FlatList<LaminaVista> | null>(null);
   const [indiceActual, setIndiceActual] = useState(0);
+  const indiceRef = useRef(0);
+  const [reproduciendo, setReproduciendo] = useState(true);
 
   useEffect(() => {
     const off = albumPres.subscribe(setAlbum);
@@ -114,7 +164,6 @@ export function RevisarTemporadaScreen({
     return off;
   }, [perfilPres, temporadaId]);
 
-  // Miniatura por número de recuadro (del preview del álbum).
   const miniaturaPorNumero = useMemo(() => {
     const map = new Map<number, string>();
     for (const r of album.recuadros) {
@@ -125,7 +174,6 @@ export function RevisarTemporadaScreen({
     return map;
   }, [album.recuadros]);
 
-  // Láminas montadas en secuencia + su miniatura resuelta.
   const laminas: readonly LaminaVista[] = useMemo(() => {
     const montadas = laminasMontadasEnSecuencia(partidos?.partidos ?? []);
     return montadas.map((partido) => ({
@@ -137,16 +185,33 @@ export function RevisarTemporadaScreen({
     }));
   }, [partidos, miniaturaPorNumero]);
 
+  // Auto-avance: cada AUTO_MS pasa a la siguiente lámina y hace loop al final.
+  // Se detiene si está pausado o si hay 0/1 láminas. Se limpia al desmontar.
+  useEffect(() => {
+    if (!reproduciendo || laminas.length <= 1) {
+      return;
+    }
+    const id = setInterval(() => {
+      const siguiente = (indiceRef.current + 1) % laminas.length;
+      listRef.current?.scrollToOffset({ offset: siguiente * SNAP, animated: true });
+    }, AUTO_MS);
+    return () => clearInterval(id);
+  }, [reproduciendo, laminas.length]);
+
   const cargando =
     album.status === 'loading' ||
     album.status === 'idle' ||
     (partidos?.status ?? 'idle') === 'loading';
 
+  const onScrollBeginDrag = useCallback(() => {
+    // Al tocar/arrastrar, pausamos el auto-avance (el usuario toma el control).
+    setReproduciendo(false);
+  }, []);
+
   const renderItem = ({
     item,
     index,
   }: ListRenderItemInfo<LaminaVista>): React.ReactElement => {
-    // Rango de desplazamiento que centra esta tarjeta.
     const inputRange = [(index - 1) * SNAP, index * SNAP, (index + 1) * SNAP];
     const scale = scrollX.interpolate({
       inputRange,
@@ -160,6 +225,7 @@ export function RevisarTemporadaScreen({
     });
     const realce = etiquetaRealce(item.partido);
     const marcador = marcadorTexto(item.partido);
+    const especial = tieneRealceEspecial(item.partido);
     return (
       <Animated.View style={[styles.cardWrap, { transform: [{ scale }], opacity }]}>
         <Pressable
@@ -168,18 +234,14 @@ export function RevisarTemporadaScreen({
           onPress={() => onAbrirPartido?.(item.partido.partidoId)}
           style={styles.card}
         >
-          {/* Foto de la lámina (cromo). */}
           <View style={styles.foto}>
             {item.miniaturaUri ? (
-              <Image
-                source={{ uri: item.miniaturaUri }}
-                style={styles.fotoImg}
-                accessibilityRole="image"
-              />
+              <Image source={{ uri: item.miniaturaUri }} style={styles.fotoImg} accessibilityRole="image" />
             ) : (
               <View style={styles.fotoVacia} />
             )}
-            {/* Número del cromo, esquina superior. */}
+            {/* Foil holográfico sobre la foto (más intenso si Clásico/Internac.). */}
+            <HoloOverlay intenso={especial} />
             <View style={styles.numeroBadge}>
               <Text style={styles.numeroText}>{item.partido.numeroRecuadro}</Text>
             </View>
@@ -188,7 +250,6 @@ export function RevisarTemporadaScreen({
             ) : null}
           </View>
 
-          {/* Pie del cromo: rival + marcador. */}
           <View style={styles.pie}>
             <Text style={styles.rival} numberOfLines={1}>
               vs {item.partido.rival}
@@ -223,26 +284,47 @@ export function RevisarTemporadaScreen({
           </Text>
         </View>
       ) : (
-        <Animated.FlatList
-          data={laminas}
-          keyExtractor={(item: LaminaVista) => item.partido.partidoId}
-          renderItem={renderItem}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={SNAP}
-          decelerationRate="fast"
-          contentContainerStyle={styles.lista}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            {
-              useNativeDriver: true,
-              listener: (e: { nativeEvent: { contentOffset: { x: number } } }) => {
-                setIndiceActual(Math.round(e.nativeEvent.contentOffset.x / SNAP));
+        <View style={styles.carruselWrap}>
+          <Animated.FlatList
+            ref={listRef}
+            data={laminas}
+            keyExtractor={(item: LaminaVista) => item.partido.partidoId}
+            renderItem={renderItem}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={SNAP}
+            decelerationRate="fast"
+            contentContainerStyle={styles.lista}
+            onScrollBeginDrag={onScrollBeginDrag}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+              {
+                useNativeDriver: true,
+                listener: (e: { nativeEvent: { contentOffset: { x: number } } }) => {
+                  const i = Math.round(e.nativeEvent.contentOffset.x / SNAP);
+                  indiceRef.current = i;
+                  setIndiceActual(i);
+                },
               },
-            },
-          )}
-          scrollEventThrottle={16}
-        />
+            )}
+            scrollEventThrottle={16}
+          />
+
+          {/* Control de reproducción del auto-avance. */}
+          {laminas.length > 1 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={reproduciendo ? 'Pausar la presentación' : 'Reanudar la presentación'}
+              onPress={() => setReproduciendo((v) => !v)}
+              style={styles.playBtn}
+            >
+              <Text style={styles.playIcon}>{reproduciendo ? '❚❚' : '▶'}</Text>
+              <Text style={styles.playText}>
+                {reproduciendo ? 'Pausar' : 'Reproducir'}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
       )}
     </Screen>
   );
@@ -263,6 +345,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
+  carruselWrap: { flex: 1, justifyContent: 'center' },
   lista: {
     alignItems: 'center',
     paddingHorizontal: (SCREEN_W - CARD_W) / 2,
@@ -281,9 +364,23 @@ const styles = StyleSheet.create({
     aspectRatio: 3 / 4,
     backgroundColor: palette.ink,
     position: 'relative',
+    overflow: 'hidden',
   },
   fotoImg: { width: '100%', height: '100%', resizeMode: 'cover' },
   fotoVacia: { width: '100%', height: '100%', backgroundColor: palette.inkSoft },
+
+  // --- Foil holográfico ---
+  holoTint: { position: 'absolute', top: 0, left: 0, right: 0, height: '45%' },
+  holoTintB: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%' },
+  holoTintC: { position: 'absolute', top: '30%', left: 0, right: 0, height: '40%' },
+  shimmer: {
+    position: 'absolute',
+    top: -CARD_H,
+    bottom: -CARD_H,
+    width: CARD_W * 0.5,
+    backgroundColor: '#FFFFFF',
+  },
+
   numeroBadge: {
     position: 'absolute',
     top: spacing.sm,
@@ -322,6 +419,29 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: fontSize.title,
     fontWeight: fontWeight.bold,
+  },
+
+  // --- Control de reproducción ---
+  playBtn: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: palette.borderOnDark,
+    backgroundColor: palette.glassFill,
+  },
+  playIcon: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.small },
+  playText: {
+    color: palette.textOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.semibold,
   },
 });
 
