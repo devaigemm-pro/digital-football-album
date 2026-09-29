@@ -40,7 +40,7 @@ import {
 import { ProfilePresenter, type PartidosState } from '../profile';
 import type { ProfileClient } from '../adapters';
 import { Hero, Screen, StickerSlot } from '../ui/kit';
-import { fonts, fontWeight, palette, spacing } from '../theme/design-tokens';
+import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 
 export interface HomeAlbumScreenProps {
   /** Temporada cuyo álbum se previsualiza. */
@@ -59,6 +59,8 @@ export interface HomeAlbumScreenProps {
   readonly profileClient?: ProfileClient;
   /** Navega al detalle del partido asociado a la lámina tocada. */
   readonly onAbrirPartido?: (partidoId: string) => void;
+  /** Abre la presentación premium "Revisar mi temporada". */
+  readonly onRevisarTemporada?: () => void;
 }
 
 /**
@@ -74,6 +76,7 @@ export function HomeAlbumScreen({
   profilePresenter,
   profileClient,
   onAbrirPartido,
+  onRevisarTemporada,
 }: HomeAlbumScreenProps): React.ReactElement {
   const pres = useMemo(
     () => presenter ?? new AlbumPreviewPresenter(client),
@@ -161,6 +164,18 @@ export function HomeAlbumScreen({
       </Hero>
 
       <View style={styles.body}>
+        {/* Presentación premium de la temporada (carrusel de láminas montadas). */}
+        {onRevisarTemporada ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Revisar mi temporada"
+            onPress={onRevisarTemporada}
+            style={styles.revisarCta}
+          >
+            <Text style={styles.revisarText}>✨ Revisar mi temporada</Text>
+          </Pressable>
+        ) : null}
+
         {/* Los recuadros sin Foto_Principal ya se comunican con su silueta
             punteada en la propia rejilla (Req 4.2); no se muestra un aviso
             aparte de "faltantes" (decisión de diseño 2026-09-27). */}
@@ -205,6 +220,23 @@ const styles = StyleSheet.create({
   grid: { paddingBottom: spacing.lg },
   row: { gap: spacing.sm, marginBottom: spacing.sm },
   cell: { flex: 1 },
+  revisarCta: {
+    marginBottom: spacing.md,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: palette.goldStrong,
+    backgroundColor: palette.glassFill,
+  },
+  revisarText: {
+    color: palette.textOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.3,
+  },
 });
 
 export default HomeAlbumScreen;

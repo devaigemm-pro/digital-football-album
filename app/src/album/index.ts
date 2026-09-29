@@ -33,6 +33,7 @@ export {
   actividadReciente,
   marcadorTexto,
   estadisticasTemporada,
+  laminasMontadasEnSecuencia,
 } from './laminas';
 export type {
   ClasificacionPartido,

@@ -45,6 +45,7 @@ import { ProfilePresenter, type ProfileState } from '../profile';
 import { LoginScreen } from '../screens/LoginScreen';
 import { AjustesScreen } from '../screens/AjustesScreen';
 import { SuscripcionScreen } from '../screens/SuscripcionScreen';
+import { RevisarTemporadaScreen } from '../screens/RevisarTemporadaScreen';
 import { HomeAlbumScreen } from '../screens/HomeAlbumScreen';
 import { DigitalCardScreen } from '../screens/DigitalCardScreen';
 import { CompartirSheet } from '../screens/CompartirSheet';
@@ -363,6 +364,9 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
           onAbrirPartido={(partidoId) =>
             props.navigation?.navigate('DetallePartido', { partidoId })
           }
+          onRevisarTemporada={() =>
+            props.navigation?.navigate('RevisarTemporada', { temporadaId })
+          }
         />
       );
     }
@@ -451,6 +455,28 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
   const Suscripcion = (): React.ReactElement => (
     <SuscripcionScreen getEntitlements={() => deps.subscriptionClient.getEntitlements()} />
   );
+
+  // Revisar mi temporada: presentación premium (carrusel) de las láminas
+  // montadas. Se llega desde "Mi álbum". El temporadaId viene por params.
+  const RevisarTemporada = (props: {
+    navigation?: { navigate: (route: string, params?: Record<string, unknown>) => void };
+    route?: { params?: { temporadaId?: string } };
+  }): React.ReactElement => {
+    const tId = props.route?.params?.temporadaId ?? '';
+    if (!tId) {
+      return <Placeholder mensaje="Selecciona tu temporada para revisarla." />;
+    }
+    return (
+      <RevisarTemporadaScreen
+        temporadaId={tId}
+        albumClient={deps.albumPreviewClient}
+        profilePresenter={profilePresenter}
+        onAbrirPartido={(partidoId) =>
+          props.navigation?.navigate('DetallePartido', { partidoId })
+        }
+      />
+    );
+  };
 
   const Ajustes = (props: {
     navigation?: { navigate: (route: string, params?: Record<string, unknown>) => void };
@@ -545,6 +571,7 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
     DetallePartido,
     Perfil,
     Suscripcion,
+    RevisarTemporada,
     Ajustes,
     OnboardingGate,
   };

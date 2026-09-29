@@ -474,21 +474,8 @@ export function CarneScreen({
           </>
         ) : null}
 
-        {/* Acción principal: cada lámina es un partido; para agregar la foto a
-            una lámina se elige el partido y se sube ahí su Foto_Principal. */}
         {temporadaId ? (
           <>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Agregar la foto a una lámina de mi álbum"
-              onPress={() => onVerPartidos?.(temporadaId)}
-              style={[styles.cta, { backgroundColor: theme.palette.accent }]}
-            >
-              <Text style={styles.ctaText}>Agregar foto a mi lámina</Text>
-            </Pressable>
-            <Text style={styles.ctaHint}>
-              Elige un partido para montar su foto en la lámina.
-            </Text>
             {/* Re-sincroniza los datos de la temporada (resultados, escudos). */}
             <Pressable
               accessibilityRole="button"

@@ -53,6 +53,7 @@ export interface ScreenBundle {
   readonly DetallePartido: BoundScreen;
   readonly Perfil: BoundScreen;
   readonly Suscripcion: BoundScreen;
+  readonly RevisarTemporada: BoundScreen;
   readonly Ajustes: BoundScreen;
   /**
    * Compuerta de onboarding: se renderiza en la zona autenticada y decide si
@@ -100,6 +101,7 @@ const TAB_ICONS: Record<string, string> = {
   DetallePartido: 'football',
   Perfil: 'person',
   Suscripcion: 'card',
+  RevisarTemporada: 'albums',
   Ajustes: 'settings',
 };
 
@@ -154,6 +156,12 @@ function MainNavigator({ screens }: { screens: ScreenBundle }): React.JSX.Elemen
         component={screens.Suscripcion}
         // Se llega desde Ajustes (fila "Plan"); se oculta de la barra.
         options={{ title: 'Suscripción', tabBarButton: () => null, tabBarStyle: { display: 'none' } }}
+      />
+      <MainTabs.Screen
+        name="RevisarTemporada"
+        component={screens.RevisarTemporada}
+        // Se llega desde "Mi álbum"; se oculta de la barra.
+        options={{ title: 'Revisar mi temporada', tabBarButton: () => null, tabBarStyle: { display: 'none' } }}
       />
       <MainTabs.Screen
         name="Perfil"

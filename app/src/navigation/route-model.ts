@@ -21,6 +21,7 @@
 //   - DetallePartido     (Req 5/6) · fuera de la barra (se llega desde Partidos)
 //   - Perfil             (Req 2)   · pestaña principal
 //   - Suscripcion        (Req 25)  · fuera de la barra (se llega desde Ajustes)
+//   - RevisarTemporada   (Req 11)  · fuera de la barra (se llega desde Mi álbum)
 //   - Ajustes            (Req 22)  · pestaña principal
 
 /** Nombre único de cada pantalla del grafo de navegación. */
@@ -33,6 +34,7 @@ export type RouteName =
   | 'DetallePartido'
   | 'Perfil'
   | 'Suscripcion'
+  | 'RevisarTemporada'
   | 'Ajustes';
 
 /**
@@ -49,6 +51,7 @@ export interface RouteParamList {
   DetallePartido: { partidoId: string };
   Perfil: undefined;
   Suscripcion: undefined;
+  RevisarTemporada: { temporadaId: string };
   Ajustes: undefined;
 }
 
@@ -103,6 +106,11 @@ export const ROUTE_REGISTRY: {
   },
   Perfil: { name: 'Perfil', navigator: 'mainTabs', requiredParams: [] },
   Suscripcion: { name: 'Suscripcion', navigator: 'mainTabs', requiredParams: [] },
+  RevisarTemporada: {
+    name: 'RevisarTemporada',
+    navigator: 'mainTabs',
+    requiredParams: ['temporadaId'],
+  },
   Ajustes: { name: 'Ajustes', navigator: 'mainTabs', requiredParams: [] },
 };
 

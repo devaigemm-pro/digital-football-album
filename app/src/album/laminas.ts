@@ -361,3 +361,22 @@ export function estadisticasTemporada(
     porcentajeAlbum: progreso.porcentaje,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Presentación "Revisar mi temporada" · láminas montadas en secuencia.
+// ---------------------------------------------------------------------------
+
+/**
+ * Láminas MONTADAS (con Foto_Principal) de la temporada, ordenadas por número de
+ * recuadro ascendente, para la presentación en carrusel "Revisar mi temporada".
+ * Solo incluye partidos con recuadro derivado (`numeroRecuadro != null`) y foto
+ * principal (`tieneFotoPrincipal`): son los recuerdos ya coleccionados. No
+ * inventa datos; la miniatura la aporta el preview del álbum por número.
+ */
+export function laminasMontadasEnSecuencia(
+  partidos: readonly PartidoLamina[],
+): readonly PartidoLamina[] {
+  return partidos
+    .filter((p) => p.numeroRecuadro != null && p.tieneFotoPrincipal)
+    .sort((a, b) => (a.numeroRecuadro ?? 0) - (b.numeroRecuadro ?? 0));
+}

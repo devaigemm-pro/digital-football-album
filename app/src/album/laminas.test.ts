@@ -14,6 +14,7 @@ import {
   estadisticasTemporada,
   etiquetaProgreso,
   etiquetaRealce,
+  laminasMontadasEnSecuencia,
   marcadorTexto,
   proximoPartido,
   realceLamina,
@@ -286,5 +287,24 @@ describe('estadisticasTemporada', () => {
     expect(stats.totalPartidos).toBe(0);
     expect(stats.jugados).toBe(0);
     expect(stats.porcentajeAlbum).toBe(0);
+  });
+});
+
+describe('laminasMontadasEnSecuencia', () => {
+  it('devuelve solo montadas con recuadro, ordenadas por número', () => {
+    const partidos = [
+      lamina({ partidoId: 'c', numeroRecuadro: 3, tieneFotoPrincipal: true }),
+      lamina({ partidoId: 'a', numeroRecuadro: 1, tieneFotoPrincipal: true }),
+      lamina({ partidoId: 'x', numeroRecuadro: 2, tieneFotoPrincipal: false }),
+      lamina({ partidoId: 'y', numeroRecuadro: null, tieneFotoPrincipal: true }),
+    ];
+    const seq = laminasMontadasEnSecuencia(partidos);
+    expect(seq.map((p) => p.partidoId)).toEqual(['a', 'c']);
+  });
+
+  it('con ninguna montada devuelve vacío', () => {
+    expect(
+      laminasMontadasEnSecuencia([lamina({ numeroRecuadro: 1, tieneFotoPrincipal: false })]),
+    ).toEqual([]);
   });
 });
