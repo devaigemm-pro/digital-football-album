@@ -294,12 +294,10 @@ export function CarneScreen({
             ) : temporada ? (
               <>
                 <View style={styles.conteoRow}>
-                  {/* Ícono de lámina con la estrella en el vértice inferior derecho. */}
-                  <LaminaIcon glyph="star" size={34} corner />
-                  <Text style={styles.datoNumero}>
-                    {progreso.montadas}
-                    <Text style={styles.datoDe}> / {progreso.total}</Text>
-                  </Text>
+                  {/* Lámina con el número montadas DENTRO y la estrella dorada
+                      superpuesta en el vértice inferior derecho (como el "+"). */}
+                  <LaminaIcon glyph="star" size={44} corner numero={progreso.montadas} />
+                  <Text style={styles.datoNumero}> / {progreso.total}</Text>
                 </View>
                 <Text style={styles.datoLabel}>
                   {etiquetaProgreso(progreso, etiquetaTemporada)}

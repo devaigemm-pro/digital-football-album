@@ -342,47 +342,64 @@ export function Badge({
 // ---------------------------------------------------------------------------
 
 export interface LaminaIconProps {
-  /** Glifo dentro de la lámina: 'star' (estrella dorada) o 'question' ("?"). */
+  /** Glifo de la lámina: 'star' (estrella dorada) o 'question' ("?" rojo). */
   readonly glyph: 'star' | 'question';
   /** Lado del recuadro (px). El alto se deriva con proporción de cromo 3/4→~1.2. */
   readonly size?: number;
-  /** Posición del glifo: centrado (por defecto) o en la esquina inferior derecha. */
+  /**
+   * Si es `true`, el glifo se dibuja como un badge circular SUPERPUESTO en el
+   * vértice inferior derecho (mitad dentro/mitad fuera), igual que el "+" del
+   * avatar. Si es `false` (por defecto), el glifo va centrado dentro de la lámina.
+   */
   readonly corner?: boolean;
+  /** Número mostrado DENTRO de la lámina (p. ej. el "2" del conteo 2/30). */
+  readonly numero?: number | string;
   readonly style?: StyleProp<ViewStyle>;
 }
 
 /**
- * Ícono de lámina: recuadro con borde PUNTEADO (silueta de sticker vacío) y un
- * glifo dentro. Emblema del álbum reutilizado en el carné (conteo) y en la lista
- * de partidos (estado de cada lámina): estrella dorada = montada, "?" = falta.
- * Con `corner`, el glifo se ancla en el vértice inferior derecho de la lámina.
+ * Ícono de lámina: recuadro con borde PUNTEADO (silueta de sticker vacío).
+ * Emblema del álbum reutilizado en el carné (conteo) y en la lista de partidos
+ * (estado de cada lámina). El glifo: estrella dorada = montada, "?" rojo = falta.
+ * Con `corner`, el glifo se ancla como badge en el vértice inferior derecho
+ * (como el "+" del avatar) y la lámina puede llevar un `numero` dentro.
  */
 export function LaminaIcon({
   glyph,
   size = 34,
   corner = false,
+  numero,
   style,
 }: LaminaIconProps): React.ReactElement {
   const glifo = glyph === 'star' ? '★' : '?';
   const color = glyph === 'star' ? palette.gold : palette.danger;
+  const badge = size * 0.5; // diámetro del badge del vértice
   return (
     <View
       accessibilityRole="image"
       accessibilityLabel={glyph === 'star' ? 'Lámina montada' : 'Lámina por montar'}
-      style={[
-        styles.laminaIcon,
-        { width: size, height: size * 1.18 },
-        style,
-      ]}
+      style={[styles.laminaIcon, { width: size, height: size * 1.18 }, style]}
     >
-      <Text
-        style={[
-          { color, fontSize: size * 0.5, lineHeight: size * 0.56 },
-          corner ? styles.laminaGlyphCorner : null,
-        ]}
-      >
-        {glifo}
-      </Text>
+      {numero != null ? (
+        <Text style={[styles.laminaNumero, { fontSize: size * 0.5 }]}>{numero}</Text>
+      ) : null}
+
+      {corner ? (
+        // Badge del glifo superpuesto en el vértice inferior derecho.
+        <View
+          style={[
+            styles.laminaCornerBadge,
+            { width: badge, height: badge, borderRadius: badge / 2 },
+          ]}
+          pointerEvents="none"
+        >
+          <Text style={{ color, fontSize: badge * 0.7, lineHeight: badge * 0.8 }}>
+            {glifo}
+          </Text>
+        </View>
+      ) : (
+        <Text style={{ color, fontSize: size * 0.5, lineHeight: size * 0.56 }}>{glifo}</Text>
+      )}
     </View>
   );
 }
@@ -813,13 +830,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF08',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+    // Sin overflow:hidden para que el badge del vértice pueda sobresalir.
   },
-  // Glifo anclado al vértice inferior derecho de la lámina.
-  laminaGlyphCorner: {
+  // Número mostrado DENTRO de la lámina (p. ej. el "2" del conteo).
+  laminaNumero: {
+    color: palette.textOnDark,
+    fontFamily: fonts.display,
+    fontWeight: fontWeight.bold,
+  },
+  // Badge circular del glifo, superpuesto en el vértice inferior derecho (como
+  // el "+" del avatar): mitad dentro / mitad fuera de la lámina.
+  laminaCornerBadge: {
     position: 'absolute',
-    right: 2,
-    bottom: -1,
+    right: -6,
+    bottom: -6,
+    backgroundColor: palette.ink,
+    borderWidth: 1.5,
+    borderColor: palette.inkSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   slot: {
     flex: 1,
