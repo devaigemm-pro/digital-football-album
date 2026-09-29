@@ -29,7 +29,6 @@ import {
   Animated,
   Dimensions,
   Easing,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -46,7 +45,7 @@ import {
   type AlbumPreviewClient,
   type AlbumPreviewState,
 } from '../album';
-import { ProfilePresenter, type PartidosState } from '../profile';
+import { ProfilePresenter, type PartidosState, type ProfileState } from '../profile';
 import type { PartidoLamina, ProfileClient } from '../adapters';
 import { Badge, Crest, Hero, Screen } from '../ui/kit';
 import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
@@ -140,6 +139,9 @@ export function RevisarTemporadaScreen({
   const [partidos, setPartidos] = useState<PartidosState | null>(
     () => perfilPres?.getPartidosState() ?? null,
   );
+  const [profile, setProfile] = useState<ProfileState | null>(
+    () => perfilPres?.getProfileState() ?? null,
+  );
 
   const scrollX = useRef(new Animated.Value(0)).current;
   const listRef = useRef<Animated.FlatList<LaminaVista> | null>(null);
@@ -157,12 +159,23 @@ export function RevisarTemporadaScreen({
     if (!perfilPres) {
       return;
     }
-    const off = perfilPres.subscribePartidos(setPartidos);
+    const offPartidos = perfilPres.subscribePartidos(setPartidos);
+    const offProfile = perfilPres.subscribeProfile(setProfile);
     if (perfilPres.getPartidosState().status === 'idle') {
       void perfilPres.loadPartidos(temporadaId);
     }
-    return off;
+    if (perfilPres.getProfileState().status === 'idle') {
+      void perfilPres.loadProfile();
+    }
+    return () => {
+      offPartidos();
+      offProfile();
+    };
   }, [perfilPres, temporadaId]);
+
+  const club = profile?.perfil?.club ?? null;
+  const colorClub = club?.paletaColores?.primario ?? palette.goldStrong;
+  const colorClub2 = club?.paletaColores?.secundario ?? palette.ink;
 
   const miniaturaPorNumero = useMemo(() => {
     const map = new Map<number, string>();
@@ -213,48 +226,92 @@ export function RevisarTemporadaScreen({
     index,
   }: ListRenderItemInfo<LaminaVista>): React.ReactElement => {
     const inputRange = [(index - 1) * SNAP, index * SNAP, (index + 1) * SNAP];
+    // Cover-flow: rotación 3D + perspectiva + escala/opacidad al alejarse del centro.
     const scale = scrollX.interpolate({
       inputRange,
-      outputRange: [0.86, 1, 0.86],
+      outputRange: [0.82, 1, 0.82],
       extrapolate: 'clamp',
     });
     const opacity = scrollX.interpolate({
       inputRange,
-      outputRange: [0.5, 1, 0.5],
+      outputRange: [0.35, 1, 0.35],
+      extrapolate: 'clamp',
+    });
+    const rotateY = scrollX.interpolate({
+      inputRange,
+      outputRange: ['32deg', '0deg', '-32deg'],
+      extrapolate: 'clamp',
+    });
+    // Parallax: la foto interna se desplaza a distinta velocidad que la tarjeta.
+    const fotoTranslate = scrollX.interpolate({
+      inputRange,
+      outputRange: [CARD_W * 0.18, 0, -CARD_W * 0.18],
       extrapolate: 'clamp',
     });
     const realce = etiquetaRealce(item.partido);
     const marcador = marcadorTexto(item.partido);
     const especial = tieneRealceEspecial(item.partido);
+    const codigo = (item.partido.rival ?? '').slice(0, 3).toUpperCase();
     return (
-      <Animated.View style={[styles.cardWrap, { transform: [{ scale }], opacity }]}>
+      <Animated.View
+        style={[
+          styles.cardWrap,
+          { opacity, transform: [{ perspective: 1000 }, { scale }, { rotateY }] },
+        ]}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Lámina ${item.partido.numeroRecuadro} contra ${item.partido.rival}`}
           onPress={() => onAbrirPartido?.(item.partido.partidoId)}
-          style={styles.card}
+          style={[styles.card, { borderColor: colorClub }]}
         >
-          <View style={styles.foto}>
+          {/* Zona superior: foto sobre fondo gráfico con el color del club. */}
+          <View style={[styles.foto, { backgroundColor: colorClub2 }]}>
+            {/* Bloque gráfico de fondo (número gigante tipo cromo). */}
+            <Text style={[styles.fondoNumero, { color: colorClub }]} numberOfLines={1}>
+              {item.partido.numeroRecuadro ?? ''}
+            </Text>
             {item.miniaturaUri ? (
-              <Image source={{ uri: item.miniaturaUri }} style={styles.fotoImg} accessibilityRole="image" />
+              <Animated.Image
+                source={{ uri: item.miniaturaUri }}
+                style={[styles.fotoImg, { transform: [{ translateX: fotoTranslate }] }]}
+                accessibilityRole="image"
+              />
             ) : (
               <View style={styles.fotoVacia} />
             )}
-            {/* Foil holográfico sobre la foto (más intenso si Clásico/Internac.). */}
+            {/* Foil holográfico (más intenso si Clásico/Internacional). */}
             <HoloOverlay intenso={especial} />
-            <View style={styles.numeroBadge}>
-              <Text style={styles.numeroText}>{item.partido.numeroRecuadro}</Text>
+            {/* Escudo del club en la esquina superior derecha (como el emblema). */}
+            <View style={styles.escudoEsquina}>
+              <Crest
+                url={club?.escudoUrl}
+                monogram={(club?.nombre ?? 'CLB').slice(0, 3).toUpperCase()}
+                size={30}
+              />
             </View>
+            {/* Código vertical lateral (abreviatura del rival), como los cromos. */}
+            <Text style={styles.codigoLateral}>{codigo}</Text>
             {realce ? (
               <Badge label={realce} tone={item.partido.esClasico ? 'gold' : 'accent'} style={styles.realceBadge} />
             ) : null}
           </View>
 
+          {/* Franja inferior tipo Panini: nombre + datos + barra de club. */}
           <View style={styles.pie}>
             <Text style={styles.rival} numberOfLines={1}>
-              vs {item.partido.rival}
+              {item.partido.rival.toUpperCase()}
             </Text>
-            <Text style={styles.marcador}>{marcador ?? '—'}</Text>
+            <Text style={styles.datos} numberOfLines={1}>
+              {item.partido.competicion}
+              {marcador ? ` · ${marcador}` : ''}
+            </Text>
+            <View style={[styles.barraClub, { backgroundColor: colorClub }]}>
+              <Text style={styles.barraClubText} numberOfLines={1}>
+                {(club?.nombre ?? 'MI CLUB').toUpperCase()}
+              </Text>
+              <Text style={styles.barraClubNum}>N°{item.partido.numeroRecuadro ?? '—'}</Text>
+            </View>
           </View>
         </Pressable>
       </Animated.View>
@@ -354,20 +411,43 @@ const styles = StyleSheet.create({
   cardWrap: { width: CARD_W, marginRight: CARD_SPACING },
   card: {
     borderRadius: radius.card,
-    borderWidth: 2,
-    borderColor: palette.goldStrong,
+    // Marco de color del club (como el borde turquesa del cromo Panini).
+    borderWidth: 6,
     backgroundColor: palette.inkSoft,
     overflow: 'hidden',
   },
   foto: {
     width: '100%',
-    aspectRatio: 3 / 4,
-    backgroundColor: palette.ink,
+    aspectRatio: 1,
     position: 'relative',
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  fotoImg: { width: '100%', height: '100%', resizeMode: 'cover' },
+  // Número gigante de fondo (como el "23" de los cromos del Mundial).
+  fondoNumero: {
+    position: 'absolute',
+    right: -8,
+    top: -20,
+    fontFamily: fonts.display,
+    fontSize: 180,
+    fontWeight: fontWeight.bold,
+    opacity: 0.28,
+  },
+  fotoImg: { width: '112%', height: '100%', resizeMode: 'cover' },
   fotoVacia: { width: '100%', height: '100%', backgroundColor: palette.inkSoft },
+  escudoEsquina: { position: 'absolute', top: spacing.sm, right: spacing.sm },
+  codigoLateral: {
+    position: 'absolute',
+    right: 2,
+    bottom: spacing.sm,
+    color: '#FFFFFF',
+    fontFamily: fonts.display,
+    fontSize: fontSize.title,
+    fontWeight: fontWeight.bold,
+    opacity: 0.9,
+    letterSpacing: 2,
+  },
 
   // --- Foil holográfico ---
   holoTint: { position: 'absolute', top: 0, left: 0, right: 0, height: '45%' },
@@ -381,43 +461,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
-  numeroBadge: {
-    position: 'absolute',
-    top: spacing.sm,
-    left: spacing.sm,
-    minWidth: 34,
-    height: 34,
-    borderRadius: radius.sm,
-    backgroundColor: '#000000B3',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  numeroText: {
-    color: palette.textOnDark,
-    fontFamily: fonts.display,
-    fontSize: fontSize.subtitle,
-    fontWeight: fontWeight.bold,
-  },
-  realceBadge: { position: 'absolute', top: spacing.sm, right: spacing.sm },
+  // Badge de realce arriba a la izquierda (el escudo va a la derecha).
+  realceBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm },
+  // Franja inferior del cromo (estilo Panini): fondo claro, nombre + datos + barra.
   pie: {
-    padding: spacing.md,
-    flexDirection: 'row',
+    backgroundColor: palette.surface,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
   },
   rival: {
-    flex: 1,
-    color: palette.textOnDark,
-    fontFamily: fonts.body,
-    fontSize: fontSize.body,
-    fontWeight: fontWeight.bold,
-  },
-  marcador: {
     color: palette.textOnDark,
     fontFamily: fonts.display,
     fontSize: fontSize.title,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  datos: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    marginTop: 2,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  barraClub: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  barraClubText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
+  },
+  barraClubNum: {
+    color: '#FFFFFF',
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
     fontWeight: fontWeight.bold,
   },
 
