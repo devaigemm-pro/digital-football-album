@@ -22,6 +22,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -78,6 +79,24 @@ interface LaminaVista {
 /** LinearGradient animable con Reanimated (para el foil y el barrido del borde). */
 const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
 
+/**
+ * Emblema del torneo por tipo de competición. El backend no expone un logo de
+ * competición, así que usamos un emblema representativo (mismo criterio que la
+ * lista de Partidos): Liga 🏆, Copa nacional 🏅, Internacional 🌎.
+ */
+function emblemaTorneo(tipo: PartidoLamina['tipoCompeticion']): string {
+  switch (tipo) {
+    case 'LIGA':
+      return '🏆';
+    case 'COPA_NACIONAL':
+      return '🏅';
+    case 'INTERNACIONAL':
+      return '🌎';
+    default:
+      return '⚽';
+  }
+}
+
 /** Colores del reflejo holográfico (arcoíris foil, translúcido). */
 const HOLO_COLORS = [
   '#FF2D9B55',
@@ -102,7 +121,6 @@ function LaminaCard({
   colorClub2,
   colorClub3,
   escudoUrl,
-  clubNombre,
   onPress,
 }: {
   readonly item: LaminaVista;
@@ -112,7 +130,6 @@ function LaminaCard({
   readonly colorClub2: string;
   readonly colorClub3: string;
   readonly escudoUrl?: string | null;
-  readonly clubNombre: string;
   readonly onPress: () => void;
 }): React.ReactElement {
   const realce = etiquetaRealce(item.partido);
@@ -189,12 +206,11 @@ function LaminaCard({
           />
           <View style={[styles.franjaAcento, styles.franjaAcentoDer, { backgroundColor: colorClub3 }]} />
 
-          {/* Emblemas superiores: número de lámina (izq.) y balón (der.). */}
-          <View style={[styles.emblemaTL, { backgroundColor: colorClub }]}>
-            <Text style={styles.emblemaNum}>{item.partido.numeroRecuadro ?? '—'}</Text>
-          </View>
-          <View style={[styles.emblemaTR, { backgroundColor: colorClub }]}>
-            <Text style={styles.emblemaBalon}>⚽</Text>
+          {/* Emblema superior: número de la lámina sobre una estrella dorada
+              (estrella de fondo, número en negro al frente). */}
+          <View style={styles.emblemaEstrella}>
+            <Text style={styles.estrella}>★</Text>
+            <Text style={styles.estrellaNum}>{item.partido.numeroRecuadro ?? '—'}</Text>
           </View>
 
           {/* Ventana de la foto con filete claro (marco interior blancuzco). */}
@@ -217,27 +233,36 @@ function LaminaCard({
                 end={{ x: 1, y: 1 }}
                 style={[styles.foil, foilStyle, { opacity: especial ? 0.8 : 0.45 }]}
               />
+              {/* Emblema del torneo, sobre la foto en la esquina superior izquierda. */}
+              <View style={styles.torneoOverlay}>
+                <Text style={styles.torneoIcon}>{emblemaTorneo(item.partido.tipoCompeticion)}</Text>
+              </View>
+              {/* Escudo del rival (solo el escudo), esquina inferior derecha. */}
+              {escudoUrl ? (
+                <Image source={{ uri: escudoUrl }} style={styles.escudoOverlay} accessibilityRole="image" />
+              ) : (
+                <View style={styles.escudoOverlayMono}>
+                  <Text style={styles.escudoMonoText}>{codigo}</Text>
+                </View>
+              )}
               {realce ? (
                 <Badge label={realce} tone={item.partido.esClasico ? 'gold' : 'accent'} style={styles.realceBadge} />
               ) : null}
             </View>
           </View>
 
-          {/* Pie: nombre + datos a la izquierda; escudo + código a la derecha. */}
+          {/* Pie: nombre + datos a la izquierda; código del rival a la derecha. */}
           <View style={styles.pie}>
             <View style={styles.pieInfo}>
               <Text style={[styles.pieNombre, { color: colorClub }]} numberOfLines={1}>
                 {item.partido.rival.toUpperCase()}
               </Text>
-              <Text style={styles.pieDatos} numberOfLines={1}>
+              <Text style={[styles.pieDatos, { color: colorClub }]} numberOfLines={1}>
                 {item.partido.competicion}
                 {marcador ? ` · ${marcador}` : ''}
               </Text>
             </View>
-            <View style={styles.pieEscudo}>
-              <Crest url={escudoUrl} monogram={clubNombre.slice(0, 3).toUpperCase()} size={30} />
-              <Text style={[styles.pieCodigo, { color: colorClub }]}>{codigo}</Text>
-            </View>
+            <Text style={[styles.pieCodigo, { color: colorClub }]}>{codigo}</Text>
           </View>
         </View>
       </Pressable>
@@ -398,7 +423,6 @@ export function RevisarTemporadaScreen({
                 colorClub2={colorClub2}
                 colorClub3={colorClub3}
                 escudoUrl={club?.escudoUrl}
-                clubNombre={club?.nombre ?? 'CLB'}
                 onPress={() => onAbrirPartido?.(item.partido.partidoId)}
               />
             ))}
@@ -477,32 +501,72 @@ const styles = StyleSheet.create({
   },
   franjaAcentoIzq: { top: CARD_W * 0.42, left: -CARD_W * 0.5 },
   franjaAcentoDer: { bottom: CARD_W * 0.42, right: -CARD_W * 0.5 },
-  // Emblemas superiores (número de lámina y balón).
-  emblemaTL: {
+  // Emblema: número de la lámina sobre una estrella dorada (número en negro).
+  emblemaEstrella: {
     position: 'absolute',
     top: spacing.sm,
     left: spacing.sm,
-    minWidth: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xs,
     zIndex: 3,
   },
-  emblemaNum: { color: '#FFFFFF', fontFamily: fonts.display, fontSize: fontSize.small, fontWeight: fontWeight.bold },
-  emblemaTR: {
+  estrella: {
     position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    color: palette.goldStrong,
+    fontSize: 40,
+    lineHeight: 42,
+    // Sombra sutil para separar la estrella del fondo crema.
+    textShadowColor: '#00000055',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  estrellaNum: {
+    color: '#000000',
+    fontFamily: fonts.display,
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.bold,
+  },
+  // Emblema del torneo sobre la foto (esquina superior izquierda).
+  torneoOverlay: {
+    position: 'absolute',
+    top: spacing.xs,
+    left: spacing.xs,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#00000066',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 3,
   },
-  emblemaBalon: { fontSize: 15 },
+  torneoIcon: { fontSize: 15 },
+  // Escudo del rival sobre la foto (esquina inferior derecha, sin marco).
+  escudoOverlay: {
+    position: 'absolute',
+    right: spacing.xs,
+    bottom: spacing.xs,
+    width: 34,
+    height: 34,
+    resizeMode: 'contain',
+  },
+  escudoOverlayMono: {
+    position: 'absolute',
+    right: spacing.xs,
+    bottom: spacing.xs,
+    width: 34,
+    height: 34,
+    borderRadius: 6,
+    backgroundColor: '#000000A0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  escudoMonoText: {
+    color: '#FFFFFF',
+    fontFamily: fonts.display,
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.bold,
+  },
   // Ventana de la foto: filete claro alrededor (marco interior blancuzco).
   ventana: {
     marginTop: 34,
@@ -544,16 +608,17 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
   },
+  // Datos bajo el nombre: en negrita y con el color del club para resaltar
+  // sobre el fondo crema de la lámina.
   pieDatos: {
-    color: '#5B6472',
     fontFamily: fonts.body,
-    fontSize: fontSize.caption,
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.bold,
     marginTop: 1,
   },
-  pieEscudo: { alignItems: 'center', gap: 2 },
   pieCodigo: {
     fontFamily: fonts.display,
-    fontSize: fontSize.small,
+    fontSize: fontSize.title,
     fontWeight: fontWeight.bold,
     letterSpacing: 1,
   },
