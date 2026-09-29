@@ -172,7 +172,7 @@ export function HomeAlbumScreen({
             onPress={onRevisarTemporada}
             style={styles.revisarCta}
           >
-            <Text style={styles.revisarText}>✨ Revisar mi temporada</Text>
+            <Text style={styles.revisarText}>✨ Mi temporada</Text>
           </Pressable>
         ) : null}
 

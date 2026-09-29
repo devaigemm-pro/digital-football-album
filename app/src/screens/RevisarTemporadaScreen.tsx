@@ -1,40 +1,44 @@
-// RevisarTemporadaScreen — presentación premium de la temporada en formato
-// carrusel de láminas (cromos) montadas, en secuencia.
+// RevisarTemporadaScreen — presentación premium de "Mi temporada" en carrusel de
+// láminas (cromos) montadas, con animaciones fluidas (react-native-reanimated).
 //
-// Es un "pase" elegante de los recuerdos ya coleccionados:
-//   - AUTO-AVANCE: el carrusel avanza solo cada pocos segundos y hace loop al
-//     llegar al final. Se puede PAUSAR/reanudar con un botón, y se pausa solo
-//     mientras el usuario arrastra.
-//   - Cada lámina con su Foto_Principal se muestra como un cromo; la central se
-//     agranda y las laterales se atenúan/encogen (profundidad).
-//   - MARCO HOLOGRÁFICO/FOIL: el marco lleva un brillo (shimmer) animado que lo
-//     cruza en diagonal + tintes de color, más intenso en Clásicos/Internac.
+//   - AUTO-AVANCE: pasa de lámina cada pocos segundos, con loop; botón
+//     pausar/reanudar y pausa automática al arrastrar.
+//   - TRANSICIONES cover-flow: cada lámina rota en Y (perspectiva), escala y se
+//     atenúa según su distancia al centro, con parallax de la foto interna.
+//     Todo corre en el HILO UI con Reanimated (useAnimatedScrollHandler +
+//     useAnimatedStyle + interpolate) → 60/120 fps.
+//   - BORDES DE LÁMINA ANIMADOS: un brillo (foil) recorre el marco en bucle
+//     (withRepeat), como el reflejo de una lámina real.
+//   - RECUADRO DE DATOS TRANSLÚCIDO: la franja con rival/marcador va sobre la
+//     foto con fondo semitransparente, para que se vea la foto completa detrás.
 //
-// IMPLEMENTACIÓN: `Animated.FlatList` horizontal + interpolación del scroll para
-// escala/opacidad, `scrollToOffset` temporizado para el auto-avance, y capas
-// `Animated.View` para el foil. Todo con la API `Animated` NATIVA de React Native
-// (SIN dependencias nuevas: nada de reanimated/skia/expo-linear-gradient, que
-// exigirían rebuild nativo). El holograma es un efecto por CAPAS (no un shader
-// gyroscópico): brillo diagonal en bucle + tintes, el patrón sin-librería.
+// DATOS REALES: láminas montadas (`laminasMontadasEnSecuencia`) + miniatura del
+// preview del álbum + color/escudo del club (perfil). No se inventa nada.
 //
-// DATOS REALES: las láminas montadas salen de la lista de partidos
-// (`laminasMontadasEnSecuencia`); la miniatura, del preview del álbum. No se
-// inventa nada; si no hay láminas montadas, se guía al usuario.
-//
-// `.tsx` EXCLUIDO del typecheck (`app/tsconfig.json`): usa React Native.
+// `.tsx` EXCLUIDO del typecheck (`app/tsconfig.json`): usa React Native y
+// Reanimated. La lógica de selección/orden vive en `laminas.ts` (TS puro).
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Animated,
   Dimensions,
-  Easing,
   Pressable,
   StyleSheet,
   Text,
   View,
-  type ListRenderItemInfo,
 } from 'react-native';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  Easing,
+  runOnJS,
+  useAnimatedRef,
+} from 'react-native-reanimated';
 
 import {
   AlbumPreviewPresenter,
@@ -52,76 +56,161 @@ import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/
 
 export interface RevisarTemporadaScreenProps {
   readonly temporadaId: string;
-  /** Cliente de previsualización del álbum (miniaturas por número de recuadro). */
   readonly albumClient: AlbumPreviewClient;
-  /** Presentador de perfil/partidos compartido (láminas montadas + escudo club). */
   readonly profilePresenter?: ProfilePresenter;
-  /** Cliente de perfil (para construir el presentador si no se inyecta). */
   readonly profileClient?: ProfileClient;
-  /** Abre el detalle del partido de la lámina mostrada. */
   readonly onAbrirPartido?: (partidoId: string) => void;
 }
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_W = Math.min(320, SCREEN_W * 0.78);
-const CARD_H = CARD_W * (4 / 3) + 64; // foto 3:4 + pie
 const CARD_SPACING = spacing.md;
 const SNAP = CARD_W + CARD_SPACING;
-const AUTO_MS = 3500; // intervalo del auto-avance
+const SIDE_PAD = (SCREEN_W - CARD_W) / 2;
+const AUTO_MS = 3500;
 
-/** Lámina lista para el carrusel: partido + miniatura resuelta. */
 interface LaminaVista {
   readonly partido: PartidoLamina;
   readonly miniaturaUri: string | null;
 }
 
 /**
- * Marco holográfico animado (foil) para el cromo. Superpone un brillo diagonal
- * que cruza la tarjeta en bucle y unos tintes de color. `intenso` sube la
- * opacidad para Clásicos/Internacionales. Efecto por capas en RN puro.
+ * Tarjeta-cromo animada. Recibe el `scrollX` compartido y su índice; deriva en
+ * el hilo UI la transformación cover-flow (rotateY/escala/opacidad) y el
+ * parallax de la foto, más el brillo del borde (foil) en bucle.
  */
-function HoloOverlay({ intenso }: { readonly intenso: boolean }): React.ReactElement {
-  const shimmer = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.timing(shimmer, {
-        toValue: 1,
-        duration: intenso ? 2600 : 3800,
-        easing: Easing.inOut(Easing.sin),
-        useNativeDriver: true,
-      }),
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [shimmer, intenso]);
+function LaminaCard({
+  item,
+  index,
+  scrollX,
+  colorClub,
+  colorClub2,
+  escudoUrl,
+  clubNombre,
+  onPress,
+}: {
+  readonly item: LaminaVista;
+  readonly index: number;
+  readonly scrollX: Animated.SharedValue<number>;
+  readonly colorClub: string;
+  readonly colorClub2: string;
+  readonly escudoUrl?: string | null;
+  readonly clubNombre: string;
+  readonly onPress: () => void;
+}): React.ReactElement {
+  const realce = etiquetaRealce(item.partido);
+  const marcador = marcadorTexto(item.partido);
+  const especial = tieneRealceEspecial(item.partido);
+  const codigo = (item.partido.rival ?? '').slice(0, 3).toUpperCase();
 
-  const translateX = shimmer.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-CARD_W, CARD_W],
+  const inputRange = [(index - 1) * SNAP, index * SNAP, (index + 1) * SNAP];
+
+  // Cover-flow (hilo UI): perspectiva + rotación Y + escala + opacidad.
+  const cardStyle = useAnimatedStyle(() => {
+    const scale = interpolate(scrollX.value, inputRange, [0.82, 1, 0.82], Extrapolation.CLAMP);
+    const rotateY = interpolate(scrollX.value, inputRange, [34, 0, -34], Extrapolation.CLAMP);
+    const opacity = interpolate(scrollX.value, inputRange, [0.35, 1, 0.35], Extrapolation.CLAMP);
+    return {
+      opacity,
+      transform: [{ perspective: 1000 }, { scale }, { rotateY: `${rotateY}deg` }],
+    };
   });
-  const tintOpacity = intenso ? 0.28 : 0.16;
+
+  // Parallax de la foto interna (se mueve a distinta velocidad que la tarjeta).
+  const fotoStyle = useAnimatedStyle(() => {
+    const translateX = interpolate(
+      scrollX.value,
+      inputRange,
+      [CARD_W * 0.16, 0, -CARD_W * 0.16],
+      Extrapolation.CLAMP,
+    );
+    return { transform: [{ translateX }] };
+  });
+
+  // Borde animado (foil): un brillo recorre el marco en bucle.
+  const shine = useSharedValue(0);
+  useEffect(() => {
+    shine.value = withRepeat(
+      withTiming(1, { duration: especial ? 2400 : 3600, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      false,
+    );
+  }, [shine, especial]);
+  const bordeStyle = useAnimatedStyle(() => {
+    // El brillo del borde alterna su opacidad para "recorrer" el marco.
+    const opacity = interpolate(shine.value, [0, 0.5, 1], [0.25, 0.9, 0.25]);
+    return { opacity };
+  });
+  const shimmerStyle = useAnimatedStyle(() => {
+    const translateX = interpolate(shine.value, [0, 1], [-CARD_W, CARD_W]);
+    return { transform: [{ translateX }, { rotate: '18deg' }] };
+  });
 
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {/* Tintes de color (arcoíris tenue) para el reflejo foil. */}
-      <View style={[styles.holoTint, { backgroundColor: '#7A5CFF', opacity: tintOpacity }]} />
-      <View style={[styles.holoTintB, { backgroundColor: '#38E0C8', opacity: tintOpacity }]} />
-      <View style={[styles.holoTintC, { backgroundColor: palette.goldStrong, opacity: tintOpacity }]} />
-      {/* Banda de brillo diagonal que cruza en bucle. */}
-      <Animated.View
-        style={[
-          styles.shimmer,
-          { opacity: intenso ? 0.5 : 0.32, transform: [{ translateX }, { rotate: '18deg' }] },
-        ]}
-      />
-    </View>
+    <Animated.View style={[styles.cardWrap, cardStyle]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Lámina ${item.partido.numeroRecuadro} contra ${item.partido.rival}`}
+        onPress={onPress}
+        style={styles.cardPress}
+      >
+        {/* Marco base con el color del club + brillo animado superpuesto. */}
+        <View style={[styles.card, { borderColor: colorClub }]}>
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.bordeShine, { borderColor: '#FFFFFF' }, bordeStyle]}
+          />
+
+          {/* Foto sobre fondo gráfico con el color del club. */}
+          <View style={[styles.foto, { backgroundColor: colorClub2 }]}>
+            <Text style={[styles.fondoNumero, { color: colorClub }]} numberOfLines={1}>
+              {item.partido.numeroRecuadro ?? ''}
+            </Text>
+            {item.miniaturaUri ? (
+              <Animated.Image
+                source={{ uri: item.miniaturaUri }}
+                style={[styles.fotoImg, fotoStyle]}
+                accessibilityRole="image"
+              />
+            ) : (
+              <View style={styles.fotoVacia} />
+            )}
+
+            {/* Foil holográfico (banda de brillo diagonal). */}
+            <Animated.View pointerEvents="none" style={[styles.shimmer, shimmerStyle, { opacity: especial ? 0.5 : 0.3 }]} />
+
+            <View style={styles.escudoEsquina}>
+              <Crest
+                url={escudoUrl}
+                monogram={clubNombre.slice(0, 3).toUpperCase()}
+                size={30}
+              />
+            </View>
+            <Text style={styles.codigoLateral}>{codigo}</Text>
+            {realce ? (
+              <Badge label={realce} tone={item.partido.esClasico ? 'gold' : 'accent'} style={styles.realceBadge} />
+            ) : null}
+
+            {/* Recuadro de datos TRANSLÚCIDO, sobre la foto (no la tapa del todo). */}
+            <View style={styles.datosOverlay}>
+              <Text style={styles.rival} numberOfLines={1}>
+                {item.partido.rival.toUpperCase()}
+              </Text>
+              <View style={styles.datosRow}>
+                <Text style={styles.datos} numberOfLines={1}>
+                  {item.partido.competicion}
+                </Text>
+                <Text style={styles.marcador}>{marcador ?? '—'}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
-/**
- * Presentación en carrusel de las láminas montadas de la temporada, con
- * auto-avance pausable y marco holográfico animado.
- */
+/** Presentación en carrusel de las láminas montadas de "Mi temporada". */
 export function RevisarTemporadaScreen({
   temporadaId,
   albumClient,
@@ -142,12 +231,11 @@ export function RevisarTemporadaScreen({
   const [profile, setProfile] = useState<ProfileState | null>(
     () => perfilPres?.getProfileState() ?? null,
   );
-
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const listRef = useRef<Animated.FlatList<LaminaVista> | null>(null);
   const [indiceActual, setIndiceActual] = useState(0);
-  const indiceRef = useRef(0);
   const [reproduciendo, setReproduciendo] = useState(true);
+
+  const scrollX = useSharedValue(0);
+  const listRef = useAnimatedRef<Animated.ScrollView>();
 
   useEffect(() => {
     const off = albumPres.subscribe(setAlbum);
@@ -159,8 +247,8 @@ export function RevisarTemporadaScreen({
     if (!perfilPres) {
       return;
     }
-    const offPartidos = perfilPres.subscribePartidos(setPartidos);
-    const offProfile = perfilPres.subscribeProfile(setProfile);
+    const offP = perfilPres.subscribePartidos(setPartidos);
+    const offPr = perfilPres.subscribeProfile(setProfile);
     if (perfilPres.getPartidosState().status === 'idle') {
       void perfilPres.loadPartidos(temporadaId);
     }
@@ -168,8 +256,8 @@ export function RevisarTemporadaScreen({
       void perfilPres.loadProfile();
     }
     return () => {
-      offPartidos();
-      offProfile();
+      offP();
+      offPr();
     };
   }, [perfilPres, temporadaId]);
 
@@ -198,129 +286,41 @@ export function RevisarTemporadaScreen({
     }));
   }, [partidos, miniaturaPorNumero]);
 
-  // Auto-avance: cada AUTO_MS pasa a la siguiente lámina y hace loop al final.
-  // Se detiene si está pausado o si hay 0/1 láminas. Se limpia al desmontar.
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollX.value = e.contentOffset.x;
+      const i = Math.round(e.contentOffset.x / SNAP);
+      runOnJS(setIndiceActual)(i);
+    },
+    onBeginDrag: () => {
+      runOnJS(setReproduciendo)(false);
+    },
+  });
+
+  // Auto-avance: mueve el scroll a la siguiente lámina en el hilo UI.
   useEffect(() => {
     if (!reproduciendo || laminas.length <= 1) {
       return;
     }
     const id = setInterval(() => {
-      const siguiente = (indiceRef.current + 1) % laminas.length;
-      listRef.current?.scrollToOffset({ offset: siguiente * SNAP, animated: true });
+      const siguiente = (Math.round(scrollX.value / SNAP) + 1) % laminas.length;
+      listRef.current?.scrollTo({ x: siguiente * SNAP, animated: true });
     }, AUTO_MS);
     return () => clearInterval(id);
-  }, [reproduciendo, laminas.length]);
+  }, [reproduciendo, laminas.length, listRef, scrollX]);
 
   const cargando =
     album.status === 'loading' ||
     album.status === 'idle' ||
     (partidos?.status ?? 'idle') === 'loading';
 
-  const onScrollBeginDrag = useCallback(() => {
-    // Al tocar/arrastrar, pausamos el auto-avance (el usuario toma el control).
-    setReproduciendo(false);
+  const onTogglePlay = useCallback(() => {
+    setReproduciendo((v) => !v);
   }, []);
-
-  const renderItem = ({
-    item,
-    index,
-  }: ListRenderItemInfo<LaminaVista>): React.ReactElement => {
-    const inputRange = [(index - 1) * SNAP, index * SNAP, (index + 1) * SNAP];
-    // Cover-flow: rotación 3D + perspectiva + escala/opacidad al alejarse del centro.
-    const scale = scrollX.interpolate({
-      inputRange,
-      outputRange: [0.82, 1, 0.82],
-      extrapolate: 'clamp',
-    });
-    const opacity = scrollX.interpolate({
-      inputRange,
-      outputRange: [0.35, 1, 0.35],
-      extrapolate: 'clamp',
-    });
-    const rotateY = scrollX.interpolate({
-      inputRange,
-      outputRange: ['32deg', '0deg', '-32deg'],
-      extrapolate: 'clamp',
-    });
-    // Parallax: la foto interna se desplaza a distinta velocidad que la tarjeta.
-    const fotoTranslate = scrollX.interpolate({
-      inputRange,
-      outputRange: [CARD_W * 0.18, 0, -CARD_W * 0.18],
-      extrapolate: 'clamp',
-    });
-    const realce = etiquetaRealce(item.partido);
-    const marcador = marcadorTexto(item.partido);
-    const especial = tieneRealceEspecial(item.partido);
-    const codigo = (item.partido.rival ?? '').slice(0, 3).toUpperCase();
-    return (
-      <Animated.View
-        style={[
-          styles.cardWrap,
-          { opacity, transform: [{ perspective: 1000 }, { scale }, { rotateY }] },
-        ]}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Lámina ${item.partido.numeroRecuadro} contra ${item.partido.rival}`}
-          onPress={() => onAbrirPartido?.(item.partido.partidoId)}
-          style={[styles.card, { borderColor: colorClub }]}
-        >
-          {/* Zona superior: foto sobre fondo gráfico con el color del club. */}
-          <View style={[styles.foto, { backgroundColor: colorClub2 }]}>
-            {/* Bloque gráfico de fondo (número gigante tipo cromo). */}
-            <Text style={[styles.fondoNumero, { color: colorClub }]} numberOfLines={1}>
-              {item.partido.numeroRecuadro ?? ''}
-            </Text>
-            {item.miniaturaUri ? (
-              <Animated.Image
-                source={{ uri: item.miniaturaUri }}
-                style={[styles.fotoImg, { transform: [{ translateX: fotoTranslate }] }]}
-                accessibilityRole="image"
-              />
-            ) : (
-              <View style={styles.fotoVacia} />
-            )}
-            {/* Foil holográfico (más intenso si Clásico/Internacional). */}
-            <HoloOverlay intenso={especial} />
-            {/* Escudo del club en la esquina superior derecha (como el emblema). */}
-            <View style={styles.escudoEsquina}>
-              <Crest
-                url={club?.escudoUrl}
-                monogram={(club?.nombre ?? 'CLB').slice(0, 3).toUpperCase()}
-                size={30}
-              />
-            </View>
-            {/* Código vertical lateral (abreviatura del rival), como los cromos. */}
-            <Text style={styles.codigoLateral}>{codigo}</Text>
-            {realce ? (
-              <Badge label={realce} tone={item.partido.esClasico ? 'gold' : 'accent'} style={styles.realceBadge} />
-            ) : null}
-          </View>
-
-          {/* Franja inferior tipo Panini: nombre + datos + barra de club. */}
-          <View style={styles.pie}>
-            <Text style={styles.rival} numberOfLines={1}>
-              {item.partido.rival.toUpperCase()}
-            </Text>
-            <Text style={styles.datos} numberOfLines={1}>
-              {item.partido.competicion}
-              {marcador ? ` · ${marcador}` : ''}
-            </Text>
-            <View style={[styles.barraClub, { backgroundColor: colorClub }]}>
-              <Text style={styles.barraClubText} numberOfLines={1}>
-                {(club?.nombre ?? 'MI CLUB').toUpperCase()}
-              </Text>
-              <Text style={styles.barraClubNum}>N°{item.partido.numeroRecuadro ?? '—'}</Text>
-            </View>
-          </View>
-        </Pressable>
-      </Animated.View>
-    );
-  };
 
   return (
     <Screen tone="dark" flush>
-      <Hero eyebrow="Recuerdos de la temporada" title="Revisar mi temporada">
+      <Hero eyebrow="Recuerdos de la temporada" title="Mi temporada">
         {laminas.length > 0 ? (
           <Text style={styles.contador}>
             Lámina {Math.min(indiceActual + 1, laminas.length)} de {laminas.length}
@@ -342,43 +342,40 @@ export function RevisarTemporadaScreen({
         </View>
       ) : (
         <View style={styles.carruselWrap}>
-          <Animated.FlatList
+          <Animated.ScrollView
             ref={listRef}
-            data={laminas}
-            keyExtractor={(item: LaminaVista) => item.partido.partidoId}
-            renderItem={renderItem}
             horizontal
             showsHorizontalScrollIndicator={false}
             snapToInterval={SNAP}
             decelerationRate="fast"
             contentContainerStyle={styles.lista}
-            onScrollBeginDrag={onScrollBeginDrag}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-              {
-                useNativeDriver: true,
-                listener: (e: { nativeEvent: { contentOffset: { x: number } } }) => {
-                  const i = Math.round(e.nativeEvent.contentOffset.x / SNAP);
-                  indiceRef.current = i;
-                  setIndiceActual(i);
-                },
-              },
-            )}
+            onScroll={scrollHandler}
             scrollEventThrottle={16}
-          />
+          >
+            {laminas.map((item, index) => (
+              <LaminaCard
+                key={item.partido.partidoId}
+                item={item}
+                index={index}
+                scrollX={scrollX}
+                colorClub={colorClub}
+                colorClub2={colorClub2}
+                escudoUrl={club?.escudoUrl}
+                clubNombre={club?.nombre ?? 'CLB'}
+                onPress={() => onAbrirPartido?.(item.partido.partidoId)}
+              />
+            ))}
+          </Animated.ScrollView>
 
-          {/* Control de reproducción del auto-avance. */}
           {laminas.length > 1 ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={reproduciendo ? 'Pausar la presentación' : 'Reanudar la presentación'}
-              onPress={() => setReproduciendo((v) => !v)}
+              onPress={onTogglePlay}
               style={styles.playBtn}
             >
               <Text style={styles.playIcon}>{reproduciendo ? '❚❚' : '▶'}</Text>
-              <Text style={styles.playText}>
-                {reproduciendo ? 'Pausar' : 'Reproducir'}
-              </Text>
+              <Text style={styles.playText}>{reproduciendo ? 'Pausar' : 'Reproducir'}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -403,28 +400,35 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   carruselWrap: { flex: 1, justifyContent: 'center' },
-  lista: {
-    alignItems: 'center',
-    paddingHorizontal: (SCREEN_W - CARD_W) / 2,
-    paddingVertical: spacing.xl,
-  },
+  lista: { alignItems: 'center', paddingHorizontal: SIDE_PAD, paddingVertical: spacing.xl },
   cardWrap: { width: CARD_W, marginRight: CARD_SPACING },
+  cardPress: { width: '100%' },
   card: {
     borderRadius: radius.card,
-    // Marco de color del club (como el borde turquesa del cromo Panini).
     borderWidth: 6,
     backgroundColor: palette.inkSoft,
     overflow: 'hidden',
+    position: 'relative',
+  },
+  // Borde interior brillante que se anima (foil recorriendo el marco).
+  bordeShine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderWidth: 2,
+    borderRadius: radius.card,
+    zIndex: 5,
   },
   foto: {
     width: '100%',
-    aspectRatio: 1,
+    aspectRatio: 3 / 4,
     position: 'relative',
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Número gigante de fondo (como el "23" de los cromos del Mundial).
   fondoNumero: {
     position: 'absolute',
     right: -8,
@@ -436,11 +440,18 @@ const styles = StyleSheet.create({
   },
   fotoImg: { width: '112%', height: '100%', resizeMode: 'cover' },
   fotoVacia: { width: '100%', height: '100%', backgroundColor: palette.inkSoft },
+  shimmer: {
+    position: 'absolute',
+    top: -CARD_W,
+    bottom: -CARD_W,
+    width: CARD_W * 0.5,
+    backgroundColor: '#FFFFFF',
+  },
   escudoEsquina: { position: 'absolute', top: spacing.sm, right: spacing.sm },
   codigoLateral: {
     position: 'absolute',
     right: 2,
-    bottom: spacing.sm,
+    top: '42%',
     color: '#FFFFFF',
     fontFamily: fonts.display,
     fontSize: fontSize.title,
@@ -448,70 +459,43 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     letterSpacing: 2,
   },
-
-  // --- Foil holográfico ---
-  holoTint: { position: 'absolute', top: 0, left: 0, right: 0, height: '45%' },
-  holoTintB: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%' },
-  holoTintC: { position: 'absolute', top: '30%', left: 0, right: 0, height: '40%' },
-  shimmer: {
-    position: 'absolute',
-    top: -CARD_H,
-    bottom: -CARD_H,
-    width: CARD_W * 0.5,
-    backgroundColor: '#FFFFFF',
-  },
-
-  // Badge de realce arriba a la izquierda (el escudo va a la derecha).
   realceBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm },
-  // Franja inferior del cromo (estilo Panini): fondo claro, nombre + datos + barra.
-  pie: {
-    backgroundColor: palette.surface,
+  // Franja de datos TRANSLÚCIDA sobre la foto (deja ver la imagen detrás).
+  datosOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    backgroundColor: '#00000066',
   },
   rival: {
-    color: palette.textOnDark,
+    color: '#FFFFFF',
     fontFamily: fonts.display,
     fontSize: fontSize.title,
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
-    textAlign: 'center',
   },
-  datos: {
-    color: palette.textMutedOnDark,
-    fontFamily: fonts.body,
-    fontSize: fontSize.small,
-    marginTop: 2,
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-  },
-  barraClub: {
-    width: '100%',
+  datosRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    gap: spacing.sm,
+    marginTop: 2,
   },
-  barraClubText: {
+  datos: {
     flex: 1,
-    color: '#FFFFFF',
+    color: '#FFFFFFCC',
     fontFamily: fonts.body,
-    fontSize: fontSize.caption,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 0.5,
+    fontSize: fontSize.small,
   },
-  barraClubNum: {
+  marcador: {
     color: '#FFFFFF',
-    fontFamily: fonts.body,
-    fontSize: fontSize.caption,
+    fontFamily: fonts.display,
+    fontSize: fontSize.subtitle,
     fontWeight: fontWeight.bold,
   },
-
-  // --- Control de reproducción ---
   playBtn: {
     alignSelf: 'center',
     flexDirection: 'row',
