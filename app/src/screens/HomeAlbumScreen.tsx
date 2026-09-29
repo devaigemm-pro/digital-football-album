@@ -37,6 +37,8 @@ import {
   type AlbumPreviewEntry,
   type AlbumPreviewState,
 } from '../album';
+import { ProfilePresenter, type PartidosState } from '../profile';
+import type { ProfileClient } from '../adapters';
 import { Hero, Screen, StickerSlot } from '../ui/kit';
 import { fonts, fontWeight, palette, spacing } from '../theme/design-tokens';
 
@@ -47,36 +49,31 @@ export interface HomeAlbumScreenProps {
   readonly client: AlbumPreviewClient;
   /** Presentador ya construido (opcional, útil en tests/Storybook). */
   readonly presenter?: AlbumPreviewPresenter;
-}
-
-/**
- * Pinta la entrada de un Recuadro según su estado, con el look de sticker del
- * mockup: montado => miniatura + número; vacío => silueta punteada "Pega aquí"
- * (Req 4.1, 4.2). La celda va envuelta para respetar el gap entre columnas.
- */
-function renderRecuadro({
-  item,
-}: ListRenderItemInfo<AlbumPreviewEntry>): React.ReactElement {
-  const montada = item.estado === 'MONTADA';
-  return (
-    <View style={styles.cell}>
-      <StickerSlot
-        numero={item.numero}
-        imageUri={montada ? item.miniaturaKey : null}
-      />
-    </View>
-  );
+  /**
+   * Presentador de perfil/partidos compartido. Aporta la lista de partidos para
+   * mapear el número de recuadro → `partidoId` y así navegar a su detalle al
+   * tocar la lámina (el preview del álbum no trae el `partidoId`).
+   */
+  readonly profilePresenter?: ProfilePresenter;
+  /** Cliente de perfil/partidos (para construir el presentador si no se inyecta). */
+  readonly profileClient?: ProfileClient;
+  /** Navega al detalle del partido asociado a la lámina tocada. */
+  readonly onAbrirPartido?: (partidoId: string) => void;
 }
 
 /**
  * Pantalla de previsualización del álbum. Enlaza el `AlbumPreviewPresenter` al
  * árbol de React y re-renderiza cuando su estado cambia, sin bloquear la UI
- * (Req 4.5).
+ * (Req 4.5). Al tocar una lámina (montada o vacía "Pega aquí"), navega al detalle
+ * del partido asociado a su recuadro.
  */
 export function HomeAlbumScreen({
   temporadaId,
   client,
   presenter,
+  profilePresenter,
+  profileClient,
+  onAbrirPartido,
 }: HomeAlbumScreenProps): React.ReactElement {
   const pres = useMemo(
     () => presenter ?? new AlbumPreviewPresenter(client),
@@ -92,6 +89,63 @@ export function HomeAlbumScreen({
     void pres.load(temporadaId);
     return unsubscribe;
   }, [pres, temporadaId]);
+
+  // Presentador de perfil/partidos (compartido, o construido desde el cliente)
+  // para mapear el número de recuadro → partidoId (el preview no trae el id).
+  const perfilPres = useMemo(
+    () => profilePresenter ?? (profileClient ? new ProfilePresenter(profileClient) : null),
+    [profilePresenter, profileClient],
+  );
+  const [partidos, setPartidos] = useState<PartidosState | null>(
+    () => perfilPres?.getPartidosState() ?? null,
+  );
+
+  useEffect(() => {
+    if (!perfilPres) {
+      return;
+    }
+    const off = perfilPres.subscribePartidos(setPartidos);
+    if (perfilPres.getPartidosState().status === 'idle') {
+      void perfilPres.loadPartidos(temporadaId);
+    }
+    return off;
+  }, [perfilPres, temporadaId]);
+
+  // Mapa numeroRecuadro → partidoId para navegar desde la lámina al partido.
+  const partidoPorNumero = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const p of partidos?.partidos ?? []) {
+      if (p.numeroRecuadro != null) {
+        map.set(p.numeroRecuadro, p.partidoId);
+      }
+    }
+    return map;
+  }, [partidos]);
+
+  const renderRecuadro = ({
+    item,
+  }: ListRenderItemInfo<AlbumPreviewEntry>): React.ReactElement => {
+    const montada = item.estado === 'MONTADA';
+    const partidoId = partidoPorNumero.get(item.numero) ?? null;
+    return (
+      <Pressable
+        style={styles.cell}
+        accessibilityRole="button"
+        accessibilityLabel={`Abrir el partido de la lámina ${item.numero}`}
+        disabled={partidoId === null || !onAbrirPartido}
+        onPress={() => {
+          if (partidoId && onAbrirPartido) {
+            onAbrirPartido(partidoId);
+          }
+        }}
+      >
+        <StickerSlot
+          numero={item.numero}
+          imageUri={montada ? item.miniaturaKey : null}
+        />
+      </Pressable>
+    );
+  };
 
   return (
     <Screen tone="dark" flush>

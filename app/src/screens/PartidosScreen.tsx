@@ -162,10 +162,8 @@ export function PartidosScreen({
       onPress={() => onTomarFoto?.(item.partidoId)}
       style={styles.fila}
     >
-      {/* Número de FECHA sobre un balón: el balón es el fondo y el número
-          (amarillo) va superpuesto encima para resaltar. */}
+      {/* Número de FECHA (posición dentro de la competición). */}
       <View style={styles.fechaBox} accessibilityLabel={`Fecha ${index + 1}`}>
-        <Text style={styles.fechaBalon}>⚽</Text>
         <Text style={styles.fechaNumero}>{index + 1}</Text>
       </View>
 
@@ -280,27 +278,20 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  // Número de FECHA superpuesto sobre un balón (balón de fondo, número encima).
+  // Número de FECHA (posición dentro de la competición) en una cajita.
   fechaBox: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
+    borderRadius: radius.sm,
+    backgroundColor: palette.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fechaBalon: {
-    fontSize: 40,
-    lineHeight: 44,
-  },
   fechaNumero: {
-    position: 'absolute',
-    color: palette.gold,
+    color: palette.textOnDark,
     fontFamily: fonts.display,
     fontSize: fontSize.subtitle,
     fontWeight: fontWeight.bold,
-    // Sombra oscura para que el amarillo resalte sobre el balón claro.
-    textShadowColor: '#000000CC',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   info: { flex: 1 },
   rival: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.bold },

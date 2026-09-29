@@ -66,6 +66,8 @@ export const palette = {
 
   /** Dorado para acentos "premium"/holograma (uso decorativo, no para texto fino). */
   gold: '#E6C46A',
+  /** Dorado intenso/saturado para marcos destacados (p. ej. el marco del escudo). */
+  goldStrong: '#F5B301',
   /** Verde "LIVE"/éxito luminoso sobre oscuro (píldoras EN VIVO, estados OK). */
   live: '#38E08A',
 

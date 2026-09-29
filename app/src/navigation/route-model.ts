@@ -15,11 +15,11 @@
 // Grafo (design.md · "Navegación y pantallas"):
 //   - Login              (Req 22)  · stack de autenticación
 //   - SeleccionClub      (Req 23)  · stack de autenticación (onboarding)
+//   - Carne              (Req 27)  · pestaña principal (aterrizaje)
 //   - HomeAlbum          (Req 4)   · pestaña principal
-//   - Captura            (Req 24)  · pestaña principal
-//   - DetalleCard        (Req 5/6) · pestaña principal (detalle con params)
-//   - Suscripcion        (Req 25)  · pestaña principal
-//   - EnvioPedido        (Req 8)   · pestaña principal
+//   - Partidos           (Req 3)   · pestaña principal
+//   - DetallePartido     (Req 5/6) · fuera de la barra (se llega desde Partidos)
+//   - Perfil             (Req 2)   · pestaña principal
 //   - Ajustes            (Req 22)  · pestaña principal
 
 /** Nombre único de cada pantalla del grafo de navegación. */
@@ -30,7 +30,6 @@ export type RouteName =
   | 'HomeAlbum'
   | 'Partidos'
   | 'DetallePartido'
-  | 'Suscripcion'
   | 'Perfil'
   | 'Ajustes';
 
@@ -46,7 +45,6 @@ export interface RouteParamList {
   HomeAlbum: { temporadaId: string };
   Partidos: { temporadaId: string };
   DetallePartido: { partidoId: string };
-  Suscripcion: undefined;
   Perfil: undefined;
   Ajustes: undefined;
 }
@@ -99,11 +97,6 @@ export const ROUTE_REGISTRY: {
     name: 'DetallePartido',
     navigator: 'mainTabs',
     requiredParams: ['partidoId'],
-  },
-  Suscripcion: {
-    name: 'Suscripcion',
-    navigator: 'mainTabs',
-    requiredParams: [],
   },
   Perfil: { name: 'Perfil', navigator: 'mainTabs', requiredParams: [] },
   Ajustes: { name: 'Ajustes', navigator: 'mainTabs', requiredParams: [] },

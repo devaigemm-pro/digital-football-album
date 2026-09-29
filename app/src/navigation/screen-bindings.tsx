@@ -349,11 +349,20 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
   // Home/Álbum: obtiene el `temporadaId` del perfil (temporada activa) y carga
   // la previsualización real. Si aún no hay temporada, guía al usuario en vez de
   // fingir contenido.
-  const HomeAlbum = (): React.ReactElement => {
+  const HomeAlbum = (props: {
+    navigation?: { navigate: (route: string, params?: Record<string, unknown>) => void };
+  }): React.ReactElement => {
     const { temporadaId, cargando } = useTemporadaId();
     if (temporadaId) {
       return (
-        <HomeAlbumScreen temporadaId={temporadaId} client={deps.albumPreviewClient} />
+        <HomeAlbumScreen
+          temporadaId={temporadaId}
+          client={deps.albumPreviewClient}
+          profilePresenter={profilePresenter}
+          onAbrirPartido={(partidoId) =>
+            props.navigation?.navigate('DetallePartido', { partidoId })
+          }
+        />
       );
     }
     return (
@@ -419,11 +428,6 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
       />
     );
   };
-
-  // Suscripción/IAP no disponible (§7) → placeholder.
-  const Suscripcion = (): React.ReactElement => (
-    <NoDisponible titulo="Suscripción" />
-  );
 
   // Perfil: club actual, temporada activa y datos del usuario (`GET /me`).
   // Reutiliza el mismo presentador de perfil compartido. Solo permite editar
@@ -531,7 +535,6 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
     HomeAlbum,
     Partidos,
     DetallePartido,
-    Suscripcion,
     Perfil,
     Ajustes,
     OnboardingGate,

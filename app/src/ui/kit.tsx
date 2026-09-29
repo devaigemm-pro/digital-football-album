@@ -258,14 +258,14 @@ export interface CrestProps {
 
 /** Escudo del Club con forma de crest; imagen si hay URL, si no monograma. */
 export function Crest({ url, monogram = '', size = 48, style }: CrestProps): React.ReactElement {
-  const theme = useAppTheme();
   const box: ViewStyle = {
     width: size,
     height: size * 1.18,
     borderRadius: radius.sm,
     borderBottomLeftRadius: size / 2,
     borderBottomRightRadius: size / 2,
-    borderColor: theme.palette.accent,
+    // Marco del escudo en dorado intenso (preferencia del usuario).
+    borderColor: palette.goldStrong,
   };
   if (url) {
     return (
@@ -413,6 +413,8 @@ export interface StickerSlotProps {
   readonly label?: string;
   /** Resalta el recuadro (p. ej. momento clave/holograma). */
   readonly highlight?: boolean;
+  /** Oculta el badge de número sobre la miniatura (p. ej. la foto del carné). */
+  readonly hideNumero?: boolean;
   readonly onPress?: () => void;
   readonly style?: StyleProp<ViewStyle>;
 }
@@ -427,6 +429,7 @@ export function StickerSlot({
   imageUri,
   label,
   highlight = false,
+  hideNumero = false,
   onPress,
   style,
 }: StickerSlotProps): React.ReactElement {
@@ -435,9 +438,11 @@ export function StickerSlot({
   const content = montado ? (
     <>
       <Image source={{ uri: imageUri as string }} style={styles.slotImg} accessibilityRole="image" />
-      <View style={[styles.slotNum, { backgroundColor: theme.palette.accent }]}>
-        <Text style={styles.slotNumText}>{numero}</Text>
-      </View>
+      {hideNumero ? null : (
+        <View style={[styles.slotNum, { backgroundColor: theme.palette.accent }]}>
+          <Text style={styles.slotNumText}>{numero}</Text>
+        </View>
+      )}
       {label ? (
         <View style={styles.slotLabelWrap}>
           <Text style={styles.slotLabel} numberOfLines={1}>
@@ -778,7 +783,8 @@ const styles = StyleSheet.create({
   btnTextOnDanger: { color: '#FFFFFF' },
 
   crest: {
-    borderWidth: 3,
+    // Marco levemente más grueso y dorado intenso (preferencia del usuario).
+    borderWidth: 4,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',

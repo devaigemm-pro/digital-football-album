@@ -244,6 +244,7 @@ export function CarneScreen({
                   numero={progreso.montadas > 0 ? progreso.montadas : '★'}
                   imageUri={perfil?.usuario.avatarUrl ?? null}
                   label={perfil?.usuario.alias ? `@${perfil.usuario.alias}` : 'Tú'}
+                  hideNumero
                 />
                 <View
                   style={[styles.addFotoBadge, { backgroundColor: theme.palette.accent }]}
