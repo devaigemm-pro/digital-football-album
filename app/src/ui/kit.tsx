@@ -110,18 +110,48 @@ export interface HeroProps {
   readonly eyebrow?: string;
   /** Título grande condensado. */
   readonly title: string;
+  /**
+   * Si es `true`, el título reduce su tamaño SOLO cuando ocupa 2+ líneas (p. ej.
+   * un nombre de rival largo), para que no se vea desbordado. Con una sola línea
+   * conserva el tamaño grande.
+   */
+  readonly adaptiveTitle?: boolean;
   /** Contenido extra bajo el título (marcador, escudos, etc.). */
   readonly children?: React.ReactNode;
   readonly style?: StyleProp<ViewStyle>;
 }
 
 /** Cabecera inmersiva estilo "cartel" con degradado hacia la tinta. */
-export function Hero({ eyebrow, title, children, style }: HeroProps): React.ReactElement {
+export function Hero({
+  eyebrow,
+  title,
+  adaptiveTitle = false,
+  children,
+  style,
+}: HeroProps): React.ReactElement {
   const theme = useAppTheme();
+  // Título adaptable: si ocupa 2+ líneas, se encoge un paso. Se mide con
+  // `onTextLayout` (número real de líneas tras el layout de RN).
+  const [titleCompact, setTitleCompact] = React.useState(false);
+  const onTitleLayout = React.useCallback(
+    (e: { nativeEvent: { lines: ReadonlyArray<unknown> } }) => {
+      if (!adaptiveTitle) {
+        return;
+      }
+      const compacto = e.nativeEvent.lines.length >= 2;
+      setTitleCompact((prev) => (prev === compacto ? prev : compacto));
+    },
+    [adaptiveTitle],
+  );
   return (
     <View style={[styles.hero, { borderBottomColor: theme.palette.accent }, style]}>
       {eyebrow ? <Text style={styles.heroEyebrow}>{eyebrow.toUpperCase()}</Text> : null}
-      <Text style={styles.heroTitle}>{title}</Text>
+      <Text
+        style={[styles.heroTitle, adaptiveTitle && titleCompact ? styles.heroTitleCompact : null]}
+        onTextLayout={adaptiveTitle ? onTitleLayout : undefined}
+      >
+        {title}
+      </Text>
       {children}
     </View>
   );
@@ -264,8 +294,10 @@ export function Crest({ url, monogram = '', size = 48, style }: CrestProps): Rea
     borderRadius: radius.sm,
     borderBottomLeftRadius: size / 2,
     borderBottomRightRadius: size / 2,
-    // Marco del escudo en dorado intenso (preferencia del usuario).
+    // Marco fino y dorado, separado del escudo (aire interior) para un aspecto
+    // estilizado (preferencia del usuario).
     borderColor: palette.goldStrong,
+    padding: Math.max(3, size * 0.12),
   };
   if (url) {
     return (
@@ -740,6 +772,11 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     letterSpacing: 1,
   },
+  // Título del Hero reducido cuando ocupa 2+ líneas (adaptiveTitle).
+  heroTitleCompact: {
+    fontSize: fontSize.title,
+    letterSpacing: 0.5,
+  },
 
   card: {
     // Tarjeta glass sobre el canvas oscuro: relleno translúcido + borde sutil.
@@ -783,8 +820,9 @@ const styles = StyleSheet.create({
   btnTextOnDanger: { color: '#FFFFFF' },
 
   crest: {
-    // Marco levemente más grueso y dorado intenso (preferencia del usuario).
-    borderWidth: 4,
+    // Marco fino y estilizado (preferencia del usuario): borde delgado dorado
+    // con aire interior (el padding lo aporta el `box`) que separa el logo.
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -792,6 +830,8 @@ const styles = StyleSheet.create({
     ...shadow.crest,
   },
   crestMono: { backgroundColor: palette.inkSoft },
+  // width/height 100% (no absoluteFill) para respetar el padding del marco y que
+  // el logo quede separado del borde (aspecto estilizado).
   crestImg: { width: '100%', height: '100%', resizeMode: 'contain' },
   crestText: {
     color: palette.textOnDark,

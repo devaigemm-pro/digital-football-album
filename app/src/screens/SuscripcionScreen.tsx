@@ -1,247 +1,237 @@
-// SuscripcionScreen — pantalla de suscripción (compra y upgrade vía IAP).
+// SuscripcionScreen — planes de suscripción (Básico vs Premium).
 //
-// Task 30.1 — Requirements: 25.1, 25.2, 25.3, 25.4, 25.5, 25.6
-// (backend Req 3.1/3.2/3.3/3.4 — Servicio_Suscripción `GET /subscription`,
-//  `POST /subscription/purchase`, `POST /subscription/upgrade`,
-//  `GET /entitlements`).
+// Replica el prototipo (public/mockups/prototipo.html · pantalla #12
+// "Suscripción · Planes"): hero + dos cards de plan con precio anual y
+// beneficios, tag "Recomendado" en Premium, y una llamada a suscribirse.
 //
-// IMPORTANTE (entorno actual): las dependencias de React / React Native NO
-// están instaladas en este entorno, por lo que este archivo `.tsx` está
-// EXCLUIDO del typecheck de `app/tsconfig.json` (ver "exclude"). Es código real,
-// listo para compilar cuando se instale el toolchain RN/React; hasta entonces no
-// participa en `tsc --noEmit`.
+// Disponibilidad real (docs/FRONTEND_INTEGRATION.md §7): el backend deployado
+// solo expone `GET /me/entitlements` (LECTURA del plan). NO hay compra/upgrade
+// (IAP en desarrollo). Por eso la pantalla:
+//   - muestra los planes y beneficios (informativo, precios del producto);
+//   - resalta el plan ACTUAL del usuario leído de los entitlements;
+//   - NO ejecuta un flujo de pago: la acción de suscripción se marca como "no
+//     disponible todavía" (preferencia del proyecto: no fingir funcionalidad).
 //
-// Este componente es intencionadamente DELGADO: NO contiene lógica sensible a la
-// corrección. Toda la lógica (consumir `GET /subscription`, ejecutar el flujo
-// IAP y enviar el comprobante en `POST /subscription/purchase` / `.../upgrade`,
-// reflejar `GET /entitlements` SIN recalcular derechos, y conservar el estado
-// previo ante errores) vive en `SubscriptionPresenter` (TypeScript puro,
-// unit-testado en `subscription/subscription-presenter.test.ts`). Aquí solo se
-// enlaza ese presentador a React y se pinta:
-//   - el plan actual, su estado y la vigencia (Req 25.1);
-//   - los Entitlements devueltos por el Sistema (Req 25.4, 25.5);
-//   - el catálogo de planes con botones de compra/upgrade (Req 25.2, 25.3);
-//   - el mensaje de error devuelto por el Sistema conservando el estado (Req 25.6).
+// Pantalla DELGADA: solo lee entitlements para marcar el plan actual. Excluida
+// del typecheck de `app/tsconfig.json` (RN no instalado en este entorno).
 
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type ListRenderItemInfo,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import {
-  SubscriptionPresenter,
-  type IapPurchaser,
-  type PlanCatalogoEntrada,
-  type SubscriptionClient,
-  type SubscriptionState,
-} from '../subscription';
-import { Badge, Hero, PrimaryButton, Screen } from '../ui/kit';
+import type { Entitlements } from '../subscription';
+import { Badge, Hero, Screen } from '../ui/kit';
 import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 
 export interface SuscripcionScreenProps {
-  /** Adaptador HTTP de `SubscriptionClient` (endpoints del Servicio_Suscripción). */
-  readonly client: SubscriptionClient;
-  /** Adaptador nativo de compra dentro de la app (StoreKit / BillingClient). */
-  readonly iap: IapPurchaser;
-  /** Presentador ya construido (opcional, útil en tests/Storybook). */
-  readonly presenter?: SubscriptionPresenter;
+  /** Lee los derechos del plan (`GET /me/entitlements`) para marcar el actual. */
+  readonly getEntitlements?: () => Promise<Entitlements>;
 }
 
-/** Formatea el precio anual con su moneda para el catálogo (Req 25.1). */
-function formatPrecio(entry: PlanCatalogoEntrada): string {
-  return `${entry.precioAnual.toFixed(2)} ${entry.moneda} / año`;
+/** Un plan del catálogo (datos del producto; precios anuales en USD). */
+interface Plan {
+  readonly id: 'BASICO' | 'PREMIUM';
+  readonly nombre: string;
+  readonly precio: string;
+  readonly por: string;
+  readonly beneficios: readonly string[];
+  readonly recomendado?: boolean;
 }
+
+const PLANES: readonly Plan[] = [
+  {
+    id: 'BASICO',
+    nombre: 'Básico',
+    precio: '$39.99',
+    por: '/ año · ~$3.99 al mes',
+    beneficios: [
+      'Álbum tapa blanda + planchas de stickers',
+      'Digital Cards de partidos de liga y copa',
+      'Envío en sobre rígido',
+    ],
+  },
+  {
+    id: 'PREMIUM',
+    nombre: 'Premium',
+    precio: '$79.99',
+    por: '/ año · ~$7.99 al mes',
+    recomendado: true,
+    beneficios: [
+      'Tapa dura + stickers en sobres holográficos ✦',
+      'Digital Cards de partidos internacionales',
+      'Holograma en Clásicos e Internacionales · caja de colección',
+    ],
+  },
+];
 
 /**
- * Pantalla de suscripción. Enlaza el `SubscriptionPresenter` al árbol de React y
- * re-renderiza cuando su estado cambia. Delega toda la lógica al presentador.
+ * Pantalla de planes de suscripción. Muestra Básico y Premium con sus beneficios
+ * y resalta el plan actual del usuario (derivado de los entitlements). No ejecuta
+ * compra: el backend aún no expone IAP (§7).
  */
 export function SuscripcionScreen({
-  client,
-  iap,
-  presenter,
+  getEntitlements,
 }: SuscripcionScreenProps): React.ReactElement {
-  const pres = useMemo(
-    () => presenter ?? new SubscriptionPresenter(client, iap),
-    [presenter, client, iap],
-  );
-
-  const [state, setState] = useState<SubscriptionState>(() => pres.getState());
+  const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
+  const [cargando, setCargando] = useState<boolean>(Boolean(getEntitlements));
 
   useEffect(() => {
-    // `subscribe` emite el estado actual de inmediato y en cada cambio.
-    const unsubscribe = pres.subscribe(setState);
-    // Dispara la carga inicial (no bloqueante): plan + catálogo + entitlements.
-    void pres.load();
-    return unsubscribe;
-  }, [pres]);
+    let activo = true;
+    if (!getEntitlements) {
+      return;
+    }
+    getEntitlements()
+      .then((e) => {
+        if (activo) {
+          setEntitlements(e);
+        }
+      })
+      .catch(() => {
+        // No bloqueamos la pantalla si falla: se muestran los planes igual.
+      })
+      .finally(() => {
+        if (activo) {
+          setCargando(false);
+        }
+      });
+    return () => {
+      activo = false;
+    };
+  }, [getEntitlements]);
 
-  const planActual = state.suscripcion?.plan ?? null;
-  const puedeUpgrade = planActual === 'BASICO';
-
-  const renderPlan = ({
-    item,
-  }: ListRenderItemInfo<PlanCatalogoEntrada>): React.ReactElement => {
-    const esActual = item.plan === planActual;
-    const esPremium = item.plan === 'PREMIUM';
-    return (
-      <View style={[styles.planCard, esPremium ? styles.planCardPremium : null]}>
-        {esPremium ? <Badge label="Recomendado" tone="gold" style={styles.planBadge} /> : null}
-        <View style={styles.planInfo}>
-          <Text style={styles.planNombre}>{item.plan}</Text>
-          <Text style={styles.planPrecio}>{formatPrecio(item)}</Text>
-          <Text style={styles.planDescripcion}>{item.descripcion}</Text>
-        </View>
-        {esActual ? (
-          <Text style={styles.planActualBadge}>Tu plan actual</Text>
-        ) : (
-          <PrimaryButton
-            title="Comprar"
-            accessibilityLabel={`Comprar plan ${item.plan}`}
-            disabled={state.operando}
-            onPress={() => {
-              void pres.purchase(item.plan);
-            }}
-          />
-        )}
-      </View>
-    );
-  };
+  // Premium habilita cards internacionales + holograma (docs §6/gating).
+  const planActual: Plan['id'] | null = entitlements
+    ? entitlements.digitalCardsInternacional && entitlements.holograma
+      ? 'PREMIUM'
+      : 'BASICO'
+    : null;
 
   return (
     <Screen tone="light" flush>
-      <Hero eyebrow="Suscripción" title="Elige tu kit">
-        {state.status === 'loading' || state.operando ? (
+      <Hero eyebrow="Elige tu kit" title="Suscripción">
+        <Text style={styles.heroSub}>Cobro anual vía App Store / Google Play</Text>
+        {cargando ? (
           <ActivityIndicator
             color={palette.textOnDark}
-            accessibilityLabel="Procesando"
+            accessibilityLabel="Cargando tu plan"
             style={styles.heroSpinner}
           />
         ) : null}
       </Hero>
 
-      <View style={styles.body}>
-      {/* Plan actual, estado y vigencia reflejados del Sistema (Req 25.1). */}
-      <View style={styles.estadoBox}>
-        {state.suscripcion !== null ? (
-          <>
-            <Text style={styles.estadoLinea}>
-              Plan: {state.suscripcion.plan}
-            </Text>
-            <Text style={styles.estadoLinea}>
-              Estado: {state.suscripcion.estado}
-            </Text>
-            <Text style={styles.estadoLinea}>
-              Vigente hasta: {state.suscripcion.vigenciaHasta}
-            </Text>
-          </>
-        ) : (
-          <Text style={styles.estadoLinea}>
-            Aún no tienes una suscripción activa.
-          </Text>
-        )}
-      </View>
+      <ScrollView contentContainerStyle={styles.body}>
+        {PLANES.map((plan) => {
+          const esActual = plan.id === planActual;
+          const esPremium = plan.id === 'PREMIUM';
+          return (
+            <View
+              key={plan.id}
+              style={[styles.planCard, esPremium ? styles.planCardPremium : null]}
+            >
+              {plan.recomendado ? (
+                <Badge label="Recomendado" tone="gold" style={styles.planTag} />
+              ) : null}
 
-      {/* Entitlements devueltos por el Sistema, reflejados sin recalcular (Req 25.4, 25.5). */}
-      {state.entitlements !== null ? (
-        <View style={styles.entitlementsBox}>
-          <Text style={styles.entitlementsTitulo}>Tus derechos</Text>
-          <Text style={styles.estadoLinea}>
-            Digital Cards internacionales:{' '}
-            {state.entitlements.digitalCardsInternacional ? 'Sí' : 'No'}
-          </Text>
-          <Text style={styles.estadoLinea}>
-            Efecto holograma: {state.entitlements.holograma ? 'Sí' : 'No'}
-          </Text>
+              <Text style={styles.planNombre}>{plan.nombre.toUpperCase()}</Text>
+              <View style={styles.precioRow}>
+                <Text style={styles.precio}>{plan.precio}</Text>
+                <Text style={styles.por}>{plan.por}</Text>
+              </View>
+
+              <View style={styles.beneficios}>
+                {plan.beneficios.map((b) => (
+                  <View key={b} style={styles.beneficioRow}>
+                    <Text style={styles.beneficioBullet}>•</Text>
+                    <Text style={styles.beneficioTexto}>{b}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {esActual ? (
+                <Text style={styles.planActual}>Tu plan actual</Text>
+              ) : null}
+            </View>
+          );
+        })}
+
+        {/* La compra/upgrade aún no está disponible en el backend (§7). No se
+            finge un flujo de pago; se informa con claridad. */}
+        <View style={styles.ctaDisabled}>
+          <Text style={styles.ctaDisabledText}>Suscribirme a Premium</Text>
         </View>
-      ) : null}
-
-      {/* Botón de upgrade a Premium cuando el plan actual es Básico (Req 25.3). */}
-      {puedeUpgrade ? (
-        <PrimaryButton
-          title="Actualizar a Premium"
-          accessibilityLabel="Actualizar a Plan Premium"
-          disabled={state.operando}
-          onPress={() => {
-            void pres.upgrade();
-          }}
-          style={styles.upgrade}
-        />
-      ) : null}
-
-      {/* Mensaje de error del Sistema; el estado mostrado se conserva (Req 25.6). */}
-      {state.error !== null ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{state.error}</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Reintentar cargar la suscripción"
-            onPress={() => {
-              void pres.load();
-            }}
-          >
-            <Text style={styles.retry}>Reintentar</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {/* Catálogo de planes disponibles (Req 25.1). */}
-      <Text style={styles.catalogoTitulo}>Planes disponibles</Text>
-      <FlatList
-        data={state.catalogo}
-        keyExtractor={(item) => item.plan}
-        renderItem={renderPlan}
-      />
-      </View>
+        <Text style={styles.notaNoDisponible}>
+          La contratación desde la app aún no está disponible. Pronto podrás
+          suscribirte con App Store / Google Play.
+        </Text>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  heroSub: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.small, marginTop: spacing.xs },
   heroSpinner: { alignSelf: 'flex-start', marginTop: spacing.sm },
-  body: { flex: 1, padding: spacing.lg },
-  estadoBox: {
-    padding: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: palette.glassFill,
-    borderWidth: 1,
-    borderColor: palette.borderOnDark,
-    marginBottom: spacing.md,
-  },
-  estadoLinea: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.small, marginBottom: 2 },
-  entitlementsBox: {
-    padding: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: palette.infoBg,
-    marginBottom: spacing.md,
-  },
-  entitlementsTitulo: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.semibold, marginBottom: spacing.xs },
-  catalogoTitulo: { color: palette.textOnDark, fontFamily: fonts.display, fontSize: fontSize.subtitle, fontWeight: fontWeight.bold, letterSpacing: 0.5, marginBottom: spacing.sm },
+  body: { padding: spacing.lg },
   planCard: {
-    padding: spacing.md,
+    backgroundColor: palette.glassFill,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: palette.borderOnDark,
-    backgroundColor: palette.glassFill,
-    marginBottom: spacing.sm,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
   },
   planCardPremium: { borderColor: palette.accent, borderWidth: 2 },
-  planBadge: { marginBottom: spacing.sm },
-  planInfo: { marginBottom: spacing.md },
-  planNombre: { color: palette.textOnDark, fontFamily: fonts.display, fontSize: fontSize.title, fontWeight: fontWeight.bold, letterSpacing: 0.5 },
-  planPrecio: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.semibold, marginTop: 2 },
-  planDescripcion: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.small, marginTop: spacing.xs },
-  planActualBadge: { color: palette.success, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
-  upgrade: { marginBottom: spacing.md },
-  errorBox: { marginBottom: spacing.md },
-  errorText: { color: palette.danger, fontFamily: fonts.body, marginBottom: spacing.xs },
-  retry: { color: palette.info, fontFamily: fonts.body, fontWeight: fontWeight.semibold },
+  planTag: { alignSelf: 'flex-start', marginBottom: spacing.sm },
+  planNombre: {
+    color: palette.textOnDark,
+    fontFamily: fonts.display,
+    fontSize: fontSize.title,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 1,
+  },
+  precioRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs, marginTop: spacing.xs },
+  precio: {
+    color: palette.textOnDark,
+    fontFamily: fonts.display,
+    fontSize: fontSize.hero,
+    fontWeight: fontWeight.bold,
+  },
+  por: { color: palette.textMutedOnDark, fontFamily: fonts.body, fontSize: fontSize.small },
+  beneficios: { marginTop: spacing.md, gap: spacing.xs },
+  beneficioRow: { flexDirection: 'row', gap: spacing.sm },
+  beneficioBullet: { color: palette.accent, fontFamily: fonts.body, fontSize: fontSize.body, lineHeight: 20 },
+  beneficioTexto: { flex: 1, color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.small, lineHeight: 20 },
+  planActual: {
+    color: palette.success,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.semibold,
+    marginTop: spacing.md,
+  },
+  ctaDisabled: {
+    marginTop: spacing.sm,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.glassFillSoft,
+    borderWidth: 1,
+    borderColor: palette.borderOnDark,
+  },
+  ctaDisabledText: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.3,
+  },
+  notaNoDisponible: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    lineHeight: 18,
+  },
 });
 
 export default SuscripcionScreen;

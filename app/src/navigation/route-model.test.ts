@@ -24,12 +24,13 @@ const EXPECTED_ROUTES: RouteName[] = [
   'Partidos',
   'DetallePartido',
   'Perfil',
+  'Suscripcion',
   'Ajustes',
 ];
 
 describe('grafo de rutas (design.md · Navegación y pantallas)', () => {
-  it('contiene exactamente las 8 pantallas esperadas', () => {
-    expect(ALL_ROUTE_NAMES.length).toBe(8);
+  it('contiene exactamente las 9 pantallas esperadas', () => {
+    expect(ALL_ROUTE_NAMES.length).toBe(9);
     // Mismo conjunto, sin depender del orden.
     const sorted = [...ALL_ROUTE_NAMES].sort();
     const expectedSorted = [...EXPECTED_ROUTES].sort();
@@ -50,7 +51,7 @@ describe('partición stack de autenticación vs pestañas principales', () => {
     );
   });
 
-  it('las pestañas principales son las 6 pantallas restantes', () => {
+  it('las pestañas principales son las 7 pantallas restantes', () => {
     expect([...routesFor('mainTabs')].sort()).toEqual(
       [
         'Carne',
@@ -58,6 +59,7 @@ describe('partición stack de autenticación vs pestañas principales', () => {
         'Partidos',
         'DetallePartido',
         'Perfil',
+        'Suscripcion',
         'Ajustes',
       ].sort(),
     );

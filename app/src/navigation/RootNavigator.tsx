@@ -52,6 +52,7 @@ export interface ScreenBundle {
   readonly Partidos: BoundScreen;
   readonly DetallePartido: BoundScreen;
   readonly Perfil: BoundScreen;
+  readonly Suscripcion: BoundScreen;
   readonly Ajustes: BoundScreen;
   /**
    * Compuerta de onboarding: se renderiza en la zona autenticada y decide si
@@ -98,6 +99,7 @@ const TAB_ICONS: Record<string, string> = {
   Partidos: 'football',
   DetallePartido: 'football',
   Perfil: 'person',
+  Suscripcion: 'card',
   Ajustes: 'settings',
 };
 
@@ -146,6 +148,12 @@ function MainNavigator({ screens }: { screens: ScreenBundle }): React.JSX.Elemen
         component={screens.DetallePartido}
         // Pantalla de detalle: se llega desde "Partidos"; se oculta de la barra.
         options={{ title: 'Detalle', tabBarButton: () => null, tabBarStyle: { display: 'none' } }}
+      />
+      <MainTabs.Screen
+        name="Suscripcion"
+        component={screens.Suscripcion}
+        // Se llega desde Ajustes (fila "Plan"); se oculta de la barra.
+        options={{ title: 'Suscripción', tabBarButton: () => null, tabBarStyle: { display: 'none' } }}
       />
       <MainTabs.Screen
         name="Perfil"

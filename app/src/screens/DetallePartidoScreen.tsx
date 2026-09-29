@@ -336,7 +336,7 @@ export function DetallePartidoScreen({
 
   return (
     <Screen tone="dark" flush>
-      <Hero eyebrow={detalle.competicion} title={`vs ${detalle.rival}`}>
+      <Hero eyebrow={detalle.competicion} title={`vs ${detalle.rival}`} adaptiveTitle>
         {/* Marcador tipo transmisión: resultado gigante flanqueado por escudos. */}
         <Scoreboard
           homeMonogram={monogramaPropio}

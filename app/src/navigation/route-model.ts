@@ -20,6 +20,7 @@
 //   - Partidos           (Req 3)   · pestaña principal
 //   - DetallePartido     (Req 5/6) · fuera de la barra (se llega desde Partidos)
 //   - Perfil             (Req 2)   · pestaña principal
+//   - Suscripcion        (Req 25)  · fuera de la barra (se llega desde Ajustes)
 //   - Ajustes            (Req 22)  · pestaña principal
 
 /** Nombre único de cada pantalla del grafo de navegación. */
@@ -31,6 +32,7 @@ export type RouteName =
   | 'Partidos'
   | 'DetallePartido'
   | 'Perfil'
+  | 'Suscripcion'
   | 'Ajustes';
 
 /**
@@ -46,6 +48,7 @@ export interface RouteParamList {
   Partidos: { temporadaId: string };
   DetallePartido: { partidoId: string };
   Perfil: undefined;
+  Suscripcion: undefined;
   Ajustes: undefined;
 }
 
@@ -99,6 +102,7 @@ export const ROUTE_REGISTRY: {
     requiredParams: ['partidoId'],
   },
   Perfil: { name: 'Perfil', navigator: 'mainTabs', requiredParams: [] },
+  Suscripcion: { name: 'Suscripcion', navigator: 'mainTabs', requiredParams: [] },
   Ajustes: { name: 'Ajustes', navigator: 'mainTabs', requiredParams: [] },
 };
 

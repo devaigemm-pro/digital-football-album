@@ -44,6 +44,8 @@ export interface AjustesScreenProps {
   readonly onRedirectToLogin?: () => void;
   /** Navega al Perfil (fila "Cuenta"), donde se editan los datos del usuario. */
   readonly onCuenta?: () => void;
+  /** Navega a la pantalla de Suscripción (fila "Plan"). */
+  readonly onPlan?: () => void;
   /** Puerta de permisos del dispositivo (cámara/geolocalización). */
   readonly permissionGate?: PermissionGate;
   /** Lee los derechos del plan (`GET /me/entitlements`) para mostrar el plan. */
@@ -99,10 +101,6 @@ function Chevron(): React.ReactElement {
   return <Text style={styles.chevron}>›</Text>;
 }
 
-/** Etiqueta "No disponible" para filas cuya función el backend no expone. */
-function NoDispTag(): React.ReactElement {
-  return <Text style={styles.noDispTag}>No disponible</Text>;
-}
 
 /**
  * Ajustes de cuenta, permisos, plan y privacidad. Cablea lo real (permisos de
@@ -112,6 +110,7 @@ export function AjustesScreen({
   presenter,
   onRedirectToLogin,
   onCuenta,
+  onPlan,
   permissionGate,
   getEntitlements,
 }: AjustesScreenProps): React.JSX.Element {
@@ -316,12 +315,14 @@ export function AjustesScreen({
             }
           />
 
-          {/* Plan (solo lectura de entitlements; sin compra) */}
+          {/* Plan: navega a la pantalla de Suscripción (planes y beneficios). */}
           <SettingRow
             icon="✦"
             label="Plan"
             sublabel={planLabel}
-            right={<NoDispTag />}
+            right={<Chevron />}
+            onPress={onPlan}
+            disabled={!onPlan}
           />
 
           {/* Privacidad (GDPR/CCPA): el olvido se ejerce con el borrado */}
@@ -462,12 +463,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: fontSize.title,
     fontWeight: fontWeight.bold,
-  },
-  noDispTag: {
-    color: palette.textMutedOnDark,
-    fontFamily: fonts.body,
-    fontSize: fontSize.small,
-    fontWeight: fontWeight.semibold,
   },
   note: { marginTop: spacing.md },
   noteText: {

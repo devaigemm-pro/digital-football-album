@@ -105,8 +105,8 @@ android {
         applicationId "com.digitalfootballalbum"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 30
-        versionName "1.2.16"
+        versionCode 31
+        versionName "1.2.17"
         // react-native-iap define flavors de tienda (play/amazon).
         // Seleccionamos Google Play para resolver la ambigüedad de variantes.
         missingDimensionStrategy "store", "play"

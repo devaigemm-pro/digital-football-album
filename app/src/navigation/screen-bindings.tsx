@@ -44,6 +44,7 @@ import { ProfilePresenter, type ProfileState } from '../profile';
 
 import { LoginScreen } from '../screens/LoginScreen';
 import { AjustesScreen } from '../screens/AjustesScreen';
+import { SuscripcionScreen } from '../screens/SuscripcionScreen';
 import { HomeAlbumScreen } from '../screens/HomeAlbumScreen';
 import { DigitalCardScreen } from '../screens/DigitalCardScreen';
 import { CompartirSheet } from '../screens/CompartirSheet';
@@ -445,6 +446,12 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
     />
   );
 
+  // Suscripción: planes Básico/Premium (informativo) con el plan actual leído de
+  // los entitlements. Se llega desde la fila "Plan" de Ajustes.
+  const Suscripcion = (): React.ReactElement => (
+    <SuscripcionScreen getEntitlements={() => deps.subscriptionClient.getEntitlements()} />
+  );
+
   const Ajustes = (props: {
     navigation?: { navigate: (route: string, params?: Record<string, unknown>) => void };
   }): React.ReactElement => (
@@ -452,6 +459,7 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
       presenter={deps.authPresenter}
       onRedirectToLogin={deps.onRedirectToLogin}
       onCuenta={() => props.navigation?.navigate('Perfil')}
+      onPlan={() => props.navigation?.navigate('Suscripcion')}
       permissionGate={deps.permissionGate}
       getEntitlements={() => deps.subscriptionClient.getEntitlements()}
     />
@@ -536,6 +544,7 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
     Partidos,
     DetallePartido,
     Perfil,
+    Suscripcion,
     Ajustes,
     OnboardingGate,
   };
