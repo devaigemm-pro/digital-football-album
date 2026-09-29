@@ -130,25 +130,17 @@ export function Hero({
   style,
 }: HeroProps): React.ReactElement {
   const theme = useAppTheme();
-  // Título adaptable: si ocupa 2+ líneas, se encoge un paso. Se mide con
-  // `onTextLayout` (número real de líneas tras el layout de RN).
-  const [titleCompact, setTitleCompact] = React.useState(false);
-  const onTitleLayout = React.useCallback(
-    (e: { nativeEvent: { lines: ReadonlyArray<unknown> } }) => {
-      if (!adaptiveTitle) {
-        return;
-      }
-      const compacto = e.nativeEvent.lines.length >= 2;
-      setTitleCompact((prev) => (prev === compacto ? prev : compacto));
-    },
-    [adaptiveTitle],
-  );
+  // Título adaptable: si el nombre es largo, RN reduce la fuente para que quepa
+  // (hasta 2 líneas) mediante `adjustsFontSizeToFit`. Es escalado NATIVO, sin
+  // estado de React: evita el bucle medir→reescalar→re-medir (parpadeo infinito).
   return (
     <View style={[styles.hero, { borderBottomColor: theme.palette.accent }, style]}>
       {eyebrow ? <Text style={styles.heroEyebrow}>{eyebrow.toUpperCase()}</Text> : null}
       <Text
-        style={[styles.heroTitle, adaptiveTitle && titleCompact ? styles.heroTitleCompact : null]}
-        onTextLayout={adaptiveTitle ? onTitleLayout : undefined}
+        style={styles.heroTitle}
+        numberOfLines={adaptiveTitle ? 2 : undefined}
+        adjustsFontSizeToFit={adaptiveTitle}
+        minimumFontScale={adaptiveTitle ? 0.6 : undefined}
       >
         {title}
       </Text>
@@ -771,11 +763,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.hero,
     fontWeight: fontWeight.bold,
     letterSpacing: 1,
-  },
-  // Título del Hero reducido cuando ocupa 2+ líneas (adaptiveTitle).
-  heroTitleCompact: {
-    fontSize: fontSize.title,
-    letterSpacing: 0.5,
   },
 
   card: {
