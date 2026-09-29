@@ -8,10 +8,14 @@
 
 import type { PartidoLamina, TipoCompeticion } from '../adapters/http-profile-client';
 import {
+  actividadReciente,
   agruparLaminasPorCompeticion,
   derivarProgresoTemporada,
+  estadisticasTemporada,
   etiquetaProgreso,
   etiquetaRealce,
+  marcadorTexto,
+  proximoPartido,
   realceLamina,
   tieneRealceEspecial,
 } from './laminas';
@@ -215,5 +219,72 @@ describe('agruparLaminasPorCompeticion (Feature 4)', () => {
       lamina({ partidoId: `x${i}`, tipoCompeticion: t, numeroRecuadro: null }),
     );
     expect(agruparLaminasPorCompeticion(partidos)).toEqual([]);
+  });
+});
+
+describe('proximoPartido', () => {
+  it('devuelve el PROGRAMADO más cercano por fecha', () => {
+    const partidos = [
+      lamina({ partidoId: 'a', estado: 'FINALIZADO', fechaHora: '2026-03-01T20:00:00.000Z' }),
+      lamina({ partidoId: 'b', estado: 'PROGRAMADO', fechaHora: '2026-03-20T20:00:00.000Z' }),
+      lamina({ partidoId: 'c', estado: 'PROGRAMADO', fechaHora: '2026-03-10T20:00:00.000Z' }),
+    ];
+    expect(proximoPartido(partidos)?.partidoId).toBe('c');
+  });
+
+  it('devuelve null si no hay partidos programados', () => {
+    const partidos = [lamina({ estado: 'FINALIZADO' })];
+    expect(proximoPartido(partidos)).toBeNull();
+  });
+});
+
+describe('actividadReciente', () => {
+  it('devuelve los FINALIZADOS más recientes primero, hasta el límite', () => {
+    const partidos = [
+      lamina({ partidoId: 'a', estado: 'FINALIZADO', fechaHora: '2026-03-01T20:00:00.000Z' }),
+      lamina({ partidoId: 'b', estado: 'FINALIZADO', fechaHora: '2026-03-15T20:00:00.000Z' }),
+      lamina({ partidoId: 'c', estado: 'PROGRAMADO', fechaHora: '2026-03-20T20:00:00.000Z' }),
+      lamina({ partidoId: 'd', estado: 'FINALIZADO', fechaHora: '2026-03-10T20:00:00.000Z' }),
+    ];
+    const recientes = actividadReciente(partidos, 2);
+    expect(recientes.map((p) => p.partidoId)).toEqual(['b', 'd']);
+  });
+
+  it('con lista vacía devuelve vacío', () => {
+    expect(actividadReciente([], 3)).toEqual([]);
+  });
+});
+
+describe('marcadorTexto', () => {
+  it('formatea el marcador cuando hay resultado', () => {
+    expect(marcadorTexto(lamina({ resultado: { golesLocal: 2, golesVisita: 1 } }))).toBe('2 - 1');
+  });
+
+  it('devuelve null cuando no hay resultado', () => {
+    expect(marcadorTexto(lamina({ resultado: null }))).toBeNull();
+  });
+});
+
+describe('estadisticasTemporada', () => {
+  it('cuenta total, jugados, programados y progreso del álbum', () => {
+    const partidos = [
+      lamina({ partidoId: 'a', estado: 'FINALIZADO', numeroRecuadro: 1, tieneFotoPrincipal: true }),
+      lamina({ partidoId: 'b', estado: 'FINALIZADO', numeroRecuadro: 2, tieneFotoPrincipal: false }),
+      lamina({ partidoId: 'c', estado: 'PROGRAMADO', numeroRecuadro: 3, tieneFotoPrincipal: false }),
+    ];
+    const stats = estadisticasTemporada(partidos);
+    expect(stats.totalPartidos).toBe(3);
+    expect(stats.jugados).toBe(2);
+    expect(stats.programados).toBe(1);
+    expect(stats.montadas).toBe(1);
+    expect(stats.totalRecuadros).toBe(3);
+    expect(stats.porcentajeAlbum).toBe(33);
+  });
+
+  it('con lista vacía devuelve ceros sin NaN', () => {
+    const stats = estadisticasTemporada([]);
+    expect(stats.totalPartidos).toBe(0);
+    expect(stats.jugados).toBe(0);
+    expect(stats.porcentajeAlbum).toBe(0);
   });
 });

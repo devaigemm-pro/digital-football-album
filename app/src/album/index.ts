@@ -29,10 +29,15 @@ export {
   etiquetaRealce,
   realceLamina,
   tieneRealceEspecial,
+  proximoPartido,
+  actividadReciente,
+  marcadorTexto,
+  estadisticasTemporada,
 } from './laminas';
 export type {
   ClasificacionPartido,
   GrupoCompeticion,
   ProgresoTemporada,
   RealceLamina,
+  EstadisticasTemporada,
 } from './laminas';

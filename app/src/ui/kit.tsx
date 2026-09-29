@@ -131,16 +131,16 @@ export function Hero({
 }: HeroProps): React.ReactElement {
   const theme = useAppTheme();
   // Título adaptable: si el nombre es largo, RN reduce la fuente para que quepa
-  // (hasta 2 líneas) mediante `adjustsFontSizeToFit`. Es escalado NATIVO, sin
-  // estado de React: evita el bucle medir→reescalar→re-medir (parpadeo infinito).
+  // en UNA sola línea (`adjustsFontSizeToFit` + `numberOfLines={1}`). Escalado
+  // NATIVO, sin estado de React: evita el bucle medir→reescalar (parpadeo).
   return (
     <View style={[styles.hero, { borderBottomColor: theme.palette.accent }, style]}>
       {eyebrow ? <Text style={styles.heroEyebrow}>{eyebrow.toUpperCase()}</Text> : null}
       <Text
         style={styles.heroTitle}
-        numberOfLines={adaptiveTitle ? 2 : undefined}
+        numberOfLines={adaptiveTitle ? 1 : undefined}
         adjustsFontSizeToFit={adaptiveTitle}
-        minimumFontScale={adaptiveTitle ? 0.6 : undefined}
+        minimumFontScale={adaptiveTitle ? 0.4 : undefined}
       >
         {title}
       </Text>

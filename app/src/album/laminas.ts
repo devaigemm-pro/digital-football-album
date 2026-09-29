@@ -265,3 +265,99 @@ export function agruparLaminasPorCompeticion(
   }
   return grupos;
 }
+
+// ---------------------------------------------------------------------------
+// Dashboard del Carné · Próximo partido, Actividad reciente y Estadísticas.
+//
+// Todo se deriva de la lista de láminas (`GET /temporadas/:id/partidos`), sin
+// inventar datos. IMPORTANTE: `PartidoLamina` NO indica si el club jugó de local
+// o visitante, por lo que NO se puede saber si ganó/empató/perdió; por eso NO se
+// deriva una "racha" (sería inventar). Solo se exponen conteos verificables.
+// ---------------------------------------------------------------------------
+
+/** Compara por fecha ISO ascendente (para "próximo") y su inverso (recientes). */
+function porFechaAsc(a: PartidoLamina, b: PartidoLamina): number {
+  return new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime();
+}
+
+/**
+ * Próximo partido de la temporada: el `PROGRAMADO` más cercano por fecha. Si no
+ * hay ninguno programado (temporada terminada o sin fixture futuro), devuelve
+ * `null`. No inventa: solo elige de la lista real.
+ */
+export function proximoPartido(
+  partidos: readonly PartidoLamina[],
+): PartidoLamina | null {
+  const programados = partidos
+    .filter((p) => p.estado === 'PROGRAMADO')
+    .sort(porFechaAsc);
+  return programados[0] ?? null;
+}
+
+/**
+ * Actividad reciente: los últimos `limite` partidos FINALIZADOS, del más
+ * reciente al más antiguo. Cada uno trae lo necesario para pintar su fila
+ * (rival, número de recuadro, marcador y estado de la lámina); los datos que el
+ * backend no expone en la lista (local/visita, goleadores) se omiten.
+ */
+export function actividadReciente(
+  partidos: readonly PartidoLamina[],
+  limite = 3,
+): readonly PartidoLamina[] {
+  return partidos
+    .filter((p) => p.estado === 'FINALIZADO')
+    .sort((a, b) => -porFechaAsc(a, b))
+    .slice(0, Math.max(0, limite));
+}
+
+/** Marcador "L - V" de un partido, o `null` si aún no hay resultado. */
+export function marcadorTexto(partido: PartidoLamina): string | null {
+  if (!partido.resultado) {
+    return null;
+  }
+  return `${partido.resultado.golesLocal} - ${partido.resultado.golesVisita}`;
+}
+
+/**
+ * Estadísticas verificables de la temporada, derivadas SOLO de datos reales.
+ * No incluye racha ni victorias: `PartidoLamina` no dice si el club fue local o
+ * visitante, así que el resultado no puede atribuirse al club sin inventar.
+ */
+export interface EstadisticasTemporada {
+  /** Total de partidos oficiales de la temporada. */
+  readonly totalPartidos: number;
+  /** Partidos ya jugados (estado FINALIZADO). */
+  readonly jugados: number;
+  /** Partidos aún por jugar (estado PROGRAMADO). */
+  readonly programados: number;
+  /** Láminas montadas (con Foto_Principal). */
+  readonly montadas: number;
+  /** Total de recuadros de la temporada. */
+  readonly totalRecuadros: number;
+  /** Porcentaje de avance del álbum [0,100]. */
+  readonly porcentajeAlbum: number;
+}
+
+/** Deriva las estadísticas verificables de la temporada. */
+export function estadisticasTemporada(
+  partidos: readonly PartidoLamina[],
+): EstadisticasTemporada {
+  let jugados = 0;
+  let programados = 0;
+  for (const p of partidos) {
+    if (p.estado === 'FINALIZADO') {
+      jugados += 1;
+    } else if (p.estado === 'PROGRAMADO') {
+      programados += 1;
+    }
+  }
+  const progreso = derivarProgresoTemporada(partidos);
+  return {
+    totalPartidos: partidos.length,
+    jugados,
+    programados,
+    montadas: progreso.montadas,
+    totalRecuadros: progreso.total,
+    porcentajeAlbum: progreso.porcentaje,
+  };
+}
