@@ -87,11 +87,11 @@ const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
 function emblemaTorneo(tipo: PartidoLamina['tipoCompeticion']): string {
   switch (tipo) {
     case 'LIGA':
-      return '🏆';
+      return '⚽'; // liga (no copa)
     case 'COPA_NACIONAL':
-      return '🏅';
+      return '🏆'; // copa nacional
     case 'INTERNACIONAL':
-      return '🌎';
+      return '🌎'; // internacional
     default:
       return '⚽';
   }
@@ -121,6 +121,7 @@ function LaminaCard({
   colorClub2,
   colorClub3,
   escudoUrl,
+  aliasUsuario,
   onPress,
 }: {
   readonly item: LaminaVista;
@@ -130,12 +131,14 @@ function LaminaCard({
   readonly colorClub2: string;
   readonly colorClub3: string;
   readonly escudoUrl?: string | null;
+  readonly aliasUsuario: string;
   readonly onPress: () => void;
 }): React.ReactElement {
   const realce = etiquetaRealce(item.partido);
   const marcador = marcadorTexto(item.partido);
   const especial = tieneRealceEspecial(item.partido);
-  const codigo = (item.partido.rival ?? '').slice(0, 3).toUpperCase();
+  // Código de la esquina: el ALIAS del usuario (su "firma" en la lámina).
+  const codigo = aliasUsuario.toUpperCase();
 
   const inputRange = [(index - 1) * SNAP, index * SNAP, (index + 1) * SNAP];
 
@@ -262,7 +265,9 @@ function LaminaCard({
                 {marcador ? ` · ${marcador}` : ''}
               </Text>
             </View>
-            <Text style={[styles.pieCodigo, { color: colorClub }]}>{codigo}</Text>
+            <Text style={[styles.pieCodigo, { color: colorClub }]} numberOfLines={1}>
+              {codigo}
+            </Text>
           </View>
         </View>
       </Pressable>
@@ -325,6 +330,13 @@ export function RevisarTemporadaScreen({
   const colorClub = club?.paletaColores?.primario ?? palette.goldStrong;
   const colorClub2 = club?.paletaColores?.secundario ?? palette.ink;
   const colorClub3 = club?.paletaColores?.acento ?? colorClub;
+  // Alias del usuario para la "firma" de la lámina (alias → nombre → correo → TÚ).
+  const usuario = profile?.perfil?.usuario ?? null;
+  const aliasUsuario =
+    usuario?.alias?.trim() ||
+    usuario?.nombre?.trim() ||
+    usuario?.email?.split('@')[0] ||
+    'Tú';
 
   const miniaturaPorNumero = useMemo(() => {
     const map = new Map<number, string>();
@@ -423,6 +435,7 @@ export function RevisarTemporadaScreen({
                 colorClub2={colorClub2}
                 colorClub3={colorClub3}
                 escudoUrl={club?.escudoUrl}
+                aliasUsuario={aliasUsuario}
                 onPress={() => onAbrirPartido?.(item.partido.partidoId)}
               />
             ))}
@@ -501,13 +514,13 @@ const styles = StyleSheet.create({
   },
   franjaAcentoIzq: { top: CARD_W * 0.42, left: -CARD_W * 0.5 },
   franjaAcentoDer: { bottom: CARD_W * 0.42, right: -CARD_W * 0.5 },
-  // Emblema: número de la lámina sobre una estrella dorada (número en negro).
+  // Emblema: número de la lámina centrado sobre una estrella dorada (arriba-der.).
   emblemaEstrella: {
     position: 'absolute',
     top: spacing.sm,
-    left: spacing.sm,
-    width: 40,
-    height: 40,
+    right: spacing.sm,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 3,
@@ -515,18 +528,22 @@ const styles = StyleSheet.create({
   estrella: {
     position: 'absolute',
     color: palette.goldStrong,
-    fontSize: 40,
-    lineHeight: 42,
+    fontSize: 44,
+    lineHeight: 46,
+    textAlign: 'center',
     // Sombra sutil para separar la estrella del fondo crema.
     textShadowColor: '#00000055',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+  // Número centrado en la estrella (la estrella tiene su punta arriba, así que
+  // el centro óptico está ligeramente bajo el centro geométrico).
   estrellaNum: {
+    marginTop: 4,
     color: '#000000',
     fontFamily: fonts.display,
-    fontSize: fontSize.body,
-    fontWeight: fontWeight.bold,
+    fontSize: fontSize.subtitle,
+    fontWeight: fontWeight.extrabold,
   },
   // Emblema del torneo sobre la foto (esquina superior izquierda).
   torneoOverlay: {
@@ -617,8 +634,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   pieCodigo: {
+    maxWidth: CARD_W * 0.4,
     fontFamily: fonts.display,
-    fontSize: fontSize.title,
+    fontSize: fontSize.subtitle,
     fontWeight: fontWeight.bold,
     letterSpacing: 1,
   },
