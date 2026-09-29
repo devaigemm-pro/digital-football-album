@@ -33,6 +33,8 @@ export interface FixtureSaneado {
   readonly partidoExternoId: string;
   /** Competición reportada por la API (cadena vacía si la API no la reporta). */
   readonly competicion: string;
+  /** URL del logo de la liga/competición (si la API lo reporta). */
+  readonly competicionLogoUrl?: string;
   /** Rival reportado por la API (cadena vacía si la API no lo reporta). */
   readonly rival: string;
   /** URL del escudo del rival (si la API lo reporta). */
@@ -148,6 +150,7 @@ function mapearFixtureValido(raw: RawFixture): FixtureSaneado {
   return {
     partidoExternoId,
     competicion: raw.competicion?.trim() ?? '',
+    ...(raw.competicionLogoUrl ? { competicionLogoUrl: raw.competicionLogoUrl } : {}),
     rival: raw.rival?.trim() ?? '',
     ...(raw.escudoRivalUrl ? { escudoRivalUrl: raw.escudoRivalUrl } : {}),
     ...(raw.estadio ? { estadio: raw.estadio } : {}),

@@ -245,6 +245,8 @@ export interface PartidoOficial {
   temporadaId: UUID;
   partidoExternoId: string;
   competicion: string;
+  /** URL del logo de la liga/competición (de la API deportiva), si se conoce. */
+  competicionLogoUrl?: string | null;
   tipoCompeticion: TipoCompeticion;
   rival: string;
   /** URL del escudo/insignia del equipo rival (de la API deportiva), si se conoce. */

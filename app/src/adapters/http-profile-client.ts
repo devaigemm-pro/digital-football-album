@@ -100,6 +100,8 @@ export interface PartidoLamina {
   readonly partidoId: string;
   readonly rival: string;
   readonly competicion: string;
+  /** URL del logo de la liga/competición (para la lámina), o null. */
+  readonly competicionLogoUrl?: string | null;
   readonly tipoCompeticion: TipoCompeticion;
   readonly fechaHora: string;
   readonly estado: EstadoPartido;

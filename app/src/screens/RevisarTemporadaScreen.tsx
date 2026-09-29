@@ -137,8 +137,8 @@ function LaminaCard({
   const realce = etiquetaRealce(item.partido);
   const marcador = marcadorTexto(item.partido);
   const especial = tieneRealceEspecial(item.partido);
-  // Código de la esquina: el ALIAS del usuario (su "firma" en la lámina).
-  const codigo = aliasUsuario.toUpperCase();
+  // Firma de la lámina: el alias del usuario TAL CUAL lo ingresó, con "@".
+  const codigo = `@${aliasUsuario}`;
 
   const inputRange = [(index - 1) * SNAP, index * SNAP, (index + 1) * SNAP];
 
@@ -236,10 +236,20 @@ function LaminaCard({
                 end={{ x: 1, y: 1 }}
                 style={[styles.foil, foilStyle, { opacity: especial ? 0.8 : 0.45 }]}
               />
-              {/* Emblema del torneo, sobre la foto en la esquina superior izquierda. */}
-              <View style={styles.torneoOverlay}>
-                <Text style={styles.torneoIcon}>{emblemaTorneo(item.partido.tipoCompeticion)}</Text>
-              </View>
+              {/* Logo de la liga/competición (de la API), sobre la foto en la
+                  esquina superior izquierda; emoji por tipo como respaldo. */}
+              {item.partido.competicionLogoUrl ? (
+                <Image
+                  source={{ uri: item.partido.competicionLogoUrl }}
+                  style={styles.torneoLogo}
+                  accessibilityRole="image"
+                  accessibilityLabel={`Competición: ${item.partido.competicion}`}
+                />
+              ) : (
+                <View style={styles.torneoOverlay}>
+                  <Text style={styles.torneoIcon}>{emblemaTorneo(item.partido.tipoCompeticion)}</Text>
+                </View>
+              )}
               {/* Escudo del rival (solo el escudo), esquina inferior derecha. */}
               {escudoUrl ? (
                 <Image source={{ uri: escudoUrl }} style={styles.escudoOverlay} accessibilityRole="image" />
@@ -525,24 +535,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 3,
   },
+  // Estrella de fondo: ocupa todo el emblema, centrada.
   estrella: {
-    position: 'absolute',
+    ...StyleSheet.absoluteFillObject,
     color: palette.goldStrong,
     fontSize: 44,
-    lineHeight: 46,
+    lineHeight: 44,
     textAlign: 'center',
-    // Sombra sutil para separar la estrella del fondo crema.
+    textAlignVertical: 'center',
     textShadowColor: '#00000055',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  // Número centrado en la estrella (la estrella tiene su punta arriba, así que
-  // el centro óptico está ligeramente bajo el centro geométrico).
+  // Número: misma caja que la estrella, centrado horizontal y verticalmente.
   estrellaNum: {
-    marginTop: 4,
+    ...StyleSheet.absoluteFillObject,
+    textAlign: 'center',
+    textAlignVertical: 'center',
     color: '#000000',
     fontFamily: fonts.display,
-    fontSize: fontSize.subtitle,
+    fontSize: fontSize.body,
     fontWeight: fontWeight.extrabold,
   },
   // Emblema del torneo sobre la foto (esquina superior izquierda).
@@ -558,6 +570,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   torneoIcon: { fontSize: 15 },
+  // Logo real de la liga sobre la foto (esquina superior izquierda).
+  torneoLogo: {
+    position: 'absolute',
+    top: spacing.xs,
+    left: spacing.xs,
+    width: 30,
+    height: 30,
+    resizeMode: 'contain',
+  },
   // Escudo del rival sobre la foto (esquina inferior derecha, sin marco).
   escudoOverlay: {
     position: 'absolute',
@@ -633,12 +654,15 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     marginTop: 1,
   },
+  // Nickname como "firma": itálica, pequeño y estilizado (sin mayúsculas), tal
+  // cual lo escribió el usuario.
   pieCodigo: {
-    maxWidth: CARD_W * 0.4,
-    fontFamily: fonts.display,
-    fontSize: fontSize.subtitle,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 1,
+    maxWidth: CARD_W * 0.42,
+    fontFamily: fonts.body,
+    fontStyle: 'italic',
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.semibold,
+    letterSpacing: 0.3,
   },
   playBtn: {
     alignSelf: 'center',

@@ -585,6 +585,7 @@ function registerRoutes(router: GatewayRouter, services: AppServices): void {
           partidoId: p.id,
           rival: p.rival,
           competicion: p.competicion,
+          competicionLogoUrl: p.competicionLogoUrl ?? null,
           tipoCompeticion: p.tipoCompeticion,
           fechaHora: p.fechaHora,
           estado: p.estado,

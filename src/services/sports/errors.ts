@@ -42,13 +42,20 @@ export class SportsApiRetriesExhaustedError extends SportsApiError {
     // Incluye el motivo REAL del último fallo en el mensaje (p. ej. "429 cuota
     // excedida", "403 plan", timeout), para no dejar un error opaco. Ayuda a
     // diagnosticar sin depender de logs del servidor.
+    const serializar = (valor: unknown): string => {
+      try {
+        return JSON.stringify(valor) ?? 'sin detalle';
+      } catch {
+        return 'sin detalle';
+      }
+    };
     const detalle =
       lastError instanceof Error
         ? lastError.message
         : typeof lastError === 'string'
           ? lastError
           : lastError != null
-            ? String(lastError)
+            ? serializar(lastError)
             : 'sin detalle';
     super(`La sincronización falló tras ${intentos} intento(s): ${detalle}`, {
       cause: lastError,

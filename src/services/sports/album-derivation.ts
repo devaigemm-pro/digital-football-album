@@ -46,6 +46,8 @@ export interface FixtureEntry {
   readonly partidoExternoId: string;
   /** Competición reportada por la API. */
   readonly competicion: string;
+  /** URL del logo de la liga/competición, si se conoce. */
+  readonly competicionLogoUrl?: string;
   /** Clasificación de la competición (excluye amistosos por construcción). */
   readonly tipoCompeticion: TipoCompeticion;
   /** Rival reportado por la API. */
@@ -255,6 +257,7 @@ export async function deriveAlbum(
         temporadaId,
         partidoExternoId: entry.partidoExternoId,
         competicion: entry.competicion,
+        competicionLogoUrl: entry.competicionLogoUrl ?? null,
         tipoCompeticion: entry.tipoCompeticion,
         rival: entry.rival,
         escudoRivalUrl: entry.escudoRivalUrl ?? null,
@@ -290,6 +293,7 @@ export async function deriveAlbum(
     // conservar el Recuadro (su `numero` y su `fotoPrincipalId`) (Req 4.4).
     await partidos.update(existente.id, {
       competicion: entry.competicion,
+      competicionLogoUrl: entry.competicionLogoUrl ?? null,
       tipoCompeticion: entry.tipoCompeticion,
       rival: entry.rival,
       escudoRivalUrl: entry.escudoRivalUrl ?? null,

@@ -16,6 +16,8 @@ export interface RawFixture {
   readonly partidoExternoId?: string;
   /** Competición reportada por la API. */
   readonly competicion?: string;
+  /** URL del logo de la liga/competición (provisto por la API en el fixture). */
+  readonly competicionLogoUrl?: string;
   /** Rival reportado por la API. */
   readonly rival?: string;
   /** URL del escudo/logo del equipo RIVAL (para el marcador/insignias). */

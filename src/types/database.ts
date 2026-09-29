@@ -231,6 +231,7 @@ export type Database = {
         Row: {
           alineacion: Json;
           competicion: string;
+          competicion_logo_url: string | null;
           created_at: string;
           es_clasico: boolean;
           es_internacional: boolean;
@@ -249,6 +250,7 @@ export type Database = {
         Insert: {
           alineacion?: Json;
           competicion: string;
+          competicion_logo_url?: string | null;
           created_at?: string;
           es_clasico?: boolean;
           es_internacional?: boolean;
@@ -267,6 +269,7 @@ export type Database = {
         Update: {
           alineacion?: Json;
           competicion?: string;
+          competicion_logo_url?: string | null;
           created_at?: string;
           es_clasico?: boolean;
           es_internacional?: boolean;
