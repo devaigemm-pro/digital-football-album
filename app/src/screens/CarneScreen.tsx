@@ -46,7 +46,7 @@ import {
   type ProgresoTemporada,
 } from '../album';
 import type { PartidoLamina, ProfileClient } from '../adapters';
-import { Badge, Crest, LaminaIcon, Screen, StickerSlot, useAppTheme } from '../ui/kit';
+import { Badge, Crest, LaminaIcon, ProgressRing, Screen, StickerSlot, useAppTheme } from '../ui/kit';
 import {
   fonts,
   fontSize,
@@ -364,30 +364,39 @@ export function CarneScreen({
           </View>
         ) : null}
 
-        {/* Estadísticas de la temporada (datos reales; sin racha, que el backend
-            no permite derivar sin saber local/visita). */}
+        {/* Bento superior: anillo de progreso del álbum + métrica real. Igual
+            que el mockup #4 (la celda de "racha" no es derivable sin local/visita,
+            por eso se muestra una métrica real: partidos jugados). */}
         {temporada ? (
-          <View style={styles.statsRow}>
-            <View style={styles.statCell}>
-              <Text style={styles.statValor}>{stats.jugados}</Text>
-              <Text style={styles.statLabel}>JUGADOS</Text>
+          <View style={styles.bento}>
+            <View style={styles.bentoCell}>
+              <ProgressRing
+                percent={progreso.porcentaje}
+                size={64}
+                center={`${progreso.porcentaje}%`}
+              />
+              <View style={styles.bentoInfo}>
+                <Text style={styles.bentoLabel}>ÁLBUM</Text>
+                <Text style={styles.bentoValor}>
+                  {progreso.montadas}
+                  <Text style={styles.bentoValorSmall}> / {progreso.total}</Text>
+                </Text>
+              </View>
             </View>
-            <View style={styles.statCell}>
-              <Text style={styles.statValor}>{stats.programados}</Text>
-              <Text style={styles.statLabel}>POR JUGAR</Text>
-            </View>
-            <View style={styles.statCell}>
-              <Text style={styles.statValor}>{stats.montadas}</Text>
-              <Text style={styles.statLabel}>LÁMINAS</Text>
-            </View>
-            <View style={styles.statCell}>
-              <Text style={styles.statValor}>{stats.porcentajeAlbum}%</Text>
-              <Text style={styles.statLabel}>ÁLBUM</Text>
+            <View style={styles.bentoCell}>
+              <View style={styles.bentoInfo}>
+                <Text style={styles.bentoLabel}>JUGADOS</Text>
+                <Text style={styles.bentoValor}>
+                  {stats.jugados}
+                  <Text style={styles.bentoValorSmall}> de {stats.totalPartidos}</Text>
+                </Text>
+                <Text style={styles.bentoSub}>{stats.programados} por jugar</Text>
+              </View>
             </View>
           </View>
         ) : null}
 
-        {/* Próximo partido (el PROGRAMADO más cercano). */}
+        {/* Próximo partido (el PROGRAMADO más cercano) con escudos. */}
         {proximo ? (
           <Pressable
             accessibilityRole="button"
@@ -396,7 +405,9 @@ export function CarneScreen({
             style={styles.seccion}
           >
             <View style={styles.seccionHead}>
-              <Text style={styles.seccionTitulo}>Próximo partido</Text>
+              <Text style={styles.seccionTitulo} numberOfLines={1}>
+                Próximo partido · {fechaPartido(proximo.fechaHora)}
+              </Text>
               {etiquetaRealce(proximo) ? (
                 <Badge
                   label={etiquetaRealce(proximo) as string}
@@ -404,39 +415,63 @@ export function CarneScreen({
                 />
               ) : null}
             </View>
-            <Text style={styles.proximoRival} numberOfLines={1}>
-              vs {proximo.rival}
-            </Text>
-            <Text style={styles.proximoMeta} numberOfLines={1}>
-              {fechaPartido(proximo.fechaHora)} · {proximo.competicion}
-            </Text>
+            <View style={styles.proximoRow}>
+              <Crest
+                url={club?.escudoUrl}
+                monogram={(club?.nombre ?? 'CLB').slice(0, 3).toUpperCase()}
+                size={36}
+              />
+              <Text style={styles.proximoEquipo} numberOfLines={2}>
+                {club?.nombre ?? 'Tu club'}
+              </Text>
+              <Text style={styles.proximoVs}>vs</Text>
+              <Text style={[styles.proximoEquipo, styles.proximoEquipoDer]} numberOfLines={2}>
+                {proximo.rival}
+              </Text>
+              <Crest monogram={proximo.rival.slice(0, 3).toUpperCase()} size={36} />
+            </View>
           </Pressable>
         ) : null}
 
-        {/* Actividad reciente (últimos partidos finalizados). */}
+        {/* Actividad reciente (últimos partidos finalizados) con miniatura. */}
         {recientes.length > 0 ? (
-          <View style={styles.seccion}>
-            <Text style={styles.seccionTitulo}>Actividad reciente</Text>
-            {recientes.map((p: PartidoLamina) => (
-              <Pressable
-                key={p.partidoId}
-                accessibilityRole="button"
-                accessibilityLabel={`Ver el partido contra ${p.rival}`}
-                onPress={() => onVerPartidos?.(temporadaId ?? '')}
-                style={styles.actividadFila}
-              >
-                <View style={styles.actividadInfo}>
-                  <Text style={styles.actividadRival} numberOfLines={1}>
-                    {p.numeroRecuadro != null ? `F${p.numeroRecuadro} · ` : ''}vs {p.rival}
-                  </Text>
-                  <Text style={styles.actividadMeta} numberOfLines={1}>
-                    {marcadorTexto(p) ?? '– / –'}
-                  </Text>
-                </View>
-                <LaminaIcon glyph={p.tieneFotoPrincipal ? 'star' : 'question'} size={26} />
-              </Pressable>
-            ))}
-          </View>
+          <>
+            <Text style={styles.actividadTitulo}>Actividad reciente</Text>
+            {recientes.map((p: PartidoLamina) => {
+              const abrev = (p.rival ?? '').slice(0, 2).toUpperCase();
+              return (
+                <Pressable
+                  key={p.partidoId}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Ver el partido contra ${p.rival}`}
+                  onPress={() => onVerPartidos?.(temporadaId ?? '')}
+                  style={styles.actividadFila}
+                >
+                  {/* Miniatura: si la lámina está montada, cuadro con el color del
+                      club; si falta, silueta punteada (como el mockup). */}
+                  {p.tieneFotoPrincipal ? (
+                    <View style={[styles.actMini, { backgroundColor: theme.palette.accent }]} />
+                  ) : (
+                    <View style={styles.actMiniVacia} />
+                  )}
+                  <View style={styles.actividadInfo}>
+                    <Text style={styles.actividadRival} numberOfLines={1}>
+                      {p.numeroRecuadro != null ? `F${p.numeroRecuadro} · ` : ''}
+                      {marcadorTexto(p) ? `${abrev} ${marcadorTexto(p)}` : `vs ${p.rival}`}
+                    </Text>
+                    <Text style={styles.actividadMeta} numberOfLines={1}>
+                      {p.tieneFotoPrincipal ? 'Lámina montada' : 'Partido finalizado sin foto'}
+                    </Text>
+                  </View>
+                  {p.tieneFotoPrincipal ? (
+                    <Badge label="Lista" tone="accent" />
+                  ) : (
+                    <Badge label="Falta" tone="muted" />
+                  )}
+                </Pressable>
+              );
+            })}
+          </>
         ) : null}
 
         {/* Acción principal: cada lámina es un partido; para agregar la foto a
@@ -639,37 +674,52 @@ const styles = StyleSheet.create({
   badges: { flexDirection: 'row', marginTop: spacing.md },
   badgeSep: { marginLeft: spacing.sm },
 
-  // --- Estadísticas de la temporada ---
-  statsRow: {
+  // --- Bento superior (anillo de progreso + métrica) ---
+  bento: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.md,
     marginTop: spacing.lg,
   },
-  statCell: {
+  bentoCell: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     backgroundColor: palette.glassFill,
     borderWidth: 1,
     borderColor: palette.borderOnDark,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    minHeight: 96,
   },
-  statValor: {
-    color: palette.textOnDark,
-    fontFamily: fonts.display,
-    fontSize: fontSize.title,
-    fontWeight: fontWeight.bold,
-  },
-  statLabel: {
+  bentoInfo: { flex: 1, minWidth: 0 },
+  bentoLabel: {
     color: palette.textMutedOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.caption,
     fontWeight: fontWeight.semibold,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+  },
+  bentoValor: {
+    color: palette.textOnDark,
+    fontFamily: fonts.display,
+    fontSize: fontSize.title,
+    fontWeight: fontWeight.bold,
+    marginTop: 2,
+  },
+  bentoValorSmall: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+  },
+  bentoSub: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
     marginTop: 2,
   },
 
-  // --- Secciones (Próximo partido / Actividad reciente) ---
+  // --- Próximo partido ---
   seccion: {
     backgroundColor: palette.glassFill,
     borderWidth: 1,
@@ -682,43 +732,79 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.xs,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   seccionTitulo: {
-    color: palette.textOnDark,
-    fontFamily: fonts.display,
-    fontSize: fontSize.subtitle,
-    fontWeight: fontWeight.bold,
+    flex: 1,
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.semibold,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.xs,
+    letterSpacing: 1,
   },
-  proximoRival: {
+  proximoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  proximoEquipo: {
+    flex: 1,
     color: palette.textOnDark,
     fontFamily: fonts.body,
-    fontSize: fontSize.body,
+    fontSize: fontSize.small,
     fontWeight: fontWeight.bold,
   },
-  proximoMeta: {
+  proximoEquipoDer: { textAlign: 'right' },
+  proximoVs: {
     color: palette.textMutedOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.small,
-    marginTop: 2,
+  },
+
+  // --- Actividad reciente ---
+  actividadTitulo: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: spacing.lg,
+    marginBottom: spacing.xs,
   },
   actividadFila: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingVertical: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: palette.borderOnDark,
+    backgroundColor: palette.glassFill,
+    borderWidth: 1,
+    borderColor: palette.borderOnDark,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
   },
-  actividadInfo: { flex: 1 },
+  actMini: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.sm,
+  },
+  actMiniVacia: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.sm,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: palette.textMutedOnDark,
+    backgroundColor: '#FFFFFF08',
+  },
+  actividadInfo: { flex: 1, minWidth: 0 },
   actividadRival: {
     color: palette.textOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.small,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
   },
   actividadMeta: {
     color: palette.textMutedOnDark,
