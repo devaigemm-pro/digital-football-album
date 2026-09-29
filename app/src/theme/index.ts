@@ -43,6 +43,17 @@ export type {
   SpacingToken,
 } from './design-tokens';
 
+// Preferencia de color de fondo del hincha (personalización local, pura).
+export {
+  BACKGROUND_STORAGE_KEY,
+  COLOR_FONDO_POR_DEFECTO,
+  OPCIONES_FONDO,
+  esColorFondoValido,
+  opcionDeColor,
+  resolverColorFondo,
+} from './background-preference';
+export type { BackgroundPreferenceStore, OpcionFondo } from './background-preference';
+
 // Núcleo puro del provider de Tema_Club (Task 27.1).
 export {
   CLUB_CHANGE_CONFLICT,

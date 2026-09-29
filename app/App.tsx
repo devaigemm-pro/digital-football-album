@@ -81,6 +81,7 @@ import {
 } from './src/adapters/native';
 
 import { ClubThemeProvider } from './src/theme/ClubThemeProvider';
+import { BackgroundProvider } from './src/theme/BackgroundProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { createScreenBundle } from './src/navigation/screen-bindings';
 
@@ -209,7 +210,9 @@ function App(): React.JSX.Element {
     <SafeAreaProvider>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <ClubThemeProvider client={clubClient}>
-        <RootNavigator isAuthenticated={isAuthenticated} screens={screens} />
+        <BackgroundProvider>
+          <RootNavigator isAuthenticated={isAuthenticated} screens={screens} />
+        </BackgroundProvider>
       </ClubThemeProvider>
     </SafeAreaProvider>
   );

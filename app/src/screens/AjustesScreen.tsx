@@ -29,6 +29,8 @@ import type { PermissionGate } from '../permissions';
 import { Permiso } from '../permissions';
 import type { Entitlements } from '../subscription';
 import { Hero, Screen } from '../ui/kit';
+import { OPCIONES_FONDO } from '../theme';
+import { useBackgroundControl } from '../theme/BackgroundProvider';
 import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 
 export interface AjustesScreenProps {
@@ -114,6 +116,7 @@ export function AjustesScreen({
   getEntitlements,
 }: AjustesScreenProps): React.JSX.Element {
   const [busy, setBusy] = useState(false);
+  const { color: fondoColor, setColor: setFondoColor } = useBackgroundControl();
 
   // Estado de los toggles de permisos (reflejan el estado real del gate).
   const [camaraOn, setCamaraOn] = useState<boolean>(
@@ -348,6 +351,30 @@ export function AjustesScreen({
           />
         </View>
 
+        {/* Color de fondo: personalización del canvas elegida por el hincha. */}
+        <Text style={styles.sectionTitle}>Color de fondo</Text>
+        <View style={styles.swatchGrid}>
+          {OPCIONES_FONDO.map((opcion) => {
+            const seleccionado = opcion.color.toUpperCase() === fondoColor.toUpperCase();
+            return (
+              <Pressable
+                key={opcion.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: seleccionado }}
+                accessibilityLabel={`Fondo ${opcion.label}`}
+                onPress={() => setFondoColor(opcion.color)}
+                style={[
+                  styles.swatch,
+                  { backgroundColor: opcion.color },
+                  seleccionado ? styles.swatchSel : null,
+                ]}
+              >
+                {seleccionado ? <Text style={styles.swatchCheck}>✓</Text> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+
         <View style={styles.note}>
           <Text style={styles.noteText}>
             Eliminar la cuenta borra fotos, momentos y datos personales; solo se conserva el
@@ -367,6 +394,40 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.borderOnDark,
     overflow: 'hidden',
+  },
+  sectionTitle: {
+    color: palette.textOnDark,
+    fontFamily: fonts.display,
+    fontSize: fontSize.subtitle,
+    fontWeight: fontWeight.bold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  swatchGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  swatch: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: palette.borderOnDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  swatchSel: {
+    borderColor: palette.accent,
+    borderWidth: 3,
+  },
+  swatchCheck: {
+    color: palette.textOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.bold,
   },
   rowPressable: {
     borderBottomWidth: 1,

@@ -30,6 +30,7 @@ import {
 
 import {
   ProfilePresenter,
+  añoDeTemporada,
   type PartidosState,
   type ProfileState,
   type SyncState,
@@ -200,8 +201,8 @@ export function CarneScreen({
     })();
   }, [onAgregarFotoPerfil]);
 
-  // Temporada legible (nombre "externo" tal cual lo persiste el backend).
-  const etiquetaTemporada = temporada ? temporada.temporadaExterna : null;
+  // Temporada: solo el AÑO (el `temporadaExterna` crudo puede ser "team:33:2023").
+  const etiquetaTemporada = temporada ? añoDeTemporada(temporada.temporadaExterna) : null;
 
   return (
     <Screen tone="dark" flush>
@@ -292,10 +293,16 @@ export function CarneScreen({
               />
             ) : temporada ? (
               <>
-                <Text style={styles.datoNumero}>
-                  {progreso.montadas}
-                  <Text style={styles.datoDe}> / {progreso.total}</Text>
-                </Text>
+                <View style={styles.conteoRow}>
+                  {/* Ícono de lámina: borde punteado + estrella amarilla. */}
+                  <View style={styles.laminaIcon}>
+                    <Text style={styles.laminaStar}>★</Text>
+                  </View>
+                  <Text style={styles.datoNumero}>
+                    {progreso.montadas}
+                    <Text style={styles.datoDe}> / {progreso.total}</Text>
+                  </Text>
+                </View>
                 <Text style={styles.datoLabel}>
                   {etiquetaProgreso(progreso, etiquetaTemporada)}
                 </Text>
@@ -439,7 +446,8 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     padding: spacing.lg,
   },
-  stickerWrap: { width: 108 },
+  // Lámina del avatar 1.5x más grande que antes (108 → 162).
+  stickerWrap: { width: 162 },
   // Botón "+" superpuesto en la esquina de la lámina del avatar.
   addFotoBadge: {
     position: 'absolute',
@@ -497,6 +505,29 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
   },
 
+  conteoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  // Ícono de lámina: recuadro con borde punteado (silueta de sticker vacío) y
+  // una estrella amarilla dentro, como emblema del conteo del álbum.
+  laminaIcon: {
+    width: 34,
+    height: 40,
+    borderRadius: radius.sm,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: palette.textMutedOnDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF08',
+  },
+  laminaStar: {
+    color: palette.gold,
+    fontSize: 18,
+    lineHeight: 20,
+  },
   datoBox: {
     borderTopWidth: 1,
     borderTopColor: palette.borderOnDark,

@@ -49,6 +49,7 @@ import {
 // El provider de Tema_Club es opcional: si la pantalla se monta fuera de él
 // (tests, Storybook), caemos al acento de marca sin romper.
 import { useClubTheme } from '../theme/ClubThemeProvider';
+import { useBackgroundColor } from '../theme/BackgroundProvider';
 
 /**
  * Devuelve el tema efectivo (tokens + acento del Club). Si no hay
@@ -86,11 +87,15 @@ export function Screen({
   style,
   children,
 }: ScreenProps): React.ReactElement {
+  // Fondo elegido por el hincha (personalización). Sustituye el canvas base en
+  // ambos tonos; si se monta fuera del provider, cae al canvas por defecto.
+  const backgroundColor = useBackgroundColor();
   return (
     <View
       style={[
         styles.screen,
         tone === 'dark' ? styles.screenDark : styles.screenLight,
+        { backgroundColor },
         flush ? null : styles.screenPadded,
         style,
       ]}
