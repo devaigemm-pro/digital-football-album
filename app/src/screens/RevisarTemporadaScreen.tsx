@@ -210,10 +210,12 @@ function LaminaCard({
           <View style={[styles.franjaAcento, styles.franjaAcentoDer, { backgroundColor: colorClub3 }]} />
 
           {/* Emblema superior: número de la lámina sobre una estrella dorada
-              (estrella de fondo, número en negro al frente). */}
+              (estrella de fondo, número en negro centrado al frente). */}
           <View style={styles.emblemaEstrella}>
             <Text style={styles.estrella}>★</Text>
-            <Text style={styles.estrellaNum}>{item.partido.numeroRecuadro ?? '—'}</Text>
+            <View style={styles.estrellaNumWrap} pointerEvents="none">
+              <Text style={styles.estrellaNum}>{item.partido.numeroRecuadro ?? '—'}</Text>
+            </View>
           </View>
 
           {/* Ventana de la foto con filete claro (marco interior blancuzco). */}
@@ -268,6 +270,7 @@ function LaminaCard({
           <View style={styles.pie}>
             <View style={styles.pieInfo}>
               <Text style={[styles.pieNombre, { color: colorClub }]} numberOfLines={1}>
+                <Text style={styles.pieVs}>vs </Text>
                 {item.partido.rival.toUpperCase()}
               </Text>
               <Text style={[styles.pieDatos, { color: colorClub }]} numberOfLines={1}>
@@ -535,27 +538,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 3,
   },
-  // Estrella de fondo: ocupa todo el emblema, centrada.
+  // Estrella dorada de fondo (centrada por el flex del emblema).
   estrella: {
-    ...StyleSheet.absoluteFillObject,
     color: palette.goldStrong,
     fontSize: 44,
     lineHeight: 44,
-    textAlign: 'center',
-    textAlignVertical: 'center',
     textShadowColor: '#00000055',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  // Número: misma caja que la estrella, centrado horizontal y verticalmente.
-  estrellaNum: {
+  // Envoltura del número: capa absoluta que cubre el emblema y centra por flex
+  // (no depende de textAlignVertical, que es inconsistente entre plataformas).
+  // Pequeño desplazamiento vertical: el centro óptico de la estrella queda algo
+  // por debajo del centro geométrico (por las puntas superiores).
+  estrellaNumWrap: {
     ...StyleSheet.absoluteFillObject,
-    textAlign: 'center',
-    textAlignVertical: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 4,
+  },
+  estrellaNum: {
     color: '#000000',
     fontFamily: fonts.display,
     fontSize: fontSize.body,
+    lineHeight: fontSize.body + 2,
     fontWeight: fontWeight.extrabold,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   // Emblema del torneo sobre la foto (esquina superior izquierda).
   torneoOverlay: {
@@ -640,6 +649,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   pieInfo: { flex: 1, minWidth: 0 },
+  // "vs" en minúscula antes del nombre del rival (más tenue para diferenciarlo).
+  pieVs: {
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.regular,
+    textTransform: 'lowercase',
+  },
   pieNombre: {
     fontFamily: fonts.display,
     fontSize: fontSize.subtitle,
