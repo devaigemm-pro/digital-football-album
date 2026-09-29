@@ -22,7 +22,7 @@ import {
 
 import { ProfilePresenter, type PartidosState } from '../profile';
 import type { PartidoLamina, ProfileClient } from '../adapters';
-import { Badge, Hero, Screen } from '../ui/kit';
+import { Hero, LaminaIcon, Screen } from '../ui/kit';
 import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
 
 export interface PartidosScreenProps {
@@ -152,18 +152,20 @@ export function PartidosScreen({
     [state.partidos],
   );
 
-  const renderItem = ({ item }: ListRenderItemInfo<PartidoLamina>): React.ReactElement => (
+  const renderItem = ({
+    item,
+    index,
+  }: ListRenderItemInfo<PartidoLamina>): React.ReactElement => (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Tomar foto del partido contra ${item.rival}`}
       onPress={() => onTomarFoto?.(item.partidoId)}
       style={styles.fila}
     >
-      {/* Número de recuadro/sticker */}
-      <View style={styles.numeroBox}>
-        <Text style={styles.numero}>
-          {item.numeroRecuadro != null ? item.numeroRecuadro : '—'}
-        </Text>
+      {/* Número de FECHA (posición dentro de la competición) sobre un balón. */}
+      <View style={styles.fechaBox} accessibilityLabel={`Fecha ${index + 1}`}>
+        <Text style={styles.fechaNumero}>{index + 1}</Text>
+        <Text style={styles.fechaBalon}>⚽</Text>
       </View>
 
       {/* Info del partido */}
@@ -176,12 +178,8 @@ export function PartidosScreen({
         </Text>
       </View>
 
-      {/* Estado de la lámina */}
-      {item.tieneFotoPrincipal ? (
-        <Badge label="Montada" tone="accent" />
-      ) : (
-        <Badge label="Falta" tone="muted" />
-      )}
+      {/* Estado de la lámina: montada (estrella dorada) o falta ("?" rojo). */}
+      <LaminaIcon glyph={item.tieneFotoPrincipal ? 'star' : 'question'} size={30} />
     </Pressable>
   );
 
@@ -281,19 +279,24 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  numeroBox: {
+  // Número de FECHA sobre un balón: el número arriba, el balón debajo.
+  fechaBox: {
     width: 40,
-    height: 40,
-    borderRadius: radius.sm,
-    backgroundColor: palette.ink,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  numero: {
+  fechaNumero: {
     color: palette.textOnDark,
     fontFamily: fonts.display,
     fontSize: fontSize.subtitle,
     fontWeight: fontWeight.bold,
+    lineHeight: 20,
+  },
+  fechaBalon: {
+    fontSize: 16,
+    lineHeight: 18,
+    marginTop: -1,
   },
   info: { flex: 1 },
   rival: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.bold },

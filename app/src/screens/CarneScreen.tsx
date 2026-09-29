@@ -41,7 +41,7 @@ import {
   type ProgresoTemporada,
 } from '../album';
 import type { ProfileClient } from '../adapters';
-import { Badge, Crest, Screen, StickerSlot, useAppTheme } from '../ui/kit';
+import { Badge, Crest, LaminaIcon, Screen, StickerSlot, useAppTheme } from '../ui/kit';
 import {
   fonts,
   fontSize,
@@ -294,10 +294,8 @@ export function CarneScreen({
             ) : temporada ? (
               <>
                 <View style={styles.conteoRow}>
-                  {/* Ícono de lámina: borde punteado + estrella amarilla. */}
-                  <View style={styles.laminaIcon}>
-                    <Text style={styles.laminaStar}>★</Text>
-                  </View>
+                  {/* Ícono de lámina con la estrella en el vértice inferior derecho. */}
+                  <LaminaIcon glyph="star" size={34} corner />
                   <Text style={styles.datoNumero}>
                     {progreso.montadas}
                     <Text style={styles.datoDe}> / {progreso.total}</Text>
@@ -509,24 +507,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-  },
-  // Ícono de lámina: recuadro con borde punteado (silueta de sticker vacío) y
-  // una estrella amarilla dentro, como emblema del conteo del álbum.
-  laminaIcon: {
-    width: 34,
-    height: 40,
-    borderRadius: radius.sm,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: palette.textMutedOnDark,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF08',
-  },
-  laminaStar: {
-    color: palette.gold,
-    fontSize: 18,
-    lineHeight: 20,
   },
   datoBox: {
     borderTopWidth: 1,

@@ -341,6 +341,52 @@ export function Badge({
 // Sticker / Recuadro del álbum
 // ---------------------------------------------------------------------------
 
+export interface LaminaIconProps {
+  /** Glifo dentro de la lámina: 'star' (estrella dorada) o 'question' ("?"). */
+  readonly glyph: 'star' | 'question';
+  /** Lado del recuadro (px). El alto se deriva con proporción de cromo 3/4→~1.2. */
+  readonly size?: number;
+  /** Posición del glifo: centrado (por defecto) o en la esquina inferior derecha. */
+  readonly corner?: boolean;
+  readonly style?: StyleProp<ViewStyle>;
+}
+
+/**
+ * Ícono de lámina: recuadro con borde PUNTEADO (silueta de sticker vacío) y un
+ * glifo dentro. Emblema del álbum reutilizado en el carné (conteo) y en la lista
+ * de partidos (estado de cada lámina): estrella dorada = montada, "?" = falta.
+ * Con `corner`, el glifo se ancla en el vértice inferior derecho de la lámina.
+ */
+export function LaminaIcon({
+  glyph,
+  size = 34,
+  corner = false,
+  style,
+}: LaminaIconProps): React.ReactElement {
+  const glifo = glyph === 'star' ? '★' : '?';
+  const color = glyph === 'star' ? palette.gold : palette.danger;
+  return (
+    <View
+      accessibilityRole="image"
+      accessibilityLabel={glyph === 'star' ? 'Lámina montada' : 'Lámina por montar'}
+      style={[
+        styles.laminaIcon,
+        { width: size, height: size * 1.18 },
+        style,
+      ]}
+    >
+      <Text
+        style={[
+          { color, fontSize: size * 0.5, lineHeight: size * 0.56 },
+          corner ? styles.laminaGlyphCorner : null,
+        ]}
+      >
+        {glifo}
+      </Text>
+    </View>
+  );
+}
+
 export interface StickerSlotProps {
   /** Número del Recuadro (== número del Sticker; tolerante a huecos). */
   readonly numero: number | string;
@@ -759,6 +805,22 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
+  laminaIcon: {
+    borderRadius: radius.sm,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: palette.textMutedOnDark,
+    backgroundColor: '#FFFFFF08',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  // Glifo anclado al vértice inferior derecho de la lámina.
+  laminaGlyphCorner: {
+    position: 'absolute',
+    right: 2,
+    bottom: -1,
+  },
   slot: {
     flex: 1,
     aspectRatio: 3 / 4,
@@ -971,6 +1033,7 @@ export default {
   Crest,
   Chip,
   Badge,
+  LaminaIcon,
   StickerSlot,
   TabBar,
   GlassCard,
