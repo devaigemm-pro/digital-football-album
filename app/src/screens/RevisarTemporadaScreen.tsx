@@ -53,7 +53,7 @@ import {
 import { ProfilePresenter, type PartidosState, type ProfileState } from '../profile';
 import type { PartidoLamina, ProfileClient } from '../adapters';
 import { Badge, Crest, Hero, Screen } from '../ui/kit';
-import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
+import { fonts, fontSize, fontWeight, palette, radius, shadow, spacing } from '../theme/design-tokens';
 
 export interface RevisarTemporadaScreenProps {
   readonly temporadaId: string;
@@ -100,6 +100,7 @@ function LaminaCard({
   scrollX,
   colorClub,
   colorClub2,
+  colorClub3,
   escudoUrl,
   clubNombre,
   onPress,
@@ -109,6 +110,7 @@ function LaminaCard({
   readonly scrollX: Animated.SharedValue<number>;
   readonly colorClub: string;
   readonly colorClub2: string;
+  readonly colorClub3: string;
   readonly escudoUrl?: string | null;
   readonly clubNombre: string;
   readonly onPress: () => void;
@@ -158,12 +160,6 @@ function LaminaCard({
     return { transform: [{ translateX }, { rotate: '20deg' }] };
   });
 
-  // Borde: un barrido de luz que ROTA alrededor del marco (gira 360°).
-  const bordeStyle = useAnimatedStyle(() => {
-    const rotate = interpolate(shine.value, [0, 1], [0, 360]);
-    return { transform: [{ rotate: `${rotate}deg` }] };
-  });
-
   return (
     <Animated.View style={[styles.cardWrap, cardStyle]}>
       <Pressable
@@ -172,68 +168,75 @@ function LaminaCard({
         onPress={onPress}
         style={styles.cardPress}
       >
-        {/* Marco base con el color del club. */}
-        <View style={[styles.card, { borderColor: colorClub }]}>
-          {/* Barrido de luz que recorre el borde: un gradiente que gira, recortado
-              por el marco (solo se ve la franja luminosa cruzando el perímetro). */}
-          <View pointerEvents="none" style={styles.bordeMask}>
-            <Animated.View style={[styles.bordeSweepWrap, bordeStyle]}>
-              <LinearGradient
-                colors={['transparent', '#FFFFFFEE', palette.goldStrong, 'transparent']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.bordeSweep}
-              />
-            </Animated.View>
+        {/* Lámina estilo Panini: marco crema con esquinas diagonales del color del
+            club, ventana de foto al centro y pie con escudo + código del rival. */}
+        <View style={styles.card}>
+          {/* Esquina diagonal superior izquierda (bloque de color del club). */}
+          <LinearGradient
+            colors={[colorClub, colorClub2]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.esquinaTL}
+          />
+          {/* Franjas de acento (banda tricolor) en el lado izquierdo. */}
+          <View style={[styles.franjaAcento, styles.franjaAcentoIzq, { backgroundColor: colorClub3 }]} />
+          {/* Esquina diagonal inferior derecha. */}
+          <LinearGradient
+            colors={[colorClub2, colorClub]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.esquinaBR}
+          />
+          <View style={[styles.franjaAcento, styles.franjaAcentoDer, { backgroundColor: colorClub3 }]} />
+
+          {/* Emblemas superiores: número de lámina (izq.) y balón (der.). */}
+          <View style={[styles.emblemaTL, { backgroundColor: colorClub }]}>
+            <Text style={styles.emblemaNum}>{item.partido.numeroRecuadro ?? '—'}</Text>
+          </View>
+          <View style={[styles.emblemaTR, { backgroundColor: colorClub }]}>
+            <Text style={styles.emblemaBalon}>⚽</Text>
           </View>
 
-          {/* Foto sobre fondo gráfico con el color del club. */}
-          <View style={[styles.foto, { backgroundColor: colorClub2 }]}>
-            <Text style={[styles.fondoNumero, { color: colorClub }]} numberOfLines={1}>
-              {item.partido.numeroRecuadro ?? ''}
-            </Text>
-            {item.miniaturaUri ? (
-              <Animated.Image
-                source={{ uri: item.miniaturaUri }}
-                style={[styles.fotoImg, fotoStyle]}
-                accessibilityRole="image"
+          {/* Ventana de la foto con filete claro (marco interior blancuzco). */}
+          <View style={styles.ventana}>
+            <View style={styles.foto}>
+              {item.miniaturaUri ? (
+                <Animated.Image
+                  source={{ uri: item.miniaturaUri }}
+                  style={[styles.fotoImg, fotoStyle]}
+                  accessibilityRole="image"
+                />
+              ) : (
+                <View style={[styles.fotoVacia, { backgroundColor: colorClub2 }]} />
+              )}
+              {/* Foil holográfico sobre la foto (más intenso en Clásico/Internac.). */}
+              <AnimatedGradient
+                pointerEvents="none"
+                colors={HOLO_COLORS}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.foil, foilStyle, { opacity: especial ? 0.8 : 0.45 }]}
               />
-            ) : (
-              <View style={styles.fotoVacia} />
-            )}
-
-            {/* Foil holográfico: gradiente arcoíris que se desplaza en diagonal. */}
-            <AnimatedGradient
-              pointerEvents="none"
-              colors={HOLO_COLORS}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.foil, foilStyle, { opacity: especial ? 0.85 : 0.55 }]}
-            />
-
-            <View style={styles.escudoEsquina}>
-              <Crest
-                url={escudoUrl}
-                monogram={clubNombre.slice(0, 3).toUpperCase()}
-                size={30}
-              />
+              {realce ? (
+                <Badge label={realce} tone={item.partido.esClasico ? 'gold' : 'accent'} style={styles.realceBadge} />
+              ) : null}
             </View>
-            <Text style={styles.codigoLateral}>{codigo}</Text>
-            {realce ? (
-              <Badge label={realce} tone={item.partido.esClasico ? 'gold' : 'accent'} style={styles.realceBadge} />
-            ) : null}
+          </View>
 
-            {/* Recuadro de datos TRANSLÚCIDO, sobre la foto (no la tapa del todo). */}
-            <View style={styles.datosOverlay}>
-              <Text style={styles.rival} numberOfLines={1}>
+          {/* Pie: nombre + datos a la izquierda; escudo + código a la derecha. */}
+          <View style={styles.pie}>
+            <View style={styles.pieInfo}>
+              <Text style={[styles.pieNombre, { color: colorClub }]} numberOfLines={1}>
                 {item.partido.rival.toUpperCase()}
               </Text>
-              <View style={styles.datosRow}>
-                <Text style={styles.datos} numberOfLines={1}>
-                  {item.partido.competicion}
-                </Text>
-                <Text style={styles.marcador}>{marcador ?? '—'}</Text>
-              </View>
+              <Text style={styles.pieDatos} numberOfLines={1}>
+                {item.partido.competicion}
+                {marcador ? ` · ${marcador}` : ''}
+              </Text>
+            </View>
+            <View style={styles.pieEscudo}>
+              <Crest url={escudoUrl} monogram={clubNombre.slice(0, 3).toUpperCase()} size={30} />
+              <Text style={[styles.pieCodigo, { color: colorClub }]}>{codigo}</Text>
             </View>
           </View>
         </View>
@@ -296,6 +299,7 @@ export function RevisarTemporadaScreen({
   const club = profile?.perfil?.club ?? null;
   const colorClub = club?.paletaColores?.primario ?? palette.goldStrong;
   const colorClub2 = club?.paletaColores?.secundario ?? palette.ink;
+  const colorClub3 = club?.paletaColores?.acento ?? colorClub;
 
   const miniaturaPorNumero = useMemo(() => {
     const map = new Map<number, string>();
@@ -392,6 +396,7 @@ export function RevisarTemporadaScreen({
                 scrollX={scrollX}
                 colorClub={colorClub}
                 colorClub2={colorClub2}
+                colorClub3={colorClub3}
                 escudoUrl={club?.escudoUrl}
                 clubNombre={club?.nombre ?? 'CLB'}
                 onPress={() => onAbrirPartido?.(item.partido.partidoId)}
@@ -435,110 +440,122 @@ const styles = StyleSheet.create({
   lista: { alignItems: 'center', paddingHorizontal: SIDE_PAD, paddingVertical: spacing.xl },
   cardWrap: { width: CARD_W, marginRight: CARD_SPACING },
   cardPress: { width: '100%' },
+  // Lámina estilo Panini: fondo crema, marco con esquinas de color del club.
   card: {
     borderRadius: radius.card,
-    borderWidth: 6,
-    backgroundColor: palette.inkSoft,
+    backgroundColor: '#EFEBE0',
+    padding: spacing.md,
     overflow: 'hidden',
     position: 'relative',
+    ...shadow.crest,
   },
-  // Máscara del borde: cubre toda la tarjeta pero solo deja ver el barrido en el
-  // perímetro (el interior lo tapa la foto, que va encima en el flujo normal).
-  bordeMask: {
+  // Esquina diagonal superior izquierda (bloque de color del club, rotado 45°).
+  esquinaTL: {
     position: 'absolute',
-    top: -6,
-    left: -6,
-    right: -6,
-    bottom: -6,
-    borderRadius: radius.card,
-    overflow: 'hidden',
-    zIndex: 1,
+    top: -CARD_W * 0.5,
+    left: -CARD_W * 0.5,
+    width: CARD_W,
+    height: CARD_W,
+    transform: [{ rotate: '45deg' }],
   },
-  bordeSweepWrap: {
+  // Esquina diagonal inferior derecha.
+  esquinaBR: {
     position: 'absolute',
-    top: '-50%',
-    left: '-50%',
-    right: '-50%',
-    bottom: '-50%',
+    bottom: -CARD_W * 0.5,
+    right: -CARD_W * 0.5,
+    width: CARD_W,
+    height: CARD_W,
+    transform: [{ rotate: '45deg' }],
+  },
+  // Franja de acento (tricolor del equipo) que cruza en diagonal.
+  franjaAcento: {
+    position: 'absolute',
+    width: CARD_W * 1.4,
+    height: 10,
+    transform: [{ rotate: '45deg' }],
+    opacity: 0.9,
+  },
+  franjaAcentoIzq: { top: CARD_W * 0.42, left: -CARD_W * 0.5 },
+  franjaAcentoDer: { bottom: CARD_W * 0.42, right: -CARD_W * 0.5 },
+  // Emblemas superiores (número de lámina y balón).
+  emblemaTL: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    minWidth: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: spacing.xs,
+    zIndex: 3,
   },
-  bordeSweep: { width: '140%', height: '140%' },
+  emblemaNum: { color: '#FFFFFF', fontFamily: fonts.display, fontSize: fontSize.small, fontWeight: fontWeight.bold },
+  emblemaTR: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
+  },
+  emblemaBalon: { fontSize: 15 },
+  // Ventana de la foto: filete claro alrededor (marco interior blancuzco).
+  ventana: {
+    marginTop: 34,
+    padding: 3,
+    backgroundColor: '#F7F4EC',
+    borderRadius: radius.sm,
+    ...shadow.crest,
+  },
   foto: {
     width: '100%',
     aspectRatio: 3 / 4,
     position: 'relative',
     overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-  },
-  fondoNumero: {
-    position: 'absolute',
-    right: -8,
-    top: -20,
-    fontFamily: fonts.display,
-    fontSize: 180,
-    fontWeight: fontWeight.bold,
-    opacity: 0.28,
+    borderRadius: radius.sm - 2,
+    backgroundColor: palette.inkSoft,
   },
   fotoImg: { width: '112%', height: '100%', resizeMode: 'cover' },
-  fotoVacia: { width: '100%', height: '100%', backgroundColor: palette.inkSoft },
-  // Foil holográfico: banda de gradiente arcoíris que cruza la foto en diagonal.
+  fotoVacia: { width: '100%', height: '100%' },
   foil: {
     position: 'absolute',
     top: -CARD_W,
     bottom: -CARD_W,
     width: CARD_W * 0.9,
   },
-  escudoEsquina: { position: 'absolute', top: spacing.sm, right: spacing.sm },
-  codigoLateral: {
-    position: 'absolute',
-    right: 2,
-    top: '42%',
-    color: '#FFFFFF',
-    fontFamily: fonts.display,
-    fontSize: fontSize.title,
-    fontWeight: fontWeight.bold,
-    opacity: 0.9,
-    letterSpacing: 2,
-  },
   realceBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm },
-  // Franja de datos TRANSLÚCIDA sobre la foto (deja ver la imagen detrás).
-  datosOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: '#00000066',
-  },
-  rival: {
-    color: '#FFFFFF',
-    fontFamily: fonts.display,
-    fontSize: fontSize.title,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 0.5,
-  },
-  datosRow: {
+  // Pie: nombre + datos a la izquierda; escudo + código a la derecha.
+  pie: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.xs,
     gap: spacing.sm,
-    marginTop: 2,
   },
-  datos: {
-    flex: 1,
-    color: '#FFFFFFCC',
-    fontFamily: fonts.body,
-    fontSize: fontSize.small,
-  },
-  marcador: {
-    color: '#FFFFFF',
+  pieInfo: { flex: 1, minWidth: 0 },
+  pieNombre: {
     fontFamily: fonts.display,
     fontSize: fontSize.subtitle,
     fontWeight: fontWeight.bold,
+    letterSpacing: 0.5,
+  },
+  pieDatos: {
+    color: '#5B6472',
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
+    marginTop: 1,
+  },
+  pieEscudo: { alignItems: 'center', gap: 2 },
+  pieCodigo: {
+    fontFamily: fonts.display,
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 1,
   },
   playBtn: {
     alignSelf: 'center',
