@@ -39,6 +39,7 @@ import Animated, {
   runOnJS,
   useAnimatedRef,
 } from 'react-native-reanimated';
+import LinearGradient from 'react-native-linear-gradient';
 
 import {
   AlbumPreviewPresenter,
@@ -74,10 +75,24 @@ interface LaminaVista {
   readonly miniaturaUri: string | null;
 }
 
+/** LinearGradient animable con Reanimated (para el foil y el barrido del borde). */
+const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
+
+/** Colores del reflejo holográfico (arcoíris foil, translúcido). */
+const HOLO_COLORS = [
+  '#FF2D9B55',
+  '#FFD23F55',
+  '#3AF7C955',
+  '#4D8CFF55',
+  '#B14DFF55',
+  '#FF2D9B55',
+];
+
 /**
- * Tarjeta-cromo animada. Recibe el `scrollX` compartido y su índice; deriva en
- * el hilo UI la transformación cover-flow (rotateY/escala/opacidad) y el
- * parallax de la foto, más el brillo del borde (foil) en bucle.
+ * Tarjeta-cromo animada. Deriva en el hilo UI la transformación cover-flow
+ * (rotateY/escala/opacidad) y el parallax de la foto. El foil es un gradiente
+ * arcoíris que se DESPLAZA en diagonal, y el borde un barrido de luz que
+ * RECORRE el marco (ambos con react-native-linear-gradient + Reanimated).
  */
 function LaminaCard({
   item,
@@ -127,23 +142,26 @@ function LaminaCard({
     return { transform: [{ translateX }] };
   });
 
-  // Borde animado (foil): un brillo recorre el marco en bucle.
+  // Ciclo de animación compartido para el foil y el borde (0→1 en bucle).
   const shine = useSharedValue(0);
   useEffect(() => {
     shine.value = withRepeat(
-      withTiming(1, { duration: especial ? 2400 : 3600, easing: Easing.inOut(Easing.sin) }),
+      withTiming(1, { duration: especial ? 2600 : 4200, easing: Easing.linear }),
       -1,
       false,
     );
   }, [shine, especial]);
-  const bordeStyle = useAnimatedStyle(() => {
-    // El brillo del borde alterna su opacidad para "recorrer" el marco.
-    const opacity = interpolate(shine.value, [0, 0.5, 1], [0.25, 0.9, 0.25]);
-    return { opacity };
+
+  // Foil: el gradiente arcoíris se DESPLAZA en diagonal cruzando la foto.
+  const foilStyle = useAnimatedStyle(() => {
+    const translateX = interpolate(shine.value, [0, 1], [-CARD_W * 1.4, CARD_W * 1.4]);
+    return { transform: [{ translateX }, { rotate: '20deg' }] };
   });
-  const shimmerStyle = useAnimatedStyle(() => {
-    const translateX = interpolate(shine.value, [0, 1], [-CARD_W, CARD_W]);
-    return { transform: [{ translateX }, { rotate: '18deg' }] };
+
+  // Borde: un barrido de luz que ROTA alrededor del marco (gira 360°).
+  const bordeStyle = useAnimatedStyle(() => {
+    const rotate = interpolate(shine.value, [0, 1], [0, 360]);
+    return { transform: [{ rotate: `${rotate}deg` }] };
   });
 
   return (
@@ -154,12 +172,20 @@ function LaminaCard({
         onPress={onPress}
         style={styles.cardPress}
       >
-        {/* Marco base con el color del club + brillo animado superpuesto. */}
+        {/* Marco base con el color del club. */}
         <View style={[styles.card, { borderColor: colorClub }]}>
-          <Animated.View
-            pointerEvents="none"
-            style={[styles.bordeShine, { borderColor: '#FFFFFF' }, bordeStyle]}
-          />
+          {/* Barrido de luz que recorre el borde: un gradiente que gira, recortado
+              por el marco (solo se ve la franja luminosa cruzando el perímetro). */}
+          <View pointerEvents="none" style={styles.bordeMask}>
+            <Animated.View style={[styles.bordeSweepWrap, bordeStyle]}>
+              <LinearGradient
+                colors={['transparent', '#FFFFFFEE', palette.goldStrong, 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.bordeSweep}
+              />
+            </Animated.View>
+          </View>
 
           {/* Foto sobre fondo gráfico con el color del club. */}
           <View style={[styles.foto, { backgroundColor: colorClub2 }]}>
@@ -176,8 +202,14 @@ function LaminaCard({
               <View style={styles.fotoVacia} />
             )}
 
-            {/* Foil holográfico (banda de brillo diagonal). */}
-            <Animated.View pointerEvents="none" style={[styles.shimmer, shimmerStyle, { opacity: especial ? 0.5 : 0.3 }]} />
+            {/* Foil holográfico: gradiente arcoíris que se desplaza en diagonal. */}
+            <AnimatedGradient
+              pointerEvents="none"
+              colors={HOLO_COLORS}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.foil, foilStyle, { opacity: especial ? 0.85 : 0.55 }]}
+            />
 
             <View style={styles.escudoEsquina}>
               <Crest
@@ -410,17 +442,28 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
-  // Borde interior brillante que se anima (foil recorriendo el marco).
-  bordeShine: {
+  // Máscara del borde: cubre toda la tarjeta pero solo deja ver el barrido en el
+  // perímetro (el interior lo tapa la foto, que va encima en el flujo normal).
+  bordeMask: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderWidth: 2,
+    top: -6,
+    left: -6,
+    right: -6,
+    bottom: -6,
     borderRadius: radius.card,
-    zIndex: 5,
+    overflow: 'hidden',
+    zIndex: 1,
   },
+  bordeSweepWrap: {
+    position: 'absolute',
+    top: '-50%',
+    left: '-50%',
+    right: '-50%',
+    bottom: '-50%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bordeSweep: { width: '140%', height: '140%' },
   foto: {
     width: '100%',
     aspectRatio: 3 / 4,
@@ -428,6 +471,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 2,
   },
   fondoNumero: {
     position: 'absolute',
@@ -440,12 +484,12 @@ const styles = StyleSheet.create({
   },
   fotoImg: { width: '112%', height: '100%', resizeMode: 'cover' },
   fotoVacia: { width: '100%', height: '100%', backgroundColor: palette.inkSoft },
-  shimmer: {
+  // Foil holográfico: banda de gradiente arcoíris que cruza la foto en diagonal.
+  foil: {
     position: 'absolute',
     top: -CARD_W,
     bottom: -CARD_W,
-    width: CARD_W * 0.5,
-    backgroundColor: '#FFFFFF',
+    width: CARD_W * 0.9,
   },
   escudoEsquina: { position: 'absolute', top: spacing.sm, right: spacing.sm },
   codigoLateral: {
