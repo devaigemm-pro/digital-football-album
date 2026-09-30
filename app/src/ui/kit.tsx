@@ -1084,9 +1084,82 @@ const styles = StyleSheet.create({
   },
 });
 
+// ---------------------------------------------------------------------------
+// ErrorBoundary
+// ---------------------------------------------------------------------------
+
+export interface ErrorBoundaryProps {
+  /** Texto del fallback (por defecto, un mensaje neutro). */
+  readonly mensaje?: string;
+  readonly children?: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  readonly error: Error | null;
+}
+
+/**
+ * Límite de error de render. Evita que un fallo en un subárbol (p. ej. un
+ * componente nativo que lanza en cierto dispositivo) deje la PANTALLA NEGRA:
+ * captura el error y muestra un fallback legible sobre fondo oscuro. En dev,
+ * el mensaje incluye el detalle real para diagnóstico.
+ */
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { error };
+  }
+
+  componentDidCatch(error: Error): void {
+    // Registro visible en logcat/Metro para diagnóstico (no rompe la app).
+    console.error('[ErrorBoundary] render falló:', error);
+  }
+
+  render(): React.ReactNode {
+    const { error } = this.state;
+    if (error !== null) {
+      const detalle = __DEV__ && error.message ? `\n\n${error.message}` : '';
+      return (
+        <View style={ebStyles.wrap}>
+          <Text style={ebStyles.icono}>⚠️</Text>
+          <Text style={ebStyles.texto}>
+            {this.props.mensaje ?? 'No pudimos mostrar esta sección. Intenta de nuevo.'}
+            {detalle}
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children ?? null;
+  }
+}
+
+const ebStyles = StyleSheet.create({
+  wrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+    gap: spacing.md,
+    backgroundColor: palette.ink,
+  },
+  icono: { fontSize: 40 },
+  texto: {
+    color: palette.textOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.body,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+});
+
 export default {
   Screen,
   Hero,
+  ErrorBoundary,
   SectionCard,
   SectionTitle,
   PrimaryButton,

@@ -54,7 +54,7 @@ import {
 } from '../album';
 import { ProfilePresenter, type PartidosState, type ProfileState } from '../profile';
 import type { PartidoLamina, ProfileClient } from '../adapters';
-import { Badge, Crest, Hero, Screen } from '../ui/kit';
+import { Badge, Crest, ErrorBoundary, Hero, Screen } from '../ui/kit';
 import { fonts, fontSize, fontWeight, palette, radius, shadow, spacing } from '../theme/design-tokens';
 
 export interface RevisarTemporadaScreenProps {
@@ -507,6 +507,7 @@ export function RevisarTemporadaScreen({
           </Text>
         </View>
       ) : (
+        <ErrorBoundary mensaje="No pudimos mostrar tus láminas. Desliza hacia atrás e inténtalo otra vez.">
         <View style={styles.carruselWrap}>
           <Animated.ScrollView
             ref={listRef}
@@ -547,6 +548,7 @@ export function RevisarTemporadaScreen({
             </Pressable>
           ) : null}
         </View>
+        </ErrorBoundary>
       )}
     </Screen>
   );
