@@ -198,6 +198,7 @@ function LaminaCard({
   readonly colorClub3: string;
   readonly escudoUrl?: string | null;
   readonly aliasUsuario: string;
+  readonly nombreUsuario: string;
   readonly onPress: () => void;
 }): React.ReactElement {
   const realce = etiquetaRealce(item.partido);
@@ -275,10 +276,24 @@ function LaminaCard({
           />
           <View style={[styles.franjaAcento, styles.franjaAcentoDer, { backgroundColor: colorClub3 }]} />
 
-          {/* Emblema superior (arriba-derecha): número de la lámina centrado en
-              el centro óptico de una estrella dorada dibujada como SVG. */}
-          <View style={styles.emblemaEstrella}>
-            <EstrellaConNumero numero={item.partido.numeroRecuadro ?? '—'} size={48} />
+          {/* Bloque superior-derecho (estilo Panini): insignia del club arriba
+              y, debajo, la estrella dorada con el número de la lámina. */}
+          <View style={styles.emblemaSuperiorDer}>
+            {escudoUrl ? (
+              <Image
+                source={{ uri: escudoUrl }}
+                style={styles.insigniaClub}
+                accessibilityRole="image"
+                accessibilityLabel="Insignia del club"
+              />
+            ) : (
+              <View style={[styles.insigniaClubMono, { backgroundColor: colorClub }]}>
+                <Text style={styles.insigniaClubMonoText}>
+                  {(nombreUsuario[0] ?? '★').toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <EstrellaConNumero numero={item.partido.numeroRecuadro ?? '—'} size={44} />
           </View>
 
           {/* Ventana de la foto con filete claro (marco interior blancuzco). */}
@@ -315,30 +330,26 @@ function LaminaCard({
                   <Text style={styles.torneoIcon}>{emblemaTorneo(item.partido.tipoCompeticion)}</Text>
                 </View>
               )}
-              {/* Escudo del rival (solo el escudo), esquina inferior derecha. */}
-              {escudoUrl ? (
-                <Image source={{ uri: escudoUrl }} style={styles.escudoOverlay} accessibilityRole="image" />
-              ) : (
-                <View style={styles.escudoOverlayMono}>
-                  <Text style={styles.escudoMonoText}>{codigo}</Text>
-                </View>
-              )}
               {realce ? (
                 <Badge label={realce} tone={item.partido.esClasico ? 'gold' : 'accent'} style={styles.realceBadge} />
               ) : null}
             </View>
           </View>
 
-          {/* Pie: nombre + datos a la izquierda; código del rival a la derecha. */}
+          {/* Pie estilo Panini: nombre del USUARIO destacado (dueño de la
+              lámina); debajo, rival + competición/marcador; el alias como firma. */}
           <View style={styles.pie}>
             <View style={styles.pieInfo}>
               <Text style={[styles.pieNombre, { color: colorClub }]} numberOfLines={1}>
-                <Text style={styles.pieVs}>vs </Text>
-                {item.partido.rival.toUpperCase()}
+                {nombreUsuario.toUpperCase()}
               </Text>
               <Text style={[styles.pieDatos, { color: colorClub }]} numberOfLines={1}>
-                {item.partido.competicion}
+                <Text style={styles.pieVs}>vs </Text>
+                {item.partido.rival.toUpperCase()}
                 {marcador ? ` · ${marcador}` : ''}
+              </Text>
+              <Text style={[styles.pieSubdatos, { color: colorClub }]} numberOfLines={1}>
+                {item.partido.competicion}
               </Text>
             </View>
             <Text style={[styles.pieCodigo, { color: colorClub }]} numberOfLines={1}>
@@ -411,6 +422,12 @@ export function RevisarTemporadaScreen({
   const aliasUsuario =
     usuario?.alias?.trim() ||
     usuario?.nombre?.trim() ||
+    usuario?.email?.split('@')[0] ||
+    'Tú';
+  // Nombre destacado de la lámina (dueño): nombre → alias → local del correo → TÚ.
+  const nombreUsuario =
+    usuario?.nombre?.trim() ||
+    usuario?.alias?.trim() ||
     usuario?.email?.split('@')[0] ||
     'Tú';
 
@@ -512,6 +529,7 @@ export function RevisarTemporadaScreen({
                 colorClub3={colorClub3}
                 escudoUrl={club?.escudoUrl}
                 aliasUsuario={aliasUsuario}
+                nombreUsuario={nombreUsuario}
                 onPress={() => onAbrirPartido?.(item.partido.partidoId)}
               />
             ))}
@@ -590,13 +608,35 @@ const styles = StyleSheet.create({
   },
   franjaAcentoIzq: { top: CARD_W * 0.42, left: -CARD_W * 0.5 },
   franjaAcentoDer: { bottom: CARD_W * 0.42, right: -CARD_W * 0.5 },
-  // Contenedor del emblema de la estrella (arriba-derecha). El centrado del
-  // número lo resuelve el componente EstrellaConNumero por geometría del SVG.
-  emblemaEstrella: {
+  // Bloque superior-derecho (Panini): insignia del club arriba y estrella debajo.
+  emblemaSuperiorDer: {
     position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
+    alignItems: 'center',
     zIndex: 3,
+  },
+  // Insignia (escudo) del club del usuario, arriba-derecha.
+  insigniaClub: {
+    width: 42,
+    height: 42,
+    resizeMode: 'contain',
+    marginBottom: spacing.xs,
+  },
+  insigniaClubMono: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  insigniaClubMonoText: {
+    color: '#FFFFFF',
+    fontFamily: fonts.display,
+    fontSize: fontSize.body,
+    fontWeight: fontWeight.extrabold,
+    includeFontPadding: false,
   },
   // Caja del número sobre la estrella: anclada al centro visual del SVG. Los
   // valores dinámicos (top/left/width/height/fontSize/lineHeight) los aporta el
@@ -610,6 +650,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontWeight: fontWeight.extrabold,
     textAlign: 'center',
+    textAlignVertical: 'center',
     includeFontPadding: false,
   },
   // Emblema del torneo sobre la foto (esquina superior izquierda).
@@ -639,32 +680,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#00000066',
     resizeMode: 'contain',
   },
-  // Escudo del rival sobre la foto (esquina inferior derecha, sin marco).
-  escudoOverlay: {
-    position: 'absolute',
-    right: spacing.xs,
-    bottom: spacing.xs,
-    width: 34,
-    height: 34,
-    resizeMode: 'contain',
-  },
-  escudoOverlayMono: {
-    position: 'absolute',
-    right: spacing.xs,
-    bottom: spacing.xs,
-    width: 34,
-    height: 34,
-    borderRadius: 6,
-    backgroundColor: '#000000A0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  escudoMonoText: {
-    color: '#FFFFFF',
-    fontFamily: fonts.display,
-    fontSize: fontSize.small,
-    fontWeight: fontWeight.bold,
-  },
+
   // Ventana de la foto: filete claro alrededor (marco interior blancuzco).
   ventana: {
     marginTop: 34,
@@ -713,12 +729,19 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
   },
-  // Datos bajo el nombre: en negrita y con el color del club para resaltar
-  // sobre el fondo crema de la lámina.
+  // Datos bajo el nombre: rival (+marcador), en negrita y con el color del club.
   pieDatos: {
     fontFamily: fonts.body,
     fontSize: fontSize.small,
     fontWeight: fontWeight.bold,
+    marginTop: 1,
+  },
+  // Competición: tercera línea, más tenue (dato secundario).
+  pieSubdatos: {
+    fontFamily: fonts.body,
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.semibold,
+    opacity: 0.85,
     marginTop: 1,
   },
   // Nickname como "firma": itálica, pequeño y estilizado (sin mayúsculas), tal
