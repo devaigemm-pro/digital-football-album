@@ -334,16 +334,25 @@ function LaminaCard({
               {realce ? (
                 <Badge label={realce} tone={item.partido.esClasico ? 'gold' : 'accent'} style={styles.realceBadge} />
               ) : null}
+              {/* Banda inferior SOBRE la foto (estilo Panini): nombre del usuario
+                  destacado en una franja del color del club que cruza el ancho. */}
+              <LinearGradient
+                colors={[`${colorClub}00`, `${colorClub}E6`, colorClub]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.bandaNombre}
+              >
+                <Text style={styles.bandaNombreText} numberOfLines={1}>
+                  {nombreUsuario.toUpperCase()}
+                </Text>
+              </LinearGradient>
             </View>
           </View>
 
-          {/* Pie estilo Panini: nombre del USUARIO destacado (dueño de la
-              lámina); debajo, rival + competición/marcador; el alias como firma. */}
+          {/* Pie: datos del partido (rival + marcador + competición) y la firma
+              (@alias). El NOMBRE del usuario va sobre la foto, no aquí. */}
           <View style={styles.pie}>
             <View style={styles.pieInfo}>
-              <Text style={[styles.pieNombre, { color: colorClub }]} numberOfLines={1}>
-                {nombreUsuario.toUpperCase()}
-              </Text>
               <Text style={[styles.pieDatos, { color: colorClub }]} numberOfLines={1}>
                 <Text style={styles.pieVs}>vs </Text>
                 {item.partido.rival.toUpperCase()}
@@ -715,7 +724,31 @@ const styles = StyleSheet.create({
     width: CARD_W * 0.9,
   },
   realceBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm },
-  // Pie: nombre + datos a la izquierda; escudo + código a la derecha.
+  // Banda inferior SOBRE la foto con el nombre del usuario (estilo Panini):
+  // degradado del color del club de transparente (arriba) a sólido (abajo) para
+  // que el nombre se lea sobre cualquier foto.
+  bandaNombre: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    justifyContent: 'flex-end',
+  },
+  bandaNombreText: {
+    color: '#FFFFFF',
+    fontFamily: fonts.display,
+    fontSize: fontSize.subtitle,
+    fontWeight: fontWeight.extrabold,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    textShadowColor: '#00000099',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  // Pie: datos del partido a la izquierda; firma (@alias) a la derecha.
   pie: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -732,13 +765,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.regular,
     textTransform: 'lowercase',
   },
-  pieNombre: {
-    fontFamily: fonts.display,
-    fontSize: fontSize.subtitle,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 0.5,
-  },
-  // Datos bajo el nombre: rival (+marcador), en negrita y con el color del club.
+  // Datos del partido: rival (+marcador), en negrita y con el color del club.
   pieDatos: {
     fontFamily: fonts.body,
     fontSize: fontSize.small,
