@@ -277,26 +277,6 @@ function LaminaCard({
           />
           <View style={[styles.franjaAcento, styles.franjaAcentoDer, { backgroundColor: colorClub3 }]} />
 
-          {/* Bloque superior-derecho (estilo Panini): insignia del club arriba
-              y, debajo, la estrella dorada con el número de la lámina. */}
-          <View style={styles.emblemaSuperiorDer}>
-            {escudoUrl ? (
-              <Image
-                source={{ uri: escudoUrl }}
-                style={styles.insigniaClub}
-                accessibilityRole="image"
-                accessibilityLabel="Insignia del club"
-              />
-            ) : (
-              <View style={[styles.insigniaClubMono, { backgroundColor: colorClub }]}>
-                <Text style={styles.insigniaClubMonoText}>
-                  {(nombreUsuario[0] ?? '★').toUpperCase()}
-                </Text>
-              </View>
-            )}
-            <EstrellaConNumero numero={item.partido.numeroRecuadro ?? '—'} size={44} />
-          </View>
-
           {/* Ventana de la foto con filete claro (marco interior blancuzco). */}
           <View style={styles.ventana}>
             <View style={styles.foto}>
@@ -331,6 +311,26 @@ function LaminaCard({
                   <Text style={styles.torneoIcon}>{emblemaTorneo(item.partido.tipoCompeticion)}</Text>
                 </View>
               )}
+              {/* Esquina superior DERECHA de la foto: escudo del club en la
+                  misma línea que el logo de la liga y, debajo, la estrella con
+                  el número de la lámina. */}
+              <View style={styles.emblemaSuperiorDer}>
+                {escudoUrl ? (
+                  <Image
+                    source={{ uri: escudoUrl }}
+                    style={styles.insigniaClub}
+                    accessibilityRole="image"
+                    accessibilityLabel="Insignia del club"
+                  />
+                ) : (
+                  <View style={[styles.insigniaClubMono, { backgroundColor: colorClub }]}>
+                    <Text style={styles.insigniaClubMonoText}>
+                      {(nombreUsuario[0] ?? '★').toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                <EstrellaConNumero numero={item.partido.numeroRecuadro ?? '—'} size={44} />
+              </View>
               {realce ? (
                 <Badge label={realce} tone={item.partido.esClasico ? 'gold' : 'accent'} style={styles.realceBadge} />
               ) : null}
@@ -612,24 +612,30 @@ const styles = StyleSheet.create({
   franjaAcentoIzq: { top: CARD_W * 0.42, left: -CARD_W * 0.5 },
   franjaAcentoDer: { bottom: CARD_W * 0.42, right: -CARD_W * 0.5 },
   // Bloque superior-derecho (Panini): insignia del club arriba y estrella debajo.
+  // Bloque superior-DERECHO sobre la foto: escudo en la misma línea que el logo
+  // de la liga (mismo `top`) y la estrella colgando debajo.
   emblemaSuperiorDer: {
     position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
+    top: spacing.xs,
+    right: spacing.xs,
     alignItems: 'center',
     zIndex: 3,
   },
-  // Insignia (escudo) del club del usuario, arriba-derecha.
+  // Insignia (escudo) del club del usuario. Mismo tamaño y fondo translúcido que
+  // el logo de la liga para que ambos luzcan como par en la línea superior.
   insigniaClub: {
-    width: 42,
-    height: 42,
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    padding: 4,
+    backgroundColor: '#00000066',
     resizeMode: 'contain',
     marginBottom: spacing.xs,
   },
   insigniaClubMono: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.xs,
