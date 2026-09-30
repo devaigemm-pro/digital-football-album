@@ -155,32 +155,36 @@ export function CarneScreen({
   }, [pres]);
 
   const temporadaId = profile.perfil?.temporadaActiva?.id ?? null;
+  const temporadaExterna = profile.perfil?.temporadaActiva?.temporadaExterna ?? null;
 
-  /**
-   * Re-sincroniza la temporada activa desde la API deportiva (`POST /me/temporada`
-   * con la `temporadaExterna` ya existente). Sirve para refrescar los datos de
-   * los partidos (resultado, escudo del rival, etc.) sin rehacer el onboarding.
-   * Al terminar, recarga los partidos para reflejar los cambios en el carné.
-   */
-  const onActualizarTemporada = React.useCallback(() => {
-    const externa = profile.perfil?.temporadaActiva?.temporadaExterna;
-    const tId = profile.perfil?.temporadaActiva?.id ?? null;
-    if (!externa) {
-      return;
-    }
-    void (async () => {
-      await pres.syncTemporada(externa);
-      if (tId) {
-        await pres.loadPartidos(tId);
-      }
-    })();
-  }, [pres, profile.perfil?.temporadaActiva?.temporadaExterna, profile.perfil?.temporadaActiva?.id]);
+  // El indicador solo se muestra la primera vez que aún no hay partidos cargados;
+  // si ya hay datos en pantalla, el refresco de fondo es del todo invisible.
+  const syncEnCurso = sync.status === 'syncing' && partidos.partidos.length === 0;
+
   useEffect(() => {
     // Carga los partidos una sola vez por temporada (evita recargas en bucle).
     if (temporadaId && pres.getPartidosState().status === 'idle') {
       void pres.loadPartidos(temporadaId);
     }
   }, [pres, temporadaId]);
+
+  useEffect(() => {
+    // Sincronización en segundo plano: el backend refresca el fixture/resultados
+    // al abrir el Carné, sin que el hincha tenga que pulsar nada. Se ejecuta una
+    // sola vez por temporada y es best-effort: cualquier fallo de la API deportiva
+    // se ignora aquí (no se muestra error técnico); los datos previos se conservan
+    // y el job de 6h del backend reintentará. Al terminar, refresca los partidos.
+    if (!temporadaId || !temporadaExterna) {
+      return;
+    }
+    if (pres.getSyncState().status !== 'idle') {
+      return;
+    }
+    void (async () => {
+      await pres.syncTemporada(temporadaExterna);
+      await pres.loadPartidos(temporadaId);
+    })();
+  }, [pres, temporadaId, temporadaExterna]);
 
   const perfil = profile.perfil;
   const club = perfil?.club ?? null;
@@ -475,26 +479,21 @@ export function CarneScreen({
         ) : null}
 
         {temporadaId ? (
-          <>
-            {/* Re-sincroniza los datos de la temporada (resultados, escudos). */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Actualizar los datos de mi temporada"
-              disabled={sync.status === 'syncing'}
-              onPress={onActualizarTemporada}
-              style={[styles.cta, styles.ctaSecundario]}
-            >
-              <Text style={styles.ctaSecundarioText}>
-                {sync.status === 'syncing' ? 'Actualizando…' : 'Actualizar temporada'}
+          // La temporada se mantiene sola: el backend refresca el fixture y los
+          // resultados en segundo plano al abrir el Carné (best-effort). No hay
+          // acción manual ni se expone al hincha ningún error técnico de la API
+          // deportiva; si el refresco falla, sencillamente se conservan los datos
+          // ya guardados.
+          <View
+            accessibilityElementsHidden={!syncEnCurso}
+            style={styles.syncSlot}
+          >
+            {syncEnCurso ? (
+              <Text style={styles.syncHint} accessibilityRole="text">
+                Actualizando tu temporada…
               </Text>
-            </Pressable>
-            {sync.status === 'error' && sync.error !== null ? (
-              <Text style={styles.syncError}>{sync.error}</Text>
             ) : null}
-            {sync.status === 'done' ? (
-              <Text style={styles.ctaHint}>Temporada actualizada.</Text>
-            ) : null}
-          </>
+          </View>
         ) : (
           <Pressable
             accessibilityRole="button"
@@ -814,25 +813,18 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     letterSpacing: 0.3,
   },
-  ctaHint: {
+  // Ranura del indicador de sincronización de fondo. Reserva un mínimo de altura
+  // solo mientras hay refresco visible para que el layout no salte al aparecer.
+  syncSlot: {
+    marginTop: spacing.md,
+    minHeight: spacing.md,
+    justifyContent: 'center',
+  },
+  syncHint: {
     color: palette.textMutedOnDark,
     fontFamily: fonts.body,
     fontSize: fontSize.caption,
     textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-  ctaSecundario: {
-    marginTop: spacing.md,
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: palette.borderOnDark,
-  },
-  ctaSecundarioText: {
-    color: palette.textOnDark,
-    fontFamily: fonts.body,
-    fontSize: fontSize.body,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 0.3,
   },
   syncError: {
     color: palette.danger,
