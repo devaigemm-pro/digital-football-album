@@ -41,6 +41,7 @@ import Animated, {
   useAnimatedRef,
 } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
+import Svg, { Path as SvgPath } from 'react-native-svg';
 
 import {
   AlbumPreviewPresenter,
@@ -78,6 +79,71 @@ interface LaminaVista {
 
 /** LinearGradient animable con Reanimated (para el foil y el barrido del borde). */
 const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
+
+// Estrella de 5 puntas dibujada como Path en un viewBox 0..100. El centro
+// geométrico es (50,50); el centro VISUAL (masa) queda algo más abajo por las
+// puntas superiores, en ~(50,56). El número se posiciona respecto a ese centro
+// visual, por geometría del viewBox — no por baseline de texto (que es
+// inconsistente entre iOS/Android).
+const STAR_PATH =
+  'M50 4 L61.8 37.6 L97.6 38.2 L69 60.1 L79.4 94.5 L50 73.5 L20.6 94.5 L31 60.1 L2.4 38.2 L38.2 37.6 Z';
+// Centro visual de la estrella dentro del viewBox (fracción 0..1 de la caja).
+// Verificado visualmente: 0.60 centra el número en el cuerpo de la estrella
+// (el centro de masa queda por debajo del centro geométrico por las puntas).
+const STAR_CENTER_Y = 0.6;
+
+/**
+ * Estrella dorada con un número perfectamente centrado en su centro ÓPTICO.
+ *
+ * Estrategia determinista (tras >10 intentos fallidos con el glyph '★'):
+ *  - La estrella es un `<Path>` SVG: su geometría es idéntica en iOS y Android,
+ *    y conocemos exactamente dónde está su centro visual (`STAR_CENTER_Y`).
+ *  - El número es un `<Text>` de React Native (no `<SvgText>`, cuyo baseline es
+ *    inconsistente entre plataformas) posicionado en ABSOLUTO sobre una caja de
+ *    tamaño fijo `size`, cuya altura se ancla al centro visual de la estrella.
+ *  - Centrado horizontal: `textAlign:'center'` (fiable). Centrado vertical:
+ *    `lineHeight === alturaDeLaCaja` + `includeFontPadding:false`, el único
+ *    combo estable para centrar una línea de texto en su caja en ambas
+ *    plataformas. No hay paddings mágicos por-pixel.
+ */
+function EstrellaConNumero({
+  numero,
+  size,
+}: {
+  readonly numero: number | string;
+  readonly size: number;
+}): React.ReactElement {
+  // Caja del número: cuadrada, centrada verticalmente en el centro visual de la
+  // estrella. Su lado se dimensiona para alojar 1-2 dígitos con holgura.
+  const box = Math.round(size * 0.5);
+  const top = Math.round(size * STAR_CENTER_Y - box / 2);
+  const left = Math.round((size - box) / 2);
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size} viewBox="0 0 100 100">
+        <SvgPath
+          d={STAR_PATH}
+          fill={palette.goldStrong}
+          stroke="#00000033"
+          strokeWidth={2}
+        />
+      </Svg>
+      <View
+        pointerEvents="none"
+        style={[styles.estrellaNumBox, { top, left, width: box, height: box }]}
+      >
+        <Text
+          style={[
+            styles.estrellaNumTexto,
+            { fontSize: Math.round(box * 0.62), lineHeight: box },
+          ]}
+        >
+          {numero}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 /**
  * Emblema del torneo por tipo de competición. El backend no expone un logo de
@@ -209,13 +275,10 @@ function LaminaCard({
           />
           <View style={[styles.franjaAcento, styles.franjaAcentoDer, { backgroundColor: colorClub3 }]} />
 
-          {/* Emblema superior: número de la lámina sobre una estrella dorada
-              (estrella de fondo, número en negro centrado al frente). */}
+          {/* Emblema superior (arriba-derecha): número de la lámina centrado en
+              el centro óptico de una estrella dorada dibujada como SVG. */}
           <View style={styles.emblemaEstrella}>
-            <Text style={styles.estrella}>★</Text>
-            <View style={styles.estrellaNumWrap} pointerEvents="none">
-              <Text style={styles.estrellaNum}>{item.partido.numeroRecuadro ?? '—'}</Text>
-            </View>
+            <EstrellaConNumero numero={item.partido.numeroRecuadro ?? '—'} size={48} />
           </View>
 
           {/* Ventana de la foto con filete claro (marco interior blancuzco). */}
@@ -527,41 +590,24 @@ const styles = StyleSheet.create({
   },
   franjaAcentoIzq: { top: CARD_W * 0.42, left: -CARD_W * 0.5 },
   franjaAcentoDer: { bottom: CARD_W * 0.42, right: -CARD_W * 0.5 },
-  // Emblema: número de la lámina centrado sobre una estrella dorada (arriba-der.).
+  // Contenedor del emblema de la estrella (arriba-derecha). El centrado del
+  // número lo resuelve el componente EstrellaConNumero por geometría del SVG.
   emblemaEstrella: {
     position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
     zIndex: 3,
   },
-  // Estrella dorada de fondo (centrada por el flex del emblema).
-  estrella: {
-    color: palette.goldStrong,
-    fontSize: 44,
-    lineHeight: 44,
-    textShadowColor: '#00000055',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  // Envoltura del número: capa absoluta que cubre el emblema y centra por flex
-  // (no depende de textAlignVertical, que es inconsistente entre plataformas).
-  // Pequeño desplazamiento vertical: el centro óptico de la estrella queda algo
-  // por debajo del centro geométrico (por las puntas superiores).
-  estrellaNumWrap: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
+  // Caja del número sobre la estrella: anclada al centro visual del SVG. Los
+  // valores dinámicos (top/left/width/height/fontSize/lineHeight) los aporta el
+  // componente según `size`.
+  estrellaNumBox: {
+    position: 'absolute',
     justifyContent: 'center',
-    paddingTop: 4,
   },
-  estrellaNum: {
+  estrellaNumTexto: {
     color: '#000000',
     fontFamily: fonts.display,
-    fontSize: fontSize.body,
-    lineHeight: fontSize.body + 2,
     fontWeight: fontWeight.extrabold,
     textAlign: 'center',
     includeFontPadding: false,
@@ -571,21 +617,26 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.xs,
     left: spacing.xs,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#00000066',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  torneoIcon: { fontSize: 15 },
-  // Logo real de la liga sobre la foto (esquina superior izquierda).
+  torneoIcon: { fontSize: 24 },
+  // Logo real de la liga sobre la foto (esquina superior izquierda). Ampliado
+  // para dar presencia al escudo de la competición; fondo translúcido y
+  // redondeado para que contraste sobre fotos claras u oscuras.
   torneoLogo: {
     position: 'absolute',
     top: spacing.xs,
     left: spacing.xs,
-    width: 30,
-    height: 30,
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    padding: 4,
+    backgroundColor: '#00000066',
     resizeMode: 'contain',
   },
   // Escudo del rival sobre la foto (esquina inferior derecha, sin marco).
