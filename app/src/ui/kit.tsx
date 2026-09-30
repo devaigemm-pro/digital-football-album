@@ -1122,9 +1122,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   render(): React.ReactNode {
     const { error } = this.state;
     if (error !== null) {
-      // Muestra el detalle del error también en release temporalmente para
-      // diagnosticar el crash de "Mi temporada" en dispositivo real.
-      const detalle = error.message ? `\n\n${error.message}` : '';
+      const detalle = __DEV__ && error.message ? `\n\n${error.message}` : '';
       return (
         <View style={ebStyles.wrap}>
           <Text style={ebStyles.icono}>⚠️</Text>

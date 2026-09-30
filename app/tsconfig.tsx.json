@@ -1,0 +1,22 @@
+{
+  // Typecheck de los componentes React Native (`.tsx`).
+  //
+  // POR QUÉ EXISTE: el `tsconfig.json` principal EXCLUYE los `.tsx` (ver nota
+  // ahí). Eso dejó un hueco: un identificador no definido en una pantalla
+  // (p. ej. una prop declarada en el tipo pero ausente del destructuring) NO
+  // se detectaba en build y CRASHEABA en runtime en release (Hermes lanza
+  // "Property 'X' doesn't exist"). Este config valida los `.tsx` para atrapar
+  // ese tipo de error ANTES de compilar el APK.
+  //
+  // Se relaja `noImplicitAny` para tolerar dependencias sin typings (p. ej.
+  // react-native-vector-icons) sin enmascarar los errores que importan
+  // (variables/props no definidas: TS2304/TS2552).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["src/**/*.tsx"],
+  "exclude": ["node_modules"]
+}

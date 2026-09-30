@@ -67,6 +67,25 @@ echo "JDK:  $("$JAVA_HOME/bin/java" -version 2>&1 | head -1)"
 echo "SDK:  $ANDROID_HOME"
 echo ""
 
+# --- Gate de typecheck de los .tsx ------------------------------------------
+# El tsconfig principal EXCLUYE los .tsx, así que un identificador no definido
+# en una pantalla (p. ej. una prop ausente del destructuring) NO se detecta y
+# CRASHEA en runtime (Hermes: "Property 'X' doesn't exist"). Este gate valida
+# los .tsx antes de compilar para no volver a distribuir ese tipo de crash.
+# Se puede saltar con SKIP_TSX_CHECK=1 (no recomendado).
+if [ "${SKIP_TSX_CHECK:-0}" != "1" ] && [ -f "$SCRIPT_DIR/tsconfig.tsx.json" ]; then
+  echo ">> typecheck de componentes .tsx (tsconfig.tsx.json)"
+  if ! ( cd "$SCRIPT_DIR" && npx --no-install tsc --noEmit -p tsconfig.tsx.json ); then
+    echo "" >&2
+    echo "ERROR: el typecheck de los .tsx falló. Corrige los errores antes de" >&2
+    echo "       compilar (evita crashes de render en release). Para saltar el" >&2
+    echo "       gate excepcionalmente: SKIP_TSX_CHECK=1 ./build-release.sh $*" >&2
+    exit 1
+  fi
+  echo "   OK (.tsx sin errores de tipo)"
+  echo ""
+fi
+
 cd "$ANDROID_DIR"
 TARGET="${1:-all}"
 

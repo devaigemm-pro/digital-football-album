@@ -188,6 +188,7 @@ function LaminaCard({
   colorClub3,
   escudoUrl,
   aliasUsuario,
+  nombreUsuario,
   onPress,
 }: {
   readonly item: LaminaVista;

@@ -21,6 +21,7 @@ import type {
   Asset,
   CameraOptions,
   ImageLibraryOptions,
+  PhotoQuality,
   ImagePickerResponse,
 } from 'react-native-image-picker';
 
@@ -48,12 +49,12 @@ type PickedPhoto = {
 // visible. 2000 px de lado largo es más que suficiente para foto de perfil y
 // para imprenta a 300 DPI en el recuadro.
 const COMMON_OPTIONS = {
-  mediaType: 'photo',
+  mediaType: 'photo' as const,
   includeBase64: true,
-  quality: 0.85,
+  quality: 0.85 as PhotoQuality,
   maxWidth: 2000,
   maxHeight: 2000,
-} as const;
+};
 
 const LIBRARY_OPTIONS: ImageLibraryOptions = {
   ...COMMON_OPTIONS,

@@ -8,6 +8,7 @@
     "ios": "react-native run-ios",
     "android": "react-native run-android",
     "typecheck": "tsc --noEmit",
+    "typecheck:tsx": "tsc --noEmit -p tsconfig.tsx.json",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "jest",
     "test:watch": "jest --watch",
