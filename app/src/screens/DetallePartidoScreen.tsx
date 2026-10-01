@@ -36,6 +36,8 @@ import {
 } from 'react-native';
 
 import { CapturePresenter, MomentoBusinessError, MomentoDetailPresenter } from '../capture';
+import type { CapturePhotoInput } from '../capture';
+import { encodeBase64 } from '../adapters';
 import type { CaptureNativeBridge } from './CapturaScreen';
 import type {
   FormacionEquipo,
@@ -157,6 +159,14 @@ export function DetallePartidoScreen({
   const [cargando, setCargando] = useState(true);
   const [ocupado, setOcupado] = useState(false);
   const [resena, setResena] = useState('');
+  // Foto elegida PENDIENTE de guardar (no se sube hasta pulsar "Guardar lámina").
+  // Guarda la selección del bridge nativo + su fuente, y una data-URI para la
+  // vista previa. `null` = no hay foto nueva pendiente.
+  const [fotoPendiente, setFotoPendiente] = useState<{
+    readonly seleccion: Omit<CapturePhotoInput, 'partidoId' | 'fuente'>;
+    readonly fuente: 'galeria' | 'camara';
+    readonly previewUri: string;
+  } | null>(null);
   // Escudo del club PROPIO (equipo local del marcador). Viene de `GET /me`.
   const [escudoPropio, setEscudoPropio] = useState<string | null>(null);
   // Monograma del club propio como respaldo si aún no hay escudo.
@@ -221,6 +231,9 @@ export function DetallePartidoScreen({
     () => (detalle ? fotoPrincipalUri(detalle) : null),
     [detalle],
   );
+  // La lámina muestra la foto PENDIENTE (preview) si hay una elegida; si no, la
+  // Foto_Principal ya montada.
+  const uriLamina = fotoPendiente?.previewUri ?? uriPrincipal;
 
   /** Refleja el mensaje de negocio del backend (o un error genérico). */
   const mostrarErrorNegocio = useCallback((titulo: string, e: unknown) => {
@@ -232,11 +245,11 @@ export function DetallePartidoScreen({
   }, []);
 
   /**
-   * Adjunta la foto del partido: la sube al Momento (asegurando permiso) y la
-   * fija como Foto_Principal del recuadro (la lámina). El backend valida la
-   * biunivocidad y la ventana de edición.
+   * Elige una foto (galería o cámara) y la deja PENDIENTE para la vista previa,
+   * SIN subirla aún. La subida ocurre al pulsar "Guardar lámina". Así la foto y
+   * la reseña se almacenan juntas en un solo gesto.
    */
-  const adjuntarFoto = useCallback(
+  const elegirFoto = useCallback(
     async (fuente: 'galeria' | 'camara') => {
       if (!detalle) {
         return;
@@ -248,8 +261,6 @@ export function DetallePartidoScreen({
         );
         return;
       }
-      const recuadroId = detalle.recuadroId;
-      setOcupado(true);
       try {
         const seleccion =
           fuente === 'galeria'
@@ -258,53 +269,78 @@ export function DetallePartidoScreen({
         if (!seleccion) {
           return; // el usuario canceló el picker.
         }
-        // 1) Sube la foto al Momento del partido (asegura permiso).
-        const foto = await capturePresenter.capturePhoto({
-          ...seleccion,
-          fuente,
-          partidoId,
-        });
-        // 2) La fija como Foto_Principal del recuadro (la lámina). El backend
-        //    valida la biunivocidad y la ventana de edición.
-        await momentoPresenter.setFotoPrincipal(recuadroId, foto.id);
-        // 3) Recarga el detalle para reflejar la lámina montada.
-        await recargar();
+        // data-URI para previsualizar la foto elegida sin subirla todavía.
+        const previewUri = `data:image/jpeg;base64,${encodeBase64(seleccion.binario)}`;
+        setFotoPendiente({ seleccion, fuente, previewUri });
       } catch (e) {
-        mostrarErrorNegocio('No se pudo adjuntar la foto', e);
-      } finally {
-        setOcupado(false);
+        mostrarErrorNegocio('No se pudo elegir la foto', e);
       }
     },
-    [
-      detalle,
-      native,
-      capturePresenter,
-      partidoId,
-      momentoPresenter,
-      recargar,
-      mostrarErrorNegocio,
-    ],
+    [detalle, native, mostrarErrorNegocio],
   );
 
-  /** Guarda la reseña del partido como `notas` del Momento (`PATCH /momentos/:id`). */
-  const guardarResena = useCallback(async () => {
-    if (!detalle || detalle.momentoId == null) {
+  /**
+   * Guarda la LÁMINA en un solo gesto (Req 4.1, 5.1, 5.5, 7.1):
+   *   1. si hay foto pendiente nueva, la sube al Momento del partido (asegura
+   *      permiso) y la fija como Foto_Principal del recuadro;
+   *   2. guarda la reseña como `notas` del Momento.
+   * El backend valida la biunivocidad y la ventana de edición. Requiere o bien
+   * una foto nueva pendiente, o una lámina ya montada (momentoId) para la reseña.
+   */
+  const guardarLamina = useCallback(async () => {
+    if (!detalle) {
+      return;
+    }
+    const hayFotoNueva = fotoPendiente !== null;
+    const hayMomento = detalle.momentoId != null;
+    if (!hayFotoNueva && !hayMomento) {
       Alert.alert(
-        'Sin momento',
-        'Adjunta una foto primero para poder dejar tu reseña.',
+        'Agrega una foto',
+        'Elige la foto de tu lámina para guardarla junto a tu reseña.',
       );
       return;
     }
     setOcupado(true);
     try {
-      await momentoPresenter.updateContexto(detalle.momentoId, { notas: resena });
-      Alert.alert('Reseña guardada', 'Se actualizó tu reseña del partido.');
+      // 1) Foto nueva: subir + fijar como Foto_Principal del recuadro.
+      let momentoId = detalle.momentoId;
+      if (hayFotoNueva && detalle.recuadroId != null) {
+        const foto = await capturePresenter.capturePhoto({
+          ...fotoPendiente.seleccion,
+          fuente: fotoPendiente.fuente,
+          partidoId,
+        });
+        await momentoPresenter.setFotoPrincipal(detalle.recuadroId, foto.id);
+        // La subida crea el Momento si no existía; si aún no lo teníamos, se
+        // resolverá al recargar (el PATCH de reseña se hace tras recargar).
+        if (momentoId == null) {
+          const refrescado = await client.getPartido(partidoId);
+          momentoId = refrescado.momentoId;
+        }
+      }
+      // 2) Reseña como `notas` del Momento (si ya hay Momento).
+      if (momentoId != null) {
+        await momentoPresenter.updateContexto(momentoId, { notas: resena });
+      }
+      setFotoPendiente(null);
+      await recargar();
+      Alert.alert('Lámina guardada', 'Se guardó tu foto y tu reseña del partido.');
     } catch (e) {
-      mostrarErrorNegocio('No se pudo guardar la reseña', e);
+      mostrarErrorNegocio('No se pudo guardar la lámina', e);
     } finally {
       setOcupado(false);
     }
-  }, [detalle, momentoPresenter, resena, mostrarErrorNegocio]);
+  }, [
+    detalle,
+    fotoPendiente,
+    capturePresenter,
+    partidoId,
+    momentoPresenter,
+    client,
+    resena,
+    recargar,
+    mostrarErrorNegocio,
+  ]);
 
   if (cargando && !detalle) {
     return (
@@ -371,26 +407,31 @@ export function DetallePartidoScreen({
           <Text style={styles.subtitulo}>Tu lámina</Text>
           <StickerSlot
             numero={detalle.numeroRecuadro ?? '—'}
-            imageUri={uriPrincipal}
+            imageUri={uriLamina}
             label={`vs ${detalle.rival}`}
             style={styles.lamina}
           />
           <View style={styles.laminaAcciones}>
             <SecondaryButton
-              title={uriPrincipal ? 'Cambiar foto' : 'Añadir de galería'}
+              title={uriLamina ? 'Cambiar foto' : 'Añadir de galería'}
               tone="dark"
-              onPress={() => void adjuntarFoto('galeria')}
+              onPress={() => void elegirFoto('galeria')}
               disabled={ocupado}
               style={styles.laminaBtn}
             />
             <SecondaryButton
               title="Cámara"
               tone="dark"
-              onPress={() => void adjuntarFoto('camara')}
+              onPress={() => void elegirFoto('camara')}
               disabled={ocupado}
               style={styles.laminaBtn}
             />
           </View>
+          {fotoPendiente ? (
+            <Text style={styles.laminaHint}>
+              Foto lista. Pulsa “Guardar lámina” para montarla con tu reseña.
+            </Text>
+          ) : null}
         </View>
 
         {/* INFORMACIÓN DEL ENCUENTRO (abajo): resultado, goleadores,
@@ -470,8 +511,8 @@ export function DetallePartidoScreen({
           accessibilityLabel="Reseña del partido"
         />
         <PrimaryButton
-          title="Guardar reseña"
-          onPress={() => void guardarResena()}
+          title={ocupado ? 'Guardando…' : 'Guardar lámina'}
+          onPress={() => void guardarLamina()}
           disabled={ocupado}
           style={styles.resenaBtn}
         />
@@ -588,6 +629,13 @@ const styles = StyleSheet.create({
   lamina: { width: 168, marginTop: spacing.sm, marginBottom: spacing.md },
   laminaAcciones: { flexDirection: 'row', gap: spacing.sm, alignSelf: 'stretch' },
   laminaBtn: { flex: 1 },
+  laminaHint: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
 
   formacionEquipo: {
     marginBottom: spacing.sm,
