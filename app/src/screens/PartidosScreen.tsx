@@ -9,7 +9,7 @@
 // IMPORTANTE (entorno actual): `.tsx` EXCLUIDO del typecheck (RN no instalado en
 // este entorno). Código real para cuando se instale el toolchain del cliente.
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -79,6 +79,29 @@ function iconoCompeticion(tipo: PartidoLamina['tipoCompeticion'] | null): string
   }
 }
 
+/**
+ * Traduce al español los nombres de competición que API-Football entrega en
+ * inglés (p. ej. "Friendlies Clubs"). Si no hay traducción conocida, devuelve el
+ * nombre original (muchas competiciones chilenas ya vienen en español, como
+ * "Primera División" o "Copa Chile"). Comparación tolerante a mayúsculas.
+ */
+function competicionEsEspañol(nombre: string): string {
+  const limpio = nombre.trim();
+  const traducciones: Record<string, string> = {
+    'friendlies clubs': 'Amistosos de clubes',
+    'friendlies': 'Amistosos',
+    'club friendlies': 'Amistosos de clubes',
+    'super cup': 'Supercopa',
+    'copa de la liga': 'Copa de la Liga',
+    'serie rio de la plata': 'Serie Río de la Plata',
+    'primera division': 'Primera División',
+    'conmebol libertadores': 'Copa Libertadores',
+    'conmebol sudamericana': 'Copa Sudamericana',
+    'uefa champions league': 'Liga de Campeones',
+  };
+  return traducciones[limpio.toLowerCase()] ?? limpio;
+}
+
 /** Orden de aparición de las competiciones: Liga → Copa nacional → Internacional. */
 const ORDEN_TIPO: Record<PartidoLamina['tipoCompeticion'], number> = {
   LIGA: 0,
@@ -118,9 +141,10 @@ function agruparPorCompeticion(partidos: readonly PartidoLamina[]): PartidosSect
   }
 
   return [...grupos.entries()]
-    .map(([title, data]) => ({
-      title,
-      tipo: tipoPorClave.get(title) ?? null,
+    .map(([clave, data]) => ({
+      // Título en español (traduce los nombres en inglés de la API).
+      title: clave === 'Otros' ? 'Otros' : competicionEsEspañol(clave),
+      tipo: tipoPorClave.get(clave) ?? null,
       data: [...data].sort(porFechaAsc),
     }))
     .sort((a, b) => {
@@ -145,6 +169,9 @@ export function PartidosScreen({
 }: PartidosScreenProps): React.ReactElement {
   const pres = useMemo(() => presenter ?? new ProfilePresenter(client), [presenter, client]);
   const [state, setState] = useState<PartidosState>(() => pres.getPartidosState());
+  // Secciones contraídas (por su título). Al colapsar, la sección muestra solo
+  // su encabezado; sus filas se ocultan.
+  const [colapsadas, setColapsadas] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => {
     const unsubscribe = pres.subscribePartidos(setState);
@@ -152,45 +179,82 @@ export function PartidosScreen({
     return unsubscribe;
   }, [pres, temporadaId]);
 
-  const sections = useMemo(
+  const toggleSeccion = useCallback((titulo: string) => {
+    setColapsadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(titulo)) {
+        next.delete(titulo);
+      } else {
+        next.add(titulo);
+      }
+      return next;
+    });
+  }, []);
+
+  const sectionsBase = useMemo(
     () => agruparPorCompeticion(state.partidos),
     [state.partidos],
+  );
+  // Para SectionList: si una sección está colapsada, se le pasa `data` vacío
+  // (el encabezado sigue visible y tocable). `total` conserva el conteo real.
+  const sections = useMemo(
+    () =>
+      sectionsBase.map((s) => ({
+        ...s,
+        total: s.data.length,
+        data: colapsadas.has(s.title) ? [] : s.data,
+      })),
+    [sectionsBase, colapsadas],
   );
 
   const renderItem = ({
     item,
-  }: ListRenderItemInfo<PartidoLamina>): React.ReactElement => (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Tomar foto del partido contra ${item.rival}`}
-      onPress={() => onTomarFoto?.(item.partidoId)}
-      style={styles.fila}
-    >
-      {/* Número GLOBAL de la lámina (numeroRecuadro), 1→X por fecha e
-          independiente del torneo, aunque la lista esté agrupada por
-          competición. "—" si aún no tiene recuadro derivado. */}
-      <View
-        style={styles.fechaBox}
-        accessibilityLabel={`Lámina ${item.numeroRecuadro ?? 'sin número'}`}
+  }: ListRenderItemInfo<PartidoLamina>): React.ReactElement => {
+    const esProximo = item.estado === 'PROGRAMADO';
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${esProximo ? 'Próximo partido' : 'Partido'} contra ${item.rival}`}
+        onPress={() => onTomarFoto?.(item.partidoId)}
+        style={styles.fila}
       >
-        <Text style={styles.fechaNumero}>{item.numeroRecuadro ?? '—'}</Text>
-      </View>
+        {/* Cajita de la lámina. Para partidos PRÓXIMOS (PROGRAMADO) va en VERDE
+            (aún no hay número de recuadro montado); para los demás muestra el
+            numeroRecuadro GLOBAL (1→X por fecha). */}
+        <View
+          style={[styles.fechaBox, esProximo && styles.fechaBoxProximo]}
+          accessibilityLabel={
+            esProximo ? 'Próximo' : `Lámina ${item.numeroRecuadro ?? 'sin número'}`
+          }
+        >
+          <Text style={[styles.fechaNumero, esProximo && styles.fechaNumeroProximo]}>
+            {esProximo ? '›' : item.numeroRecuadro ?? '—'}
+          </Text>
+        </View>
 
-      {/* Info del partido: rival, fecha y resultado (la competición va en el
-          encabezado de la sección). */}
-      <View style={styles.info}>
-        <Text style={styles.rival} numberOfLines={1}>
-          vs {item.rival}
-        </Text>
-        <Text style={styles.meta} numberOfLines={1}>
-          {fechaCorta(item.fechaHora)} · {marcador(item)}
-        </Text>
-      </View>
+        {/* Info del partido: rival, fecha y resultado (la competición va en el
+            encabezado de la sección). */}
+        <View style={styles.info}>
+          <Text style={styles.rival} numberOfLines={1}>
+            vs {item.rival}
+          </Text>
+          <Text style={styles.meta} numberOfLines={1}>
+            {fechaCorta(item.fechaHora)} · {marcador(item)}
+          </Text>
+        </View>
 
-      {/* Estado de la lámina: montada (estrella dorada) o falta ("?" rojo). */}
-      <LaminaIcon glyph={item.tieneFotoPrincipal ? 'star' : 'question'} size={30} />
-    </Pressable>
-  );
+        {/* Próximo: flecha verde hacia la derecha. Jugado: estado de la lámina
+            (estrella dorada montada / "?" rojo si falta). */}
+        {esProximo ? (
+          <Text style={styles.flechaProximo} accessibilityLabel="Partido próximo">
+            ›
+          </Text>
+        ) : (
+          <LaminaIcon glyph={item.tieneFotoPrincipal ? 'star' : 'question'} size={30} />
+        )}
+      </Pressable>
+    );
+  };
 
   return (
     <Screen tone="light" flush>
@@ -224,15 +288,26 @@ export function PartidosScreen({
           sections={sections}
           keyExtractor={(item) => item.partidoId}
           renderItem={renderItem}
-          renderSectionHeader={({ section }) => (
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionIcon}>{iconoCompeticion(section.tipo)}</Text>
-              <Text style={styles.sectionTitle} numberOfLines={1}>
-                {section.title}
-              </Text>
-              <Text style={styles.sectionCount}>{section.data.length}</Text>
-            </View>
-          )}
+          renderSectionHeader={({ section }) => {
+            const colapsada = colapsadas.has(section.title);
+            return (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${colapsada ? 'Expandir' : 'Contraer'} ${section.title}`}
+                accessibilityState={{ expanded: !colapsada }}
+                onPress={() => toggleSeccion(section.title)}
+                style={styles.sectionHeader}
+              >
+                <Text style={styles.sectionIcon}>{iconoCompeticion(section.tipo)}</Text>
+                <Text style={styles.sectionTitle} numberOfLines={1}>
+                  {section.title}
+                </Text>
+                <Text style={styles.sectionCount}>{section.total}</Text>
+                {/* Chevron: ▾ expandida, ▸ contraída. */}
+                <Text style={styles.sectionChevron}>{colapsada ? '▸' : '▾'}</Text>
+              </Pressable>
+            );
+          }}
           stickySectionHeadersEnabled={false}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
@@ -277,6 +352,12 @@ const styles = StyleSheet.create({
     fontSize: fontSize.small,
     fontWeight: fontWeight.semibold,
   },
+  // Chevron de contraer/expandir la sección.
+  sectionChevron: {
+    color: palette.textMutedOnDark,
+    fontSize: fontSize.body,
+    marginLeft: spacing.xs,
+  },
   fila: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -302,6 +383,21 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: fontSize.subtitle,
     fontWeight: fontWeight.bold,
+  },
+  // Variante VERDE de la cajita para partidos próximos (PROGRAMADO).
+  fechaBoxProximo: {
+    backgroundColor: palette.success,
+  },
+  fechaNumeroProximo: {
+    color: '#06281A',
+    fontSize: fontSize.title,
+  },
+  // Flecha verde hacia la derecha al final de la fila de un partido próximo.
+  flechaProximo: {
+    color: palette.success,
+    fontSize: fontSize.title,
+    fontWeight: fontWeight.bold,
+    paddingHorizontal: spacing.xs,
   },
   info: { flex: 1 },
   rival: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.bold },
