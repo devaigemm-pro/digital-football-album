@@ -553,6 +553,22 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
           onDone={() => {
             void profilePresenter.loadProfile();
           }}
+          avatarPicker={{
+            // Abre la galería, sube el binario a `POST /me/avatar` y devuelve la
+            // `avatarUrl` persistida para la vista previa y el PATCH del perfil.
+            // Mismo mecanismo que el "+" del Carné (consistencia). Devuelve null
+            // si el usuario cancela el selector.
+            pickImage: async () => {
+              const seleccion = await deps.captureNative.pickFromGallery();
+              if (!seleccion) {
+                return null;
+              }
+              const { avatarUrl } = await deps.profileClient.subirAvatar(
+                encodeBase64(seleccion.binario),
+              );
+              return avatarUrl;
+            },
+          }}
           onLogout={() => {
             void deps.authPresenter.logout().finally(() => deps.onRedirectToLogin?.());
           }}

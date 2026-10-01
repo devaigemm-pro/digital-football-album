@@ -32,7 +32,11 @@ export interface OnboardingScreenProps {
   readonly onDone?: () => void;
   /** Puente opcional para elegir avatar (si falta, se omite el avatar). */
   readonly avatarPicker?: AvatarPickerBridge;
-  /** Cierra la sesión (opción visible durante el alta). */
+  /**
+   * Cierra la sesión. Ya NO se muestra durante el onboarding (se quitó de los
+   * pasos de alta por decisión de UX); se mantiene en el contrato por si el
+   * contenedor lo necesita en el futuro. Aceptado y opcional.
+   */
   readonly onLogout?: () => void;
 }
 
@@ -63,12 +67,28 @@ function esLigaReal(l: LigaPais): boolean {
   return !/friendl|amistos/i.test(l.nombre);
 }
 
+/**
+ * Autoformatea lo que el usuario escribe a `AAAA-MM-DD` mientras teclea:
+ * conserva solo dígitos (máx 8 = AAAAMMDD) e inserta los guiones en su sitio.
+ * Así el usuario solo escribe números y el campo pone los separadores. Borrar
+ * también funciona (al quitar dígitos el guion sobrante desaparece solo).
+ */
+function formatearFechaISO(entrada: string): string {
+  const digitos = entrada.replace(/\D/g, '').slice(0, 8);
+  const anio = digitos.slice(0, 4);
+  const mes = digitos.slice(4, 6);
+  const dia = digitos.slice(6, 8);
+  let salida = anio;
+  if (digitos.length > 4) salida += `-${mes}`;
+  if (digitos.length > 6) salida += `-${dia}`;
+  return salida;
+}
+
 export function OnboardingScreen({
   profileClient,
   presenter,
   onDone,
   avatarPicker,
-  onLogout,
 }: OnboardingScreenProps): React.ReactElement {
   const pres = useMemo(
     () => presenter ?? new ProfilePresenter(profileClient),
@@ -108,8 +128,12 @@ export function OnboardingScreen({
       .then((lista) => {
         if (!cancelado) setPaises(lista);
       })
-      .catch(() => {
-        if (!cancelado) setError('No se pudieron cargar los países. Inténtalo de nuevo.');
+      .catch((e: unknown) => {
+        if (cancelado) return;
+        // Incluye el motivo real (token expirado, red, backend) en vez de un
+        // mensaje opaco, para no volver a diagnosticar a ciegas.
+        const detalle = e instanceof Error && e.message ? ` (${e.message})` : '';
+        setError(`No se pudieron cargar los países. Inténtalo de nuevo.${detalle}`);
       })
       .finally(() => {
         if (!cancelado) setCargando(false);
@@ -238,9 +262,6 @@ export function OnboardingScreen({
           Documenta tu temporada partido a partido y arma tu álbum coleccionable.
         </Text>
         <PrimaryButton title="Empezar" onPress={() => setPaso('perfil')} style={styles.cta} />
-        {onLogout ? (
-          <SecondaryButton title="Cerrar sesión" onPress={onLogout} style={styles.secondary} />
-        ) : null}
       </Screen>
     );
   }
@@ -296,9 +317,10 @@ export function OnboardingScreen({
           <TextInput
             style={styles.input}
             value={fechaNacimiento}
-            onChangeText={setFechaNacimiento}
+            onChangeText={(t) => setFechaNacimiento(formatearFechaISO(t))}
             autoCapitalize="none"
-            keyboardType="numbers-and-punctuation"
+            keyboardType="number-pad"
+            maxLength={10}
             placeholder="AAAA-MM-DD (opcional)"
             placeholderTextColor={palette.textMutedOnDark}
             accessibilityLabel="Fecha de nacimiento"
@@ -324,9 +346,6 @@ export function OnboardingScreen({
             disabled={guardandoPerfil}
             style={styles.cta}
           />
-          {onLogout ? (
-            <SecondaryButton title="Cerrar sesión" tone="light" onPress={onLogout} style={styles.secondary} />
-          ) : null}
         </ScrollView>
       </Screen>
     );
