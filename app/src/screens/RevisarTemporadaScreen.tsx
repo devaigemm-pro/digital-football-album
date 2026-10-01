@@ -41,7 +41,7 @@ import Animated, {
   useAnimatedRef,
 } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
-import Svg, { Path as SvgPath } from 'react-native-svg';
+import Svg, { Path as SvgPath, Polygon as SvgPolygon } from 'react-native-svg';
 
 import {
   AlbumPreviewPresenter,
@@ -139,6 +139,73 @@ function EstrellaConNumero({
           ]}
         >
           {numero}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Placa deportiva con el nombre del usuario (estilo cromo real): un polígono de
+ * tinta con las esquinas recortadas en diagonal, filete claro y dos barras
+ * diagonales (acento del club + blanca) a la derecha; el nombre va en itálica
+ * display, blanco con sombra, ligeramente inclinado (skew) para dar dinamismo.
+ *
+ * Se dibuja con `react-native-svg` (no con Views) para que los cortes
+ * diagonales y las barras se vean nítidos e idénticos en iOS/Android. El texto
+ * es un `<Text>` RN sobre la placa (no `<SvgText>`, por su baseline
+ * inconsistente), en una zona que EXCLUYE las barras para que nunca se encime.
+ */
+function PlacaNombre({
+  nombre,
+  width,
+  acento,
+}: {
+  readonly nombre: string;
+  readonly width: number;
+  readonly acento: string;
+}): React.ReactElement {
+  const H = Math.round(width * 0.18);
+  const cut = Math.round(H * 0.24);
+  const w = width;
+  // Polígono con las 4 esquinas recortadas en diagonal.
+  const puntos = [
+    [cut, 0],
+    [w - cut, 0],
+    [w, cut],
+    [w, H - cut],
+    [w - cut, H],
+    [cut, H],
+    [0, H - cut],
+    [0, cut],
+  ]
+    .map((p) => p.join(','))
+    .join(' ');
+  // Dos barras diagonales a la derecha (blanca detrás, acento delante).
+  const barra = (x: number): string =>
+    [
+      [x, H * 0.76],
+      [x + H * 0.2, H * 0.76],
+      [x - H * 0.16, H * 0.24],
+      [x - H * 0.36, H * 0.24],
+    ]
+      .map((p) => p.join(','))
+      .join(' ');
+  // Tamaño de fuente adaptativo: nombres largos reducen para no desbordar.
+  const fs = nombre.length > 10 ? Math.round(H * 0.4) : nombre.length > 7 ? Math.round(H * 0.5) : Math.round(H * 0.58);
+  return (
+    <View style={{ width: w, height: H }}>
+      <Svg width={w} height={H} viewBox={`0 0 ${w} ${H}`}>
+        <SvgPolygon points={puntos} fill="#101826" stroke="#E8E2D4" strokeWidth={1.5} />
+        <SvgPolygon points={barra(w - H * 0.44)} fill="#FFFFFF" />
+        <SvgPolygon points={barra(w - H * 0.68)} fill={acento} />
+      </Svg>
+      <View
+        pointerEvents="none"
+        style={[styles.placaTextoWrap, { right: Math.round(H * 0.9) }]}
+      >
+        <Text numberOfLines={1} style={[styles.placaTexto, { fontSize: fs }]}>
+          {nombre}
         </Text>
       </View>
     </View>
@@ -334,18 +401,15 @@ function LaminaCard({
               {realce ? (
                 <Badge label={realce} tone={item.partido.esClasico ? 'gold' : 'accent'} style={styles.realceBadge} />
               ) : null}
-              {/* Banda inferior SOBRE la foto (estilo Panini): nombre del usuario
-                  destacado en una franja del color del club que cruza el ancho. */}
-              <LinearGradient
-                colors={[`${colorClub}00`, `${colorClub}E6`, colorClub]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.bandaNombre}
-              >
-                <Text style={styles.bandaNombreText} numberOfLines={1}>
-                  {nombreUsuario.toUpperCase()}
-                </Text>
-              </LinearGradient>
+              {/* Placa deportiva SOBRE la foto (parte baja) con el nombre del
+                  usuario, estilo cromo real (polígono SVG + barras diagonales). */}
+              <View style={styles.placaWrap} pointerEvents="none">
+                <PlacaNombre
+                  nombre={nombreUsuario.toUpperCase()}
+                  width={Math.round(CARD_W * 0.78)}
+                  acento={colorClub3}
+                />
+              </View>
             </View>
           </View>
 
@@ -724,29 +788,32 @@ const styles = StyleSheet.create({
     width: CARD_W * 0.9,
   },
   realceBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm },
-  // Banda inferior SOBRE la foto con el nombre del usuario (estilo Panini):
-  // degradado del color del club de transparente (arriba) a sólido (abajo) para
-  // que el nombre se lea sobre cualquier foto.
-  bandaNombre: {
+  // Contenedor que centra la placa del nombre sobre la foto, en la parte baja.
+  placaWrap: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    justifyContent: 'flex-end',
+    bottom: spacing.sm,
+    alignItems: 'center',
   },
-  bandaNombreText: {
+  // Zona del texto dentro de la placa: excluye la derecha (barras diagonales).
+  placaTextoWrap: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  placaTexto: {
     color: '#FFFFFF',
     fontFamily: fonts.display,
-    fontSize: fontSize.subtitle,
     fontWeight: fontWeight.extrabold,
-    letterSpacing: 0.5,
-    textAlign: 'center',
-    textShadowColor: '#00000099',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    fontStyle: 'italic',
+    letterSpacing: 1,
+    textShadowColor: '#000000AA',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   // Pie: datos del partido a la izquierda; firma (@alias) a la derecha.
   pie: {
