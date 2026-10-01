@@ -45,6 +45,8 @@ import {
   proximoPartido,
   type ProgresoTemporada,
 } from '../album';
+import Svg, { Circle as SvgCircle, Polygon as SvgPolygon, Path as SvgPath } from 'react-native-svg';
+
 import type { PartidoLamina, ProfileClient } from '../adapters';
 import { Badge, Crest, LaminaIcon, ProgressRing, Screen, StickerSlot, useAppTheme } from '../ui/kit';
 import {
@@ -56,6 +58,40 @@ import {
   shadow,
   spacing,
 } from '../theme/design-tokens';
+
+/**
+ * Balón de fútbol estilizado (SVG): esfera con el pentágono central negro y las
+ * costuras que salen hacia los bordes. Nítido en cualquier densidad. Se usa como
+ * ícono de cada evento en "Actividad reciente". `montado` tiñe el balón con el
+ * color del club (lámina lista) o lo deja neutro (gris) si aún falta la foto.
+ */
+function BalonFutbol({
+  size = 34,
+  color = '#FFFFFF',
+}: {
+  readonly size?: number;
+  readonly color?: string;
+}): React.ReactElement {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 48 48" accessibilityLabel="Balón de fútbol">
+      {/* Esfera */}
+      <SvgCircle cx={24} cy={24} r={21} fill={color} stroke="#0B0E14" strokeWidth={2} />
+      {/* Pentágono central negro */}
+      <SvgPolygon
+        points="24,13 32,19 29,29 19,29 16,19"
+        fill="#0B0E14"
+      />
+      {/* Costuras desde los vértices del pentágono hacia el borde */}
+      <SvgPath
+        d="M24 13 L24 4 M32 19 L41 15 M29 29 L35 37 M19 29 L13 37 M16 19 L7 15"
+        stroke="#0B0E14"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        fill="none"
+      />
+    </Svg>
+  );
+}
 
 export interface CarneScreenProps {
   /** Cliente de perfil/partidos (`GET /me`, `GET /temporadas/:id/partidos`). */
@@ -451,13 +487,13 @@ export function CarneScreen({
                   onPress={() => onVerPartidos?.(temporadaId ?? '')}
                   style={styles.actividadFila}
                 >
-                  {/* Miniatura: si la lámina está montada, cuadro con el color del
-                      club; si falta, silueta punteada (como el mockup). */}
-                  {p.tieneFotoPrincipal ? (
-                    <View style={[styles.actMini, { backgroundColor: theme.palette.accent }]} />
-                  ) : (
-                    <View style={styles.actMiniVacia} />
-                  )}
+                  {/* Ícono del evento: balón de fútbol estilizado. Si la lámina
+                      está montada, el balón toma el color del club; si falta la
+                      foto, queda neutro (gris claro). */}
+                  <BalonFutbol
+                    size={34}
+                    color={p.tieneFotoPrincipal ? theme.palette.accent : '#C7CDD6'}
+                  />
                   <View style={styles.actividadInfo}>
                     {/* Línea principal: número de lámina + "vs RIVAL". El marcador
                         NO se atribuye al rival (el backend no expone si el club
@@ -776,20 +812,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.sm,
-  },
-  actMini: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
-  },
-  actMiniVacia: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: palette.textMutedOnDark,
-    backgroundColor: '#FFFFFF08',
   },
   actividadInfo: { flex: 1, minWidth: 0 },
   actividadRival: {

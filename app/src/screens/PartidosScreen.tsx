@@ -20,10 +20,40 @@ import {
   type ListRenderItemInfo,
 } from 'react-native';
 
+import Svg, { Path as SvgPath, Rect as SvgRect, Line as SvgLine } from 'react-native-svg';
+
 import { ProfilePresenter, type PartidosState } from '../profile';
 import type { PartidoLamina, ProfileClient } from '../adapters';
 import { Hero, LaminaIcon, Screen } from '../ui/kit';
 import { fonts, fontSize, fontWeight, palette, radius, spacing } from '../theme/design-tokens';
+
+/**
+ * Ícono de "próximo partido": un calendario con una flecha verde apuntando a la
+ * derecha en el centro. Dibujado con SVG (nítido en cualquier densidad).
+ */
+function IconoCalendarioProximo({ size = 30 }: { readonly size?: number }): React.ReactElement {
+  const verde = palette.success;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" accessibilityLabel="Partido próximo">
+      {/* Cuerpo del calendario */}
+      <SvgRect x={3} y={4.5} width={18} height={16} rx={2.5} stroke={verde} strokeWidth={1.8} fill="none" />
+      {/* Anillas superiores */}
+      <SvgLine x1={8} y1={2.5} x2={8} y2={6} stroke={verde} strokeWidth={1.8} strokeLinecap="round" />
+      <SvgLine x1={16} y1={2.5} x2={16} y2={6} stroke={verde} strokeWidth={1.8} strokeLinecap="round" />
+      {/* Línea de cabecera del calendario */}
+      <SvgLine x1={3} y1={8.5} x2={21} y2={8.5} stroke={verde} strokeWidth={1.5} />
+      {/* Flecha hacia la derecha en el centro */}
+      <SvgPath
+        d="M9 14.5 H15 M12.5 12 L15.5 14.5 L12.5 17"
+        stroke={verde}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </Svg>
+  );
+}
 
 export interface PartidosScreenProps {
   /** Temporada cuyos partidos se listan (viene del perfil / navegación). */
@@ -218,18 +248,13 @@ export function PartidosScreen({
         onPress={() => onTomarFoto?.(item.partidoId)}
         style={styles.fila}
       >
-        {/* Cajita de la lámina. Para partidos PRÓXIMOS (PROGRAMADO) va en VERDE
-            (aún no hay número de recuadro montado); para los demás muestra el
-            numeroRecuadro GLOBAL (1→X por fecha). */}
+        {/* Cajita de la lámina: SIEMPRE muestra el numeroRecuadro GLOBAL
+            (1→X por fecha), también para los partidos próximos. */}
         <View
-          style={[styles.fechaBox, esProximo && styles.fechaBoxProximo]}
-          accessibilityLabel={
-            esProximo ? 'Próximo' : `Lámina ${item.numeroRecuadro ?? 'sin número'}`
-          }
+          style={styles.fechaBox}
+          accessibilityLabel={`Lámina ${item.numeroRecuadro ?? 'sin número'}`}
         >
-          <Text style={[styles.fechaNumero, esProximo && styles.fechaNumeroProximo]}>
-            {esProximo ? '›' : item.numeroRecuadro ?? '—'}
-          </Text>
+          <Text style={styles.fechaNumero}>{item.numeroRecuadro ?? '—'}</Text>
         </View>
 
         {/* Info del partido: rival, fecha y resultado (la competición va en el
@@ -243,12 +268,10 @@ export function PartidosScreen({
           </Text>
         </View>
 
-        {/* Próximo: flecha verde hacia la derecha. Jugado: estado de la lámina
-            (estrella dorada montada / "?" rojo si falta). */}
+        {/* Próximo: calendario con flecha verde a la derecha. Jugado: estado de
+            la lámina (estrella dorada montada / "?" rojo si falta). */}
         {esProximo ? (
-          <Text style={styles.flechaProximo} accessibilityLabel="Partido próximo">
-            ›
-          </Text>
+          <IconoCalendarioProximo size={30} />
         ) : (
           <LaminaIcon glyph={item.tieneFotoPrincipal ? 'star' : 'question'} size={30} />
         )}
@@ -383,21 +406,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display,
     fontSize: fontSize.subtitle,
     fontWeight: fontWeight.bold,
-  },
-  // Variante VERDE de la cajita para partidos próximos (PROGRAMADO).
-  fechaBoxProximo: {
-    backgroundColor: palette.success,
-  },
-  fechaNumeroProximo: {
-    color: '#06281A',
-    fontSize: fontSize.title,
-  },
-  // Flecha verde hacia la derecha al final de la fila de un partido próximo.
-  flechaProximo: {
-    color: palette.success,
-    fontSize: fontSize.title,
-    fontWeight: fontWeight.bold,
-    paddingHorizontal: spacing.xs,
   },
   info: { flex: 1 },
   rival: { color: palette.textOnDark, fontFamily: fonts.body, fontSize: fontSize.body, fontWeight: fontWeight.bold },
