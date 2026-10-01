@@ -694,16 +694,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 3,
   },
-  // Insignia (escudo) del club del usuario. Mismo tamaño y fondo translúcido que
-  // el logo de la liga para que ambos luzcan como par en la línea superior.
+  // Insignia (escudo) del club del usuario, íntegra SIN caja/fondo/borde (como
+  // el logo de la liga). Sombra sutil para separarla del fondo, no un recuadro.
   insigniaClub: {
     width: 48,
     height: 48,
-    borderRadius: 10,
-    padding: 4,
-    backgroundColor: '#00000066',
     resizeMode: 'contain',
     marginBottom: spacing.xs,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 4,
   },
   insigniaClubMono: {
     width: 48,
@@ -750,17 +752,20 @@ const styles = StyleSheet.create({
   torneoIcon: { fontSize: 24 },
   // Logo real de la liga sobre la foto (esquina superior izquierda). Ampliado
   // para dar presencia al escudo de la competición; fondo translúcido y
-  // redondeado para que contraste sobre fotos claras u oscuras.
+  // íntegro, SIN caja/fondo/borde. Una sombra sutil le da separación del fondo
+  // sin dibujar un recuadro feo sobre fotos claras.
   torneoLogo: {
     position: 'absolute',
     top: spacing.xs,
     left: spacing.xs,
     width: 48,
     height: 48,
-    borderRadius: 10,
-    padding: 4,
-    backgroundColor: '#00000066',
     resizeMode: 'contain',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 4,
   },
 
   // Ventana de la foto: filete claro alrededor (marco interior blancuzco).
