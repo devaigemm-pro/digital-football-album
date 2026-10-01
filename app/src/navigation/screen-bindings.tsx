@@ -518,7 +518,13 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
     // rechazar, p. ej. una petición que nunca vuelve) más de TIMEOUT, dejamos de
     // esperar y mostramos el error accionable en vez de un loader eterno.
     const [vencio, setVencio] = React.useState(false);
-    const enEspera = state.status === 'loading' || state.status === 'idle';
+    // Solo esperamos (loader) en la carga INICIAL, cuando aún no hay perfil. Si
+    // ya hay un perfil cargado y se dispara una RE-carga (p. ej. al entrar a
+    // "Mi temporada", que refresca el presenter compartido), NO colapsamos las
+    // pestañas: hacerlo desmontaba el tab navigator y lo reiniciaba en el Carné,
+    // sacando al usuario de la pantalla donde estaba.
+    const enEspera =
+      (state.status === 'loading' || state.status === 'idle') && state.perfil === null;
     React.useEffect(() => {
       if (!enEspera) {
         setVencio(false);
@@ -536,11 +542,12 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
       void profilePresenter.loadProfile();
     };
 
-    // Si la carga del perfil FALLÓ (p. ej. sesión expirada, red o backend caído)
-    // NO nos quedamos en el loader eterno: mostramos el error con reintento y una
-    // salida (cerrar sesión). El caso `error` puede traer `perfil === null`, así
-    // que debe evaluarse ANTES que el loader. `vencio` cubre el caso "colgado".
-    if (state.status === 'error' || vencio) {
+    // Si la carga INICIAL del perfil FALLÓ (sin perfil previo) NO nos quedamos en
+    // el loader eterno: mostramos el error con reintento y salida. Si YA hay un
+    // perfil cargado y una RE-carga falla, NO colapsamos el árbol (eso sacaría al
+    // usuario de su pantalla); cada pantalla maneja su propio error de recarga.
+    // `vencio` cubre el caso "colgado" en la carga inicial.
+    if ((state.status === 'error' && state.perfil === null) || vencio) {
       return (
         <ProfileError
           mensaje={

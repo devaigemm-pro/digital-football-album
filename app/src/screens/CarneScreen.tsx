@@ -45,7 +45,7 @@ import {
   proximoPartido,
   type ProgresoTemporada,
 } from '../album';
-import Svg, { Circle as SvgCircle, Polygon as SvgPolygon, Path as SvgPath } from 'react-native-svg';
+import Svg, { Path as SvgPath } from 'react-native-svg';
 
 import type { PartidoLamina, ProfileClient } from '../adapters';
 import { Badge, Crest, LaminaIcon, ProgressRing, Screen, StickerSlot, useAppTheme } from '../ui/kit';
@@ -61,32 +61,45 @@ import {
 
 /**
  * Balón de fútbol estilizado (SVG): esfera con el pentágono central negro y las
- * costuras que salen hacia los bordes. Nítido en cualquier densidad. Se usa como
- * ícono de cada evento en "Actividad reciente". `montado` tiñe el balón con el
- * color del club (lámina lista) o lo deja neutro (gris) si aún falta la foto.
+ * Arco (portería) de fútbol visto en DIAGONAL (perspectiva 3/4): marco frontal
+ * + profundidad hacia atrás + red. Dibujado en SVG (nítido en cualquier
+ * densidad). Ícono de cada evento en "Actividad reciente". `color` tiñe el marco
+ * del arco con el color del club (lámina lista) o lo deja neutro (gris) si falta.
  */
-function BalonFutbol({
+function ArcoFutbol({
   size = 34,
   color = '#FFFFFF',
 }: {
   readonly size?: number;
   readonly color?: string;
 }): React.ReactElement {
+  const red = `${color}66`;
   return (
-    <Svg width={size} height={size} viewBox="0 0 48 48" accessibilityLabel="Balón de fútbol">
-      {/* Esfera */}
-      <SvgCircle cx={24} cy={24} r={21} fill={color} stroke="#0B0E14" strokeWidth={2} />
-      {/* Pentágono central negro */}
-      <SvgPolygon
-        points="24,13 32,19 29,29 19,29 16,19"
-        fill="#0B0E14"
-      />
-      {/* Costuras desde los vértices del pentágono hacia el borde */}
+    <Svg width={size} height={size} viewBox="0 0 48 48" accessibilityLabel="Arco de fútbol">
+      {/* Red del fondo (malla diagonal tenue dentro del marco frontal). */}
       <SvgPath
-        d="M24 13 L24 4 M32 19 L41 15 M29 29 L35 37 M19 29 L13 37 M16 19 L7 15"
-        stroke="#0B0E14"
+        d="M11 14 L33 14 M11 20 L33 20 L33 36 M11 26 L33 26 M11 32 L33 32 M17 14 L17 38 M23 14 L23 38 M29 14 L29 37"
+        stroke={red}
+        strokeWidth={1}
+        fill="none"
+      />
+      {/* Profundidad: aristas superiores que van del marco frontal al fondo
+          (perspectiva diagonal hacia la derecha-arriba). */}
+      <SvgPath
+        d="M11 14 L19 9 M33 14 L41 9 M41 9 L41 29 L33 36"
+        stroke={color}
         strokeWidth={1.6}
         strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Marco frontal del arco (postes + travesaño + base). */}
+      <SvgPath
+        d="M11 38 L11 14 L33 14 L33 38"
+        stroke={color}
+        strokeWidth={2.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
         fill="none"
       />
     </Svg>
@@ -487,10 +500,10 @@ export function CarneScreen({
                   onPress={() => onVerPartidos?.(temporadaId ?? '')}
                   style={styles.actividadFila}
                 >
-                  {/* Ícono del evento: balón de fútbol estilizado. Si la lámina
-                      está montada, el balón toma el color del club; si falta la
-                      foto, queda neutro (gris claro). */}
-                  <BalonFutbol
+                  {/* Ícono del evento: arco (portería) en diagonal. Si la lámina
+                      está montada, toma el color del club; si falta la foto,
+                      queda neutro (gris claro). */}
+                  <ArcoFutbol
                     size={34}
                     color={p.tieneFotoPrincipal ? theme.palette.accent : '#C7CDD6'}
                   />
