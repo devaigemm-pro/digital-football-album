@@ -39,14 +39,16 @@ export interface OnboardingScreenProps {
 type Paso = 'bienvenida' | 'perfil' | 'pais' | 'division' | 'equipo' | 'cargando' | 'listo';
 
 /**
- * Temporada deportiva de trabajo. IMPORTANTE: la `SPORTS_API_KEY` es de plan
- * FREE de API-Football, que solo cubre ~2021-2023; la temporada en curso NO
- * está disponible en free. Por eso se usa 2023 como "temporada demo" con datos
- * reales y completos (fixtures, resultados, escudos, Copa Chile). Cuando se
- * suba a un plan de pago, cambiar por `new Date().getFullYear()` (o detectar la
- * última temporada disponible del equipo). Ver preferencias 2026-09-27.
+ * Temporada deportiva de trabajo = TEMPORADA ACTUAL (año en curso).
+ *
+ * La cuenta de API-Football es plan PRO (verificado: cubre la temporada en
+ * curso, p. ej. Colo Colo 2026 devuelve 51 partidos con Primera División, Copa
+ * Chile y Copa de la Liga). Por eso se usa el año actual en vez de la antigua
+ * "temporada demo" 2023 (que era una limitación del plan free, ya superada).
+ * Para ligas de calendario por año natural (como la chilena) el año de inicio
+ * de temporada en API-Football coincide con `getFullYear()`.
  */
-const SEASON_DEMO = 2023;
+const SEASON_ACTUAL = new Date().getFullYear();
 
 /** Opciones de sexo para el perfil. */
 const OPCIONES_SEXO: ReadonlyArray<{ valor: Sexo; etiqueta: string }> = [
@@ -123,7 +125,7 @@ export function OnboardingScreen({
       setCargando(true);
       setError(null);
       try {
-        const ligas = await profileClient.ligasDePais(p.nombre, SEASON_DEMO);
+        const ligas = await profileClient.ligasDePais(p.nombre, SEASON_ACTUAL);
         setDivisiones(ligas.filter(esLigaReal));
         setPaso('division');
       } catch {
@@ -140,7 +142,7 @@ export function OnboardingScreen({
       setCargando(true);
       setError(null);
       try {
-        setEquipos(await profileClient.equiposDeLiga(l.ligaId, SEASON_DEMO));
+        setEquipos(await profileClient.equiposDeLiga(l.ligaId, SEASON_ACTUAL));
         setPaso('equipo');
       } catch {
         setError('No se pudieron cargar los equipos. Inténtalo de nuevo.');
@@ -160,7 +162,7 @@ export function OnboardingScreen({
         // partidos del equipo en TODAS las competiciones (liga + Copa Chile +
         // internacional), no solo una liga (Req 4.2).
         const res = await profileClient.syncTemporada(
-          `team:${e.id}:${SEASON_DEMO}`,
+          `team:${e.id}:${SEASON_ACTUAL}`,
         );
         setResultadoRecuadros(res.recuadros);
         await pres.loadProfile();
@@ -373,7 +375,7 @@ export function OnboardingScreen({
       <Screen tone="light" flush>
         <Hero eyebrow="Paso 3 de 4" title="Elige tu división" />
         <ScrollView contentContainerStyle={styles.body}>
-          <Text style={styles.help}>Competiciones de {pais?.nombre ?? 'tu país'} · {SEASON_DEMO}</Text>
+          <Text style={styles.help}>Competiciones de {pais?.nombre ?? 'tu país'} · {SEASON_ACTUAL}</Text>
           {cargando ? <ActivityIndicator color={palette.accent} style={styles.spinner} /> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {divisiones.map((l) => (
