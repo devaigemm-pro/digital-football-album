@@ -442,7 +442,7 @@ export function CarneScreen({
           <>
             <Text style={styles.actividadTitulo}>Actividad reciente</Text>
             {recientes.map((p: PartidoLamina) => {
-              const abrev = (p.rival ?? '').slice(0, 2).toUpperCase();
+              const marcador = marcadorTexto(p);
               return (
                 <Pressable
                   key={p.partidoId}
@@ -459,12 +459,18 @@ export function CarneScreen({
                     <View style={styles.actMiniVacia} />
                   )}
                   <View style={styles.actividadInfo}>
+                    {/* Línea principal: número de lámina + "vs RIVAL". El marcador
+                        NO se atribuye al rival (el backend no expone si el club
+                        jugó de local o visita), así que se muestra aparte y
+                        neutro en la meta, sin siglas que confundan la autoría. */}
                     <Text style={styles.actividadRival} numberOfLines={1}>
-                      {p.numeroRecuadro != null ? `F${p.numeroRecuadro} · ` : ''}
-                      {marcadorTexto(p) ? `${abrev} ${marcadorTexto(p)}` : `vs ${p.rival}`}
+                      {p.numeroRecuadro != null ? `#${p.numeroRecuadro} · ` : ''}
+                      vs {p.rival}
                     </Text>
                     <Text style={styles.actividadMeta} numberOfLines={1}>
-                      {p.tieneFotoPrincipal ? 'Lámina montada' : 'Partido finalizado sin foto'}
+                      {p.competicion}
+                      {marcador ? ` · ${marcador}` : ''}
+                      {p.tieneFotoPrincipal ? ' · Lámina montada' : ' · Sin foto'}
                     </Text>
                   </View>
                   {p.tieneFotoPrincipal ? (
