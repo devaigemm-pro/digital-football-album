@@ -12,8 +12,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
+  SectionList,
   StyleSheet,
   Text,
   View,
@@ -53,22 +53,84 @@ function marcador(p: PartidoLamina): string {
   return p.estado === 'PROGRAMADO' ? 'Próximo' : p.estado;
 }
 
+/** Sección de la lista: una competición con sus partidos ordenados por fecha. */
+interface PartidosSection {
+  readonly title: string;
+  /** Tipo de competición del grupo (para elegir el ícono del encabezado). */
+  readonly tipo: PartidoLamina['tipoCompeticion'] | null;
+  readonly data: readonly PartidoLamina[];
+}
+
 /**
- * Ordena los partidos por FECHA ascendente (primer partido de la temporada →
- * último), SIN agrupar por competición. La lista es una secuencia única 1→X por
- * fecha, consistente con el `numeroRecuadro` global del álbum (preferencia del
- * usuario 2026-09-27: numerar las láminas por fecha, independiente del torneo).
- * Para fechas iguales, desempata por `numeroRecuadro` (orden del álbum).
+ * Ícono representativo de la competición. El backend no expone el logo de la
+ * competición, así que usamos un emblema por tipo (honesto, sin inventar un
+ * logo). Liga 🏆, Copa nacional 🏅, Internacional 🌎.
  */
-function ordenarPorFecha(partidos: readonly PartidoLamina[]): PartidoLamina[] {
-  return [...partidos].sort((a, b) => {
-    const ta = new Date(a.fechaHora).getTime();
-    const tb = new Date(b.fechaHora).getTime();
-    if (ta !== tb) {
-      return ta - tb;
+function iconoCompeticion(tipo: PartidoLamina['tipoCompeticion'] | null): string {
+  switch (tipo) {
+    case 'LIGA':
+      return '🏆';
+    case 'COPA_NACIONAL':
+      return '🏅';
+    case 'INTERNACIONAL':
+      return '🌎';
+    default:
+      return '⚽';
+  }
+}
+
+/** Orden de aparición de las competiciones: Liga → Copa nacional → Internacional. */
+const ORDEN_TIPO: Record<PartidoLamina['tipoCompeticion'], number> = {
+  LIGA: 0,
+  COPA_NACIONAL: 1,
+  INTERNACIONAL: 2,
+};
+
+/** Compara dos partidos por fecha ascendente (de la primera jornada a la última). */
+function porFechaAsc(a: PartidoLamina, b: PartidoLamina): number {
+  return new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime();
+}
+
+/**
+ * Agrupa los partidos POR COMPETICIÓN (cada torneo con sus partidos), ordena las
+ * competiciones (Liga → Copa nacional → Internacional → resto) y, dentro de cada
+ * una, ordena por fecha ascendente. Los partidos sin competición conocida caen
+ * en "Otros".
+ *
+ * IMPORTANTE: la agrupación es solo de PRESENTACIÓN; el número que se muestra en
+ * cada fila es el `numeroRecuadro` GLOBAL del álbum (1→X por fecha, único por
+ * temporada), NO un índice local por sección. Así se conserva la segmentación
+ * por torneo sin romper la numeración global.
+ */
+function agruparPorCompeticion(partidos: readonly PartidoLamina[]): PartidosSection[] {
+  const grupos = new Map<string, PartidoLamina[]>();
+  const tipoPorClave = new Map<string, PartidoLamina['tipoCompeticion'] | null>();
+
+  for (const p of partidos) {
+    const clave = p.competicion?.trim() ? p.competicion : 'Otros';
+    let grupo = grupos.get(clave);
+    if (!grupo) {
+      grupo = [];
+      grupos.set(clave, grupo);
+      tipoPorClave.set(clave, p.tipoCompeticion ?? null);
     }
-    return (a.numeroRecuadro ?? 0) - (b.numeroRecuadro ?? 0);
-  });
+    grupo.push(p);
+  }
+
+  return [...grupos.entries()]
+    .map(([title, data]) => ({
+      title,
+      tipo: tipoPorClave.get(title) ?? null,
+      data: [...data].sort(porFechaAsc),
+    }))
+    .sort((a, b) => {
+      const ra = a.tipo ? ORDEN_TIPO[a.tipo] : 99;
+      const rb = b.tipo ? ORDEN_TIPO[b.tipo] : 99;
+      if (ra !== rb) {
+        return ra - rb;
+      }
+      return a.title.localeCompare(b.title);
+    });
 }
 
 /**
@@ -90,8 +152,8 @@ export function PartidosScreen({
     return unsubscribe;
   }, [pres, temporadaId]);
 
-  const partidosOrdenados = useMemo(
-    () => ordenarPorFecha(state.partidos),
+  const sections = useMemo(
+    () => agruparPorCompeticion(state.partidos),
     [state.partidos],
   );
 
@@ -104,8 +166,9 @@ export function PartidosScreen({
       onPress={() => onTomarFoto?.(item.partidoId)}
       style={styles.fila}
     >
-      {/* Número GLOBAL de la lámina (numeroRecuadro), 1→X por fecha,
-          independiente del torneo. "—" si aún no tiene recuadro derivado. */}
+      {/* Número GLOBAL de la lámina (numeroRecuadro), 1→X por fecha e
+          independiente del torneo, aunque la lista esté agrupada por
+          competición. "—" si aún no tiene recuadro derivado. */}
       <View
         style={styles.fechaBox}
         accessibilityLabel={`Lámina ${item.numeroRecuadro ?? 'sin número'}`}
@@ -113,13 +176,14 @@ export function PartidosScreen({
         <Text style={styles.fechaNumero}>{item.numeroRecuadro ?? '—'}</Text>
       </View>
 
-      {/* Info del partido: rival, competición, fecha y resultado. */}
+      {/* Info del partido: rival, fecha y resultado (la competición va en el
+          encabezado de la sección). */}
       <View style={styles.info}>
         <Text style={styles.rival} numberOfLines={1}>
           vs {item.rival}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {item.competicion} · {fechaCorta(item.fechaHora)} · {marcador(item)}
+          {fechaCorta(item.fechaHora)} · {marcador(item)}
         </Text>
       </View>
 
@@ -156,10 +220,20 @@ export function PartidosScreen({
           </View>
         ) : null}
 
-        <FlatList
-          data={partidosOrdenados}
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item.partidoId}
           renderItem={renderItem}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionIcon}>{iconoCompeticion(section.tipo)}</Text>
+              <Text style={styles.sectionTitle} numberOfLines={1}>
+                {section.title}
+              </Text>
+              <Text style={styles.sectionCount}>{section.data.length}</Text>
+            </View>
+          )}
+          stickySectionHeadersEnabled={false}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             state.status === 'loaded' ? (
@@ -179,6 +253,30 @@ const styles = StyleSheet.create({
   heroSpinner: { alignSelf: 'flex-start', marginTop: spacing.sm },
   body: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   list: { paddingBottom: spacing.lg },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  sectionIcon: { fontSize: 18 },
+  sectionTitle: {
+    flex: 1,
+    color: palette.textOnDark,
+    fontFamily: fonts.display,
+    fontSize: fontSize.subtitle,
+    fontWeight: fontWeight.bold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionCount: {
+    color: palette.textMutedOnDark,
+    fontFamily: fonts.body,
+    fontSize: fontSize.small,
+    fontWeight: fontWeight.semibold,
+  },
   fila: {
     flexDirection: 'row',
     alignItems: 'center',

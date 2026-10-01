@@ -415,9 +415,13 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
   // notas), ambos respaldados por el backend real.
   const momentoPresenter = new MomentoDetailPresenter(deps.captureClient);
   const DetallePartido = (
-    props: { route?: { params?: { partidoId?: string } } },
+    props: {
+      route?: { params?: { partidoId?: string } };
+      navigation?: { navigate: (route: string, params?: Record<string, unknown>) => void };
+    },
   ): React.ReactElement => {
     const { partidoId } = useParams<{ partidoId: string }>(props);
+    const { temporadaId } = useTemporadaId();
     if (!partidoId) {
       return (
         <Placeholder mensaje="Elige un partido en la pestaña Partidos para ver su detalle." />
@@ -430,6 +434,16 @@ export function createScreenBundle(deps: ScreenDeps): ScreenBundle {
         capturePresenter={deps.capturePresenter}
         momentoPresenter={momentoPresenter}
         native={deps.captureNative}
+        onGuardado={() => {
+          // Refresca el estado compartido (contador del Carné y lista de
+          // Partidos, suscritos a este presenter) y navega a la lista de
+          // partidos. El álbum (otro presenter) recarga al re-montarse.
+          void profilePresenter.loadProfile();
+          if (temporadaId) {
+            void profilePresenter.loadPartidos(temporadaId);
+          }
+          props.navigation?.navigate('Partidos', temporadaId ? { temporadaId } : undefined);
+        }}
       />
     );
   };

@@ -66,6 +66,11 @@ export interface DetallePartidoScreenProps {
   readonly momentoPresenter: MomentoDetailPresenter;
   /** Puente nativo de galería/cámara para adjuntar la foto. */
   readonly native: CaptureNativeBridge;
+  /**
+   * Se invoca tras guardar la lámina con éxito (foto + reseña). El contenedor lo
+   * usa para refrescar el álbum/contador y navegar a la lista de partidos.
+   */
+  readonly onGuardado?: () => void;
 }
 
 /** Formatea la fecha ISO a algo legible (dd/mm/aaaa hh:mm). */
@@ -153,6 +158,7 @@ export function DetallePartidoScreen({
   capturePresenter,
   momentoPresenter,
   native,
+  onGuardado,
 }: DetallePartidoScreenProps): React.ReactElement {
   const [detalle, setDetalle] = useState<PartidoDetalle | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -324,7 +330,13 @@ export function DetallePartidoScreen({
       }
       setFotoPendiente(null);
       await recargar();
-      Alert.alert('Lámina guardada', 'Se guardó tu foto y tu reseña del partido.');
+      // Notifica al contenedor para refrescar álbum/contador y navegar a la
+      // lista de partidos. Si no hay callback, al menos avisa en el sitio.
+      if (onGuardado) {
+        onGuardado();
+      } else {
+        Alert.alert('Lámina guardada', 'Se guardó tu foto y tu reseña del partido.');
+      }
     } catch (e) {
       mostrarErrorNegocio('No se pudo guardar la lámina', e);
     } finally {
@@ -340,6 +352,7 @@ export function DetallePartidoScreen({
     resena,
     recargar,
     mostrarErrorNegocio,
+    onGuardado,
   ]);
 
   if (cargando && !detalle) {
